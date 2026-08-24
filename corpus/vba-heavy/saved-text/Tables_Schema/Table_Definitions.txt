@@ -1,0 +1,101 @@
+=== MS ACCESS TABLE ARCHITECTURE DEFINITIONS ===
+
+Table: CMD_LINE_TB
+----------------------------------------
+  Field: OPTION | Type: Text/Short Text | Size: 75
+  Field: DESCRIPTION | Type: Memo/Long Text | Size: 0
+  Field: LST_MDFD_ID | Type: Text/Short Text | Size: 20
+  Field: LST_MDFD_DTTM | Type: Date/Time | Size: 8
+
+
+Table: CUM_VAL_TB
+----------------------------------------
+  Field: CUM_VAL_ID | Type: Text/Short Text | Size: 5
+  Field: CUM_VAL_DATE | Type: Date/Time | Size: 8
+  Field: CUM_VAL_NBR | Type: Double | Size: 8
+
+
+Table: DATABASE_STRUCTURE_TB
+----------------------------------------
+  Field: TBL_NME | Type: Text/Short Text | Size: 255
+  Field: FLD_NME | Type: Text/Short Text | Size: 255
+  Field: FLD_TYPE | Type: Text/Short Text | Size: 20
+  Field: FLD_SIZE | Type: Byte | Size: 1
+  Field: FLD_DESC | Type: Text/Short Text | Size: 255
+  Field: FLD_POS | Type: Long Integer | Size: 4
+  Field: FLD_CAPTION | Type: Text/Short Text | Size: 100
+  Field: FLD_DEF_VAL | Type: Text/Short Text | Size: 20
+  Field: FLD_SPACES | Type: Boolean/YesNo | Size: 1
+
+
+Table: DECUM_VAL_TB
+----------------------------------------
+  Field: CUM_VAL_ID | Type: Text/Short Text | Size: 5
+  Field: CUM_VAL_DATE | Type: Date/Time | Size: 8
+  Field: CUM_VAL_NBR | Type: Double | Size: 8
+  Field: Cum_Value | Type: Double | Size: 8
+
+
+Table: ROULETTE_TB
+----------------------------------------
+  Field: ORDR_NBR | Type: Long Integer | Size: 4
+  Field: NBR_VALUE | Type: Text/Short Text | Size: 2
+  Field: COLOR_ID | Type: Long Integer | Size: 4
+
+
+Table: TAG_GRP_TB
+----------------------------------------
+  Field: TAG_GRP_ID | Type: Long Integer | Size: 4
+  Field: TAG_GRP_NME | Type: Text/Short Text | Size: 100
+  Field: TAG_GRP_DESC | Type: Text/Short Text | Size: 255
+
+
+Table: TAG_NME_TB
+----------------------------------------
+  Field: TAG_NME_ID | Type: Long Integer | Size: 4
+  Field: TAG_GRP_ID | Type: Long Integer | Size: 4
+  Field: OBJT_NME | Type: Text/Short Text | Size: 50
+  Field: TYPE_LIB_NME | Type: Text/Short Text | Size: 50
+  Field: TAG_NME | Type: Text/Short Text | Size: 50
+  Field: ALT_TAG_NME | Type: Text/Short Text | Size: 50
+  Field: CMNT_DESC | Type: Text/Short Text | Size: 50
+
+
+Table: tblContacts
+----------------------------------------
+  Field: ID | Type: Long Integer | Size: 4
+  Field: FirstName | Type: Text/Short Text | Size: 50
+  Field: LastName | Type: Text/Short Text | Size: 50
+  Field: Address | Type: Text/Short Text | Size: 50
+  Field: City | Type: Text/Short Text | Size: 50
+  Field: State | Type: Text/Short Text | Size: 50
+  Field: Zip_Code | Type: Text/Short Text | Size: 50
+
+
+Table: tblDefaults
+----------------------------------------
+  Field: ID | Type: Long Integer | Size: 4
+  Field: FILE_DESC | Type: Text/Short Text | Size: 50
+  Field: PATH_NAME | Type: Text/Short Text | Size: 255
+  Field: FILE_TYPE | Type: Text/Short Text | Size: 50
+
+
+Table: tblFileList
+----------------------------------------
+  Field: FILE_ID | Type: Long Integer | Size: 4
+  Field: FILE_DESC | Type: Text/Short Text | Size: 50
+  Field: PATH_NAME | Type: Memo/Long Text | Size: 0
+  Field: AREA_NBR | Type: Text/Short Text | Size: 255
+  Field: FILE_NAME | Type: Text/Short Text | Size: 50
+  Field: CRE_ID | Type: Text/Short Text | Size: 50
+  Field: CRE_DTTM | Type: Date/Time | Size: 8
+
+
+Table: USysRibbons
+----------------------------------------
+  Field: RibbonId | Type: Long Integer | Size: 4
+  Field: RibbonName | Type: Text/Short Text | Size: 20
+  Field: RibbonXML | Type: Memo/Long Text | Size: 0
+  Field: RibbonNotes | Type: Text/Short Text | Size: 255
+
+

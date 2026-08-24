@@ -1,0 +1,640 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "tables": {
+    "CMD_LINE_TB": {
+      "columns": [
+        {
+          "name": "OPTION",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "DESCRIPTION",
+          "access_type": "Long Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LST_MDFD_ID",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LST_MDFD_DTTM",
+          "access_type": "Date/Time",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "CUM_VAL_TB": {
+      "columns": [
+        {
+          "name": "CUM_VAL_ID",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CUM_VAL_DATE",
+          "access_type": "Date/Time",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CUM_VAL_NBR",
+          "access_type": "Double",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "DATABASE_STRUCTURE_TB": {
+      "columns": [
+        {
+          "name": "TBL_NME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_NME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_TYPE",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_SIZE",
+          "access_type": "Byte",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_DESC",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_POS",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_CAPTION",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_DEF_VAL",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FLD_SPACES",
+          "access_type": "Yes/No",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "DECUM_VAL_TB": {
+      "columns": [
+        {
+          "name": "CUM_VAL_ID",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CUM_VAL_DATE",
+          "access_type": "Date/Time",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CUM_VAL_NBR",
+          "access_type": "Double",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Cum_Value",
+          "access_type": "Double",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "ROULETTE_TB": {
+      "columns": [
+        {
+          "name": "ORDR_NBR",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "NBR_VALUE",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "COLOR_ID",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "TAG_GRP_TB": {
+      "columns": [
+        {
+          "name": "TAG_GRP_ID",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "TAG_GRP_NME",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "TAG_GRP_DESC",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "TAG_NME_TB": {
+      "columns": [
+        {
+          "name": "TAG_NME_ID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "TAG_GRP_ID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "OBJT_NME",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "TYPE_LIB_NME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "TAG_NME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "ALT_TAG_NME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CMNT_DESC",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "USysRibbons": {
+      "columns": [
+        {
+          "name": "RibbonId",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "RibbonName",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "RibbonXML",
+          "access_type": "Long Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "RibbonNotes",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "tblContacts": {
+      "columns": [
+        {
+          "name": "ID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "FirstName",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LastName",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Address",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "City",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "State",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Zip_Code",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "tblDefaults": {
+      "columns": [
+        {
+          "name": "ID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "FILE_DESC",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "PATH_NAME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FILE_TYPE",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "tblFileList": {
+      "columns": [
+        {
+          "name": "FILE_ID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "FILE_DESC",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "PATH_NAME",
+          "access_type": "Long Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "AREA_NBR",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "FILE_NAME",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CRE_ID",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "CRE_DTTM",
+          "access_type": "Date/Time",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    }
+  },
+  "queries": {
+    "101_Object_List_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "msysobjects"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "200_Create_DATABASE_STRUCTURE_TB_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "201_Create_DATABASE_STRUCTURE_TB_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "202_Add_Constraint_pk001_Primary_Key_PROP_ID_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "203_Add_Column_LST_MDFD_ID_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "204_Alter_Column_LST_MDFD_ID_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "205_Drop_DATABASE_STRUCTURE_TB_qry": {
+      "kind": "DDL",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "720_Cumulative_Value_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "CUM_VAL_TB"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "721_Decumulative_Value_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "DECUM_VAL_TB"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "803_Calendar_Style_Listing_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "msysobjects"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "803a_Calendar_List_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "MsysObjects"
+      ],
+      "access_functions": [
+        "Format"
+      ],
+      "parameter_count": 0
+    },
+    "804_Weekly_Report_qry": {
+      "kind": "CROSSTAB",
+      "references_tables": [
+        "101_Object_List_qry"
+      ],
+      "access_functions": [
+        "DatePart"
+      ],
+      "parameter_count": 0
+    },
+    "940_Date_Format_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "101_Object_List_qry"
+      ],
+      "access_functions": [
+        "DateAdd",
+        "DatePart",
+        "Format"
+      ],
+      "parameter_count": 0
+    },
+    "950_Leszynski_Conventions_qry": {
+      "kind": "SELECT",
+      "references_tables": [
+        "TAG_GRP_TB",
+        "TAG_NME_TB"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "SQL_Server_Function_Login_Name_qry": {
+      "kind": "PASS_THROUGH",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "SQL_Server_View_Date_Time_qry": {
+      "kind": "PASS_THROUGH",
+      "references_tables": [
+        "Time",
+        "a",
+        "gettimelist"
+      ],
+      "access_functions": [
+        "DateAdd",
+        "DateDiff",
+        "DatePart"
+      ],
+      "parameter_count": 0
+    }
+  },
+  "business_rule_count": 0,
+  "vba_modules": {
+    "clsMonthCal": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modCalendar": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modDate": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modFileFunctions": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMain": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMathAreaVolume": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMathCumulative": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMathStatistics": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMathTrig": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modMathXYZ": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modOutlook": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "modString": {
+      "module_type": "STANDARD",
+      "procedure_count": 0,
+      "has_source": true
+    }
+  }
+}

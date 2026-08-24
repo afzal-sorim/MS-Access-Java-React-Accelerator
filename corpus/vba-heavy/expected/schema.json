@@ -1,0 +1,9 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "create_table_count": 11,
+  "primary_key_count": 8,
+  "foreign_key_count": 2,
+  "index_count": 13,
+  "line_count": 167
+}

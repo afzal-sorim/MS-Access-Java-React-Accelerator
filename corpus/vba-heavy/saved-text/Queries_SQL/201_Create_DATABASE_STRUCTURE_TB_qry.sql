@@ -1,0 +1,23 @@
+CREATE 
+TABLE DATABASE_STRUCTURE_TB( 
+PROP_ID                 COUNTER, 
+TBL_NME                Text(255), 
+FLD_NME                Text(255), 
+FLD_SIZE                Long, 
+FLD_DESC              Text(255), 
+FLD_POS                Long, 
+FLD_COLL_ORD     Text(255), 
+FLD_FORMAT         Text(255), 
+FLD_MASK              Text(255), 
+FLD_CAPTION         Text(255), 
+FLD_DEF_VAL         Text(255)  NOT NULL, 
+FLD_VALD_RULE    Text(255)  NOT NULL, 
+FLD_VALD_TEXT     Text(255)  NOT NULL, 
+FLD_REQ                Text(255)  NOT NULL, 
+FLD_ZERO              Text(255)  NOT NULL, 
+FLD_INDEX             Text(255), 
+FLD_DIS_CTL         Text(255), 
+FLD_SRC_TYPE     Text(255), 
+FLD_SRC                Memo, 
+FLD_SPACES          Text(1), 
+DTE_RUN                Date) 

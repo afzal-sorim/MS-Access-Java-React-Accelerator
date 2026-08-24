@@ -1,0 +1,7 @@
+=== MS ACCESS FOREIGN KEY RELATIONSHIPS MAP ===
+
+Relation Name: TAG_GRP_TBTAG_NME_TB
+  Primary Table: TAG_GRP_TB
+  Foreign Table: TAG_NME_TB
+    Primary Field: TAG_GRP_ID <--> Foreign Field: TAG_GRP_ID
+----------------------------------------

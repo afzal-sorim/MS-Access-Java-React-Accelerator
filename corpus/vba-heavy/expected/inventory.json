@@ -1,0 +1,89 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "application_name": "source",
+  "counts": {
+    "tables": 11,
+    "relationships": 1,
+    "queries": 16,
+    "forms": 13,
+    "reports": 8,
+    "macros": 3,
+    "vba_modules": 12
+  },
+  "tables": [
+    "CMD_LINE_TB",
+    "CUM_VAL_TB",
+    "DATABASE_STRUCTURE_TB",
+    "DECUM_VAL_TB",
+    "ROULETTE_TB",
+    "TAG_GRP_TB",
+    "TAG_NME_TB",
+    "USysRibbons",
+    "tblContacts",
+    "tblDefaults",
+    "tblFileList"
+  ],
+  "queries": [
+    "101_Object_List_qry",
+    "200_Create_DATABASE_STRUCTURE_TB_qry",
+    "201_Create_DATABASE_STRUCTURE_TB_qry",
+    "202_Add_Constraint_pk001_Primary_Key_PROP_ID_qry",
+    "203_Add_Column_LST_MDFD_ID_qry",
+    "204_Alter_Column_LST_MDFD_ID_qry",
+    "205_Drop_DATABASE_STRUCTURE_TB_qry",
+    "720_Cumulative_Value_qry",
+    "721_Decumulative_Value_qry",
+    "803_Calendar_Style_Listing_qry",
+    "803a_Calendar_List_qry",
+    "804_Weekly_Report_qry",
+    "940_Date_Format_qry",
+    "950_Leszynski_Conventions_qry",
+    "SQL_Server_Function_Login_Name_qry",
+    "SQL_Server_View_Date_Time_qry"
+  ],
+  "forms": [
+    "001_About_frm",
+    "002_Splash_Screen_frm",
+    "003_Buttons_frm",
+    "004_DSN_Password_frm",
+    "005_Access_Security_frm",
+    "006_Dialogbox_Examples_frm",
+    "010_Date_Calendar_frm",
+    "301_Roulette_frm",
+    "700_Create_Filelist_frm",
+    "800_Link_Manager_frm",
+    "900_Check_Runtime_frm",
+    "950_Leszynski_Conventions_frm",
+    "980_Data_Dictionary_frm"
+  ],
+  "reports": [
+    "001_Organization_Logo_srp",
+    "099_Object_Listing_Report_rpt",
+    "803_Object_Calendar_List_rpt",
+    "803a_Calendar_List_srp",
+    "804_Weekly_Report_rpt",
+    "805_Timeline_Report_rpt",
+    "950_Leszynski_Conventions_rpt",
+    "980_Data_Dictionary_rpt"
+  ],
+  "macros": [
+    "AutoKeys",
+    "Ribbon",
+    "zzzAutoExec"
+  ],
+  "vba_modules": [
+    "clsMonthCal",
+    "modCalendar",
+    "modDate",
+    "modFileFunctions",
+    "modMain",
+    "modMathAreaVolume",
+    "modMathCumulative",
+    "modMathStatistics",
+    "modMathTrig",
+    "modMathXYZ",
+    "modOutlook",
+    "modString"
+  ]
+}

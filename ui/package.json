@@ -1,0 +1,23 @@
+{
+  "name": "access-converter-wizard",
+  "version": "1.0.0",
+  "description": "Wizard UI for the MS Access → Spring Boot + React + PostgreSQL Converter",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.5",
+    "vite": "8.2.1"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

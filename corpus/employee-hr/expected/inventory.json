@@ -1,0 +1,40 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "application_name": "source",
+  "counts": {
+    "tables": 5,
+    "relationships": 4,
+    "queries": 5,
+    "forms": 3,
+    "reports": 1,
+    "macros": 1,
+    "vba_modules": 0
+  },
+  "tables": [
+    "Departments",
+    "Employees",
+    "LeaveTypes",
+    "Leaves",
+    "Users"
+  ],
+  "queries": [
+    "qryActiveEmployees",
+    "qryApproveLeave",
+    "qryEmployeeLeaveSummary",
+    "qryEmployeeList",
+    "qryPendingLeaves"
+  ],
+  "forms": [
+    "frmEmployee",
+    "frmLeaveApplication",
+    "frmLogin"
+  ],
+  "reports": [
+    "rptLeaveSummary"
+  ],
+  "macros": [
+    "AutoExec"
+  ],
+  "vba_modules": []
+}
