@@ -21,12 +21,268 @@ const REVIEW_TABS = [
     { key: 'externalDependencies', label: 'External Dependencies', icon: '🔗' },
 ];
 
+/** Mapping target options per object category (tab) */
+const TARGET_OPTIONS = {
+    tables: [
+        'PostgreSQL Table',
+        'PostgreSQL Table (Enum/Lookup)',
+        'PostgreSQL Table (Audit)',
+        'PostgreSQL View',
+        'Skip – Do Not Migrate',
+    ],
+    queries: [
+        'JPA Repository Method',
+        'JPA Repository / Custom Query',
+        'Native SQL @Query',
+        'Spring Service Method',
+        'Database View',
+        'Manual Migration',
+    ],
+    forms: [
+        'React Page + Form',
+        'React Page + DataGrid',
+        'React Dashboard Page',
+        'React Modal / Dialog',
+        'React Sub-Component',
+        'Manual Migration',
+    ],
+    reports: [
+        'Report Service + PDF/Excel',
+        'PDF Report Service',
+        'Excel Export Service',
+        'React Data View',
+        'Manual Migration',
+    ],
+    modules: [
+        'Spring Service / Utility',
+        'Spring Service Method',
+        'Spring Scheduled Task',
+        'Spring Event Listener',
+        'Manual Migration',
+    ],
+    macros: [
+        'React Navigation / API Call',
+        'Application Startup',
+        'Spring Scheduled Task',
+        'React Event Handler',
+        'Manual Migration',
+    ],
+    externalDependencies: [
+        'Manual Review',
+        'Spring Integration Service',
+        'PostgreSQL (Migration)',
+        'REST API Client',
+        'Skip – Do Not Migrate',
+    ],
+};
+
+/** Conversion strategy options per category */
+const CONVERSION_OPTIONS = {
+    tables: ['ENTITY', 'ENUM_LOOKUP', 'AUDIT_TABLE', 'VIEW', 'SKIP'],
+    queries: ['REPOSITORY_METHOD', 'NATIVE_QUERY', 'SERVICE_METHOD', 'VIEW', 'MANUAL'],
+    forms: ['PAGE_FORM', 'PAGE_DATAGRID', 'PAGE_DASHBOARD', 'MODAL', 'SUB_COMPONENT', 'MANUAL'],
+    reports: ['REPORT_SERVICE', 'PDF_SERVICE', 'EXCEL_SERVICE', 'DATA_VIEW', 'MANUAL'],
+    modules: ['SERVICE_METHOD', 'SCHEDULED_TASK', 'EVENT_LISTENER', 'UTILITY', 'MANUAL'],
+    macros: ['NAVIGATION', 'STARTUP_WORKFLOW', 'SCHEDULED_TASK', 'EVENT_HANDLER', 'MANUAL'],
+    externalDependencies: ['MANUAL', 'INTEGRATION_SERVICE', 'ENTITY', 'REST_CLIENT', 'SKIP'],
+};
+
+const STATUS_OPTIONS = ['SUPPORTED', 'SUPPORTED_WITH_REVIEW', 'SUPPORTED_WITH_TRANSFORMATION', 'UNSUPPORTED'];
+const RISK_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+
+/**
+ * Modal component for editing an object's mapping
+ */
+function MappingEditorModal({ object, tab, onSave, onClose }) {
+    const [target, setTarget] = useState(object.target || '');
+    const [conversion, setConversion] = useState(object.conversion || '');
+    const [status, setStatus] = useState(object.status || 'SUPPORTED');
+    const [risk, setRisk] = useState(object.risk || 'LOW');
+    const [notes, setNotes] = useState(object.notes || '');
+
+    const targetOptions = TARGET_OPTIONS[tab] || [];
+    const conversionOptions = CONVERSION_OPTIONS[tab] || [];
+
+    const handleSave = () => {
+        onSave({ target, conversion, status, risk, notes });
+    };
+
+    return (
+        <div
+            style={{
+                position: 'fixed', inset: 0, zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+            onClick={onClose}
+        >
+            {/* Backdrop */}
+            <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)',
+            }} />
+
+            {/* Modal Card */}
+            <div
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    position: 'relative', zIndex: 1,
+                    background: 'var(--color-bg-card, #1e1e2e)',
+                    border: '1px solid var(--color-border, #333)',
+                    borderRadius: '12px',
+                    width: '520px', maxWidth: '92vw', maxHeight: '85vh',
+                    overflow: 'auto',
+                    boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
+                    animation: 'fadeIn 0.2s ease-out',
+                }}
+            >
+                {/* Header */}
+                <div style={{
+                    padding: '1.25rem 1.5rem',
+                    borderBottom: '1px solid var(--color-border, #333)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                    <div>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Mapping</h3>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', opacity: 0.6 }}>
+                            {object.name}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: '1.25rem', color: 'var(--color-text-muted)', padding: '0.25rem',
+                        }}
+                        aria-label="Close"
+                    >✕</button>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Target */}
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                            Target Architecture
+                        </label>
+                        <select
+                            className="form-control"
+                            value={target}
+                            onChange={(e) => setTarget(e.target.value)}
+                            style={{ width: '100%' }}
+                        >
+                            {/* Keep current value if not in the list */}
+                            {!targetOptions.includes(target) && target && (
+                                <option value={target}>{target} (current)</option>
+                            )}
+                            {targetOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Conversion Strategy */}
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                            Conversion Strategy
+                        </label>
+                        <select
+                            className="form-control"
+                            value={conversion}
+                            onChange={(e) => setConversion(e.target.value)}
+                            style={{ width: '100%' }}
+                        >
+                            {!conversionOptions.includes(conversion) && conversion && (
+                                <option value={conversion}>{conversion.replace(/_/g, ' ')} (current)</option>
+                            )}
+                            {conversionOptions.map(opt => (
+                                <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Status + Risk side by side */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                                Status Override
+                            </label>
+                            <select
+                                className="form-control"
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                style={{ width: '100%' }}
+                            >
+                                {STATUS_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt.replace(/_/g, ' ')}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                                Risk Level
+                            </label>
+                            <select
+                                className="form-control"
+                                value={risk}
+                                onChange={(e) => setRisk(e.target.value)}
+                                style={{ width: '100%' }}
+                            >
+                                {RISK_OPTIONS.map(opt => (
+                                    <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                            Notes
+                        </label>
+                        <textarea
+                            className="form-control"
+                            rows={3}
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Optional migration notes or special instructions..."
+                            style={{ width: '100%', resize: 'vertical' }}
+                        />
+                    </div>
+
+                    {/* Reason (read-only) */}
+                    {object.reason && (
+                        <div style={{
+                            padding: '0.75rem 1rem', borderRadius: '8px',
+                            background: 'var(--color-bg-alt, #2a2a3e)',
+                            fontSize: '0.8125rem', lineHeight: 1.5,
+                        }}>
+                            <span style={{ fontWeight: 600 }}>Analysis note: </span>
+                            {object.reason}
+                        </div>
+                    )}
+                </div>
+
+                {/* Footer */}
+                <div style={{
+                    padding: '1rem 1.5rem',
+                    borderTop: '1px solid var(--color-border, #333)',
+                    display: 'flex', justifyContent: 'flex-end', gap: '0.75rem',
+                }}>
+                    <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button className="btn btn-primary" onClick={handleSave}>Save Mapping</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function Step4Review() {
     const { state, actions } = useWizard();
     const { reviewData, reviewTab, selectedObjects, analysisJobId } = state;
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingObject, setEditingObject] = useState(null);
 
     // Load review data from backend when step is entered
     useEffect(() => {
@@ -229,6 +485,13 @@ export default function Step4Review() {
 
     const handleRowClick = (objectId) => {
         actions.toggleObjectSelection(objectId);
+    };
+
+    const handleSaveMapping = (mapping) => {
+        if (editingObject) {
+            actions.updateObjectMapping(reviewTab, editingObject.id, mapping);
+            setEditingObject(null);
+        }
     };
 
     const getStatusBadge = (status) => {
@@ -476,7 +739,7 @@ export default function Step4Review() {
                                                 className="btn btn-secondary btn-sm"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    // TODO: Open mapping editor modal
+                                                    setEditingObject(obj);
                                                 }}
                                                 style={{ padding: '0.25rem 0.5rem', fontSize: '0.6875rem' }}
                                             >
@@ -495,6 +758,16 @@ export default function Step4Review() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Mapping Editor Modal */}
+            {editingObject && (
+                <MappingEditorModal
+                    object={editingObject}
+                    tab={reviewTab}
+                    onSave={handleSaveMapping}
+                    onClose={() => setEditingObject(null)}
+                />
             )}
         </div>
     );

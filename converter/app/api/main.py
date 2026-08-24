@@ -216,9 +216,26 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         # Helper to update job state and broadcast
         async def update_state(new_state: JobState, step: str = None):
             job.transition_to(new_state)
+            progress_dict = dict(job.progress or {})
+            stats = {
+                "tables": job.tables_count or 0,
+                "queries": job.queries_count or 0,
+                "forms": job.forms_count or 0,
+                "reports": job.reports_count or 0,
+                "macros": job.macros_count or 0,
+                "vba_modules": job.vba_modules_count or 0,
+                "dependencies": getattr(job, "dependencies_count", 0) or 0,
+            }
+            progress_dict.update(stats)
+            job.progress = progress_dict
             await job_repo.update(job)
             await db.commit()
-            await manager.broadcast(job.id, {"state": job.state, "step": step})
+            await manager.broadcast(job.id, {
+                "state": job.state,
+                "step": step,
+                "progress": job.progress,
+                "statistics": stats,
+            })
 
         async def log_build(phase: str, step: str, status: str = "started", output: str = None, error: str = None):
             return await build_log_repo.create(job.id, phase, step, status, output, error)
@@ -265,6 +282,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         graph_log = await log_build("graph", "build_dependency_graph")
 
         graph = build_dependency_graph(app_ir)
+        job.dependencies_count = len(graph.nodes)
 
         # Build edges list from the internal adjacency dict
         edges_list = []
@@ -805,9 +823,19 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
                 job_repo = JobRepository(session)
                 job = await job_repo.get_simple(job_id)
                 if job:
+                    stats = {
+                        "tables": job.tables_count or 0,
+                        "queries": job.queries_count or 0,
+                        "forms": job.forms_count or 0,
+                        "reports": job.reports_count or 0,
+                        "macros": job.macros_count or 0,
+                        "vba_modules": job.vba_modules_count or 0,
+                        "dependencies": getattr(job, "dependencies_count", 0) or 0,
+                    }
                     await websocket.send_json({
                         "state": job.state,
                         "progress": job.progress,
+                        "statistics": stats,
                     })
                     if job.state in (JobState.COMPLETED.value, JobState.FAILED.value):
                         break

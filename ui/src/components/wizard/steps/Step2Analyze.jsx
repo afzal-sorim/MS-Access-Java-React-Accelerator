@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, connectProgressWebSocket, getVersions } from '../../../services/api';
+import { createJob, connectProgressWebSocket, getVersions, getJob } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 
@@ -66,7 +66,7 @@ export default function Step2Analyze() {
 
             // Connect WebSocket for real-time progress
             const websocket = connectProgressWebSocket(jobId, (message) => {
-                handleWebSocketMessage(message);
+                handleWebSocketMessage(message, jobId);
             });
             setWs(websocket);
 
@@ -78,8 +78,8 @@ export default function Step2Analyze() {
     }, [selectedFile, config, actions]);
 
     // Handle WebSocket messages
-    const handleWebSocketMessage = useCallback((message) => {
-        const { state: jobState, step, progress, result, error } = message;
+    const handleWebSocketMessage = useCallback((message, activeJobId) => {
+        const { state: jobState, step, progress, result, error, statistics } = message;
 
         // Update analysis progress based on step
         if (step) {
@@ -98,25 +98,43 @@ export default function Step2Analyze() {
             }
         }
 
-        // Update counts from progress
-        if (progress && typeof progress === 'object') {
+        // Update counts from statistics or progress
+        const stats = statistics || (typeof progress === 'object' ? progress : null);
+        if (stats) {
             actions.updateAnalysisProgress({
-                tables: { ...analysisProgress.tables, count: progress.tables || 0, status: 'completed' },
-                queries: { ...analysisProgress.queries, count: progress.queries || 0, status: 'completed' },
-                forms: { ...analysisProgress.forms, count: progress.forms || 0, status: 'completed' },
-                reports: { ...analysisProgress.reports, count: progress.reports || 0, status: 'completed' },
-                macros: { ...analysisProgress.macros, count: progress.macros || 0, status: 'completed' },
-                vba: { ...analysisProgress.vba, count: progress.vba_modules || 0, status: 'completed' },
-                dependencies: { ...analysisProgress.dependencies, count: progress.dependencies || 0, status: 'completed' },
+                tables: { count: stats.tables ?? 0, status: stats.tables !== undefined ? 'completed' : 'in_progress' },
+                queries: { count: stats.queries ?? 0, status: stats.queries !== undefined ? 'completed' : 'in_progress' },
+                forms: { count: stats.forms ?? 0, status: stats.forms !== undefined ? 'completed' : 'in_progress' },
+                reports: { count: stats.reports ?? 0, status: stats.reports !== undefined ? 'completed' : 'in_progress' },
+                macros: { count: stats.macros ?? 0, status: stats.macros !== undefined ? 'completed' : 'in_progress' },
+                vba: { count: stats.vba_modules ?? 0, status: stats.vba_modules !== undefined ? 'completed' : 'in_progress' },
+                dependencies: { count: stats.dependencies ?? 0, status: stats.dependencies !== undefined ? 'completed' : 'in_progress' },
             });
         }
 
         // Handle completion
+        const targetId = activeJobId || analysisJobId;
         if (jobState === JOB_STATES.SUPPORTABILITY_ANALYZED || jobState === JOB_STATES.COMPLETED) {
             actions.setAnalysisComplete(true);
-            actions.setAnalysisResult(result || { jobId: analysisJobId });
+            actions.setAnalysisResult(result || { jobId: targetId });
             setIsAnalyzing(false);
             if (ws) ws.close();
+
+            if (targetId) {
+                getJob(targetId).then(jobData => {
+                    if (jobData?.statistics) {
+                        actions.updateAnalysisProgress({
+                            tables: { count: jobData.statistics.tables ?? 0, status: 'completed' },
+                            queries: { count: jobData.statistics.queries ?? 0, status: 'completed' },
+                            forms: { count: jobData.statistics.forms ?? 0, status: 'completed' },
+                            reports: { count: jobData.statistics.reports ?? 0, status: 'completed' },
+                            macros: { count: jobData.statistics.macros ?? 0, status: 'completed' },
+                            vba: { count: jobData.statistics.vba_modules ?? 0, status: 'completed' },
+                            dependencies: { count: jobData.statistics.dependencies ?? 0, status: 'completed' },
+                        });
+                    }
+                }).catch(e => console.error('Error fetching final job stats:', e));
+            }
         }
 
         // Handle failure
