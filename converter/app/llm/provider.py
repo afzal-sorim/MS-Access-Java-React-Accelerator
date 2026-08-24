@@ -33,14 +33,43 @@ class LLMResponse:
 @dataclass
 class LLMConfig:
     """Configuration for LLM provider."""
-    provider_type: LLMProviderType = LLMProviderType.OLLAMA
-    model: str = "llama3.1:8b"
+    provider_type: Optional[LLMProviderType] = None
+    model: Optional[str] = None
     base_url: Optional[str] = None
     api_key: Optional[str] = None
     max_tokens: int = 4096
     temperature: float = 0.1
     timeout: int = 120
     max_retries: int = 3
+
+    def __post_init__(self):
+        import os
+        if self.provider_type is None:
+            p_type = os.environ.get("LLM_PROVIDER", "ollama").lower()
+            if p_type == "openrouter":
+                self.provider_type = LLMProviderType.OPENROUTER
+            elif p_type == "anthropic":
+                self.provider_type = LLMProviderType.ANTHROPIC
+            else:
+                self.provider_type = LLMProviderType.OLLAMA
+
+        if self.model is None:
+            if self.provider_type == LLMProviderType.OLLAMA:
+                self.model = os.environ.get("OLLAMA_MODEL") or os.environ.get("LLM_MODEL") or "deepseek-r1:1.5b"
+            elif self.provider_type == LLMProviderType.OPENROUTER:
+                self.model = os.environ.get("OPENROUTER_MODEL") or os.environ.get("LLM_MODEL") or "google/gemini-2.5-flash"
+            else:
+                self.model = os.environ.get("LLM_MODEL") or "deepseek-r1:1.5b"
+
+        if self.base_url is None:
+            if self.provider_type == LLMProviderType.OLLAMA:
+                self.base_url = os.environ.get("OLLAMA_BASE_URL") or os.environ.get("OLLAMA_HOST") or "http://localhost:11434"
+            elif self.provider_type == LLMProviderType.OPENROUTER:
+                self.base_url = os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+
+        if self.api_key is None:
+            if self.provider_type == LLMProviderType.OPENROUTER:
+                self.api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get("LLM_API_KEY")
 
 
 class LLMProvider(ABC):
@@ -302,11 +331,8 @@ def get_default_provider() -> LLMProvider:
     """Get or create the default LLM provider."""
     global _default_provider
     if _default_provider is None:
-        # Default to Ollama local
-        _default_provider = LLMProviderFactory.create(LLMConfig(
-            provider_type=LLMProviderType.OLLAMA,
-            model="llama3.1:8b",
-        ))
+        # Default to configured LLM (which will resolve to Ollama deepseek-r1:1.5b by default)
+        _default_provider = LLMProviderFactory.create(LLMConfig())
     return _default_provider
 
 

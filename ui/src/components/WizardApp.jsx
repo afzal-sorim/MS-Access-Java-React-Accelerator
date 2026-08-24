@@ -17,7 +17,7 @@ export default function WizardApp() {
                     <WizardContainer />
                 </main>
                 <footer className="app-footer">
-                    MS Access Converter Wizard • Powered by FastAPI + React
+                    MS Access Converter Wizard • Sorim AI
                 </footer>
             </div>
         </WizardProvider>

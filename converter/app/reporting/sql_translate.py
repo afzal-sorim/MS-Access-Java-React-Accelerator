@@ -576,7 +576,16 @@ class AccessSqlTranslator:
     ) -> int:
         """Emit a ``[Bracketed]`` token: parameter, qualified name, or column."""
         # Forms!/Reports! references cannot be resolved server-side.
-        if "!" in name or name.lower().startswith(("forms.", "reports.")):
+        next_meaningful = i + 1
+        while next_meaningful < len(tokens) and tokens[next_meaningful].kind == "WS":
+            next_meaningful += 1
+        is_access_ui_reference = (
+            name.lower() in {"forms", "reports"}
+            and next_meaningful < len(tokens)
+            and tokens[next_meaningful].kind == "PUNCT"
+            and tokens[next_meaningful].text == "!"
+        )
+        if "!" in name or name.lower().startswith(("forms.", "reports.")) or is_access_ui_reference:
             self.blockers.append(
                 f"record source references the Access UI ([{name}]) — "
                 "value must be passed in as a report parameter"
@@ -641,6 +650,13 @@ class AccessSqlTranslator:
         tok = tokens[i]
         word = tok.text
         low = word.lower()
+
+        # Keywords are never function names.  In particular, Access permits
+        # parenthesized JOIN chains immediately after FROM, which must not be
+        # misclassified as a fictitious FROM() call.
+        if low in SQL_KEYWORDS and low != "cast":
+            out.append(word.upper())
+            return 1
 
         # Is this a function call?  IDENT followed by optional WS then '('
         j = i + 1

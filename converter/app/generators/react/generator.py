@@ -164,7 +164,7 @@ export default function {page_name}Page() {{
     if (error) return <div className="error">{{error}}</div>;
 
     return (
-        <div className="{page_name.toLowerCase()}-page">
+        <div className="{page_name.lower()}-page">
             <h1>{form.caption or page_name}</h1>
             <table className="data-table">
                 <thead>
@@ -515,19 +515,19 @@ export default function ReportsPage() {{
             endpoints.append(f"""
 // {entity_name} API
 export async function get{entity_name}() {{
-    const response = await fetch(`${API_BASE}/{endpoint}`);
+    const response = await fetch(`${{API_BASE}}/{endpoint}`);
     if (!response.ok) throw new Error('Failed to fetch {entity_name}');
     return response.json();
 }}
 
 export async function get{entity_name}ById(id) {{
-    const response = await fetch(`${API_BASE}/{endpoint}/${{id}}`);
+    const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`);
     if (!response.ok) throw new Error('Failed to fetch {entity_name}');
     return response.json();
 }}
 
 export async function create{entity_name}(data) {{
-    const response = await fetch(`${API_BASE}/{endpoint}`, {{
+    const response = await fetch(`${{API_BASE}}/{endpoint}`, {{
         method: 'POST',
         headers: {{ 'Content-Type': 'application/json' }},
         body: JSON.stringify(data),
@@ -537,7 +537,7 @@ export async function create{entity_name}(data) {{
 }}
 
 export async function update{entity_name}(id, data) {{
-    const response = await fetch(`${API_BASE}/{endpoint}/${{id}}`, {{
+    const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`, {{
         method: 'PUT',
         headers: {{ 'Content-Type': 'application/json' }},
         body: JSON.stringify(data),
@@ -547,7 +547,7 @@ export async function update{entity_name}(id, data) {{
 }}
 
 export async function delete{entity_name}(id) {{
-    const response = await fetch(`${API_BASE}/{endpoint}/${{id}}`, {{
+    const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`, {{
         method: 'DELETE',
     }});
     if (!response.ok) throw new Error('Failed to delete {entity_name}');

@@ -277,8 +277,33 @@ async def init_database(database_url: Optional[str] = None) -> None:
         engine_kwargs: Dict[str, Any] = {"echo": False, "pool_pre_ping": True}
         if url.startswith("postgresql"):
             engine_kwargs.update(pool_size=10, max_overflow=20)
+        elif url.startswith("sqlite"):
+            # Default SQLite (journal_mode=DELETE) takes an exclusive lock on
+            # every write and raises "database is locked" immediately if a
+            # second connection tries to write at the same time - which
+            # happens routinely here (pipeline commits + 1s WS polling loop +
+            # any duplicate request). connect_args timeout makes aiosqlite
+            # retry/wait instead of failing instantly; WAL mode (set below)
+            # lets reads proceed concurrently with a writer so contention is
+            # rare in the first place.
+            engine_kwargs["connect_args"] = {"timeout": 30}
 
         _engine = create_async_engine(url, **engine_kwargs)
+
+        if url.startswith("sqlite"):
+            from sqlalchemy import event
+
+            @event.listens_for(_engine.sync_engine, "connect")
+            def _set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA busy_timeout=30000")
+                cursor.close()
+
+            @event.listens_for(_engine.sync_engine, "begin")
+            def _do_begin(conn):
+                conn.exec_driver_sql("BEGIN IMMEDIATE")
+
         _session_factory = async_sessionmaker(
             _engine,
             class_=AsyncSession,

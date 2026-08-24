@@ -717,6 +717,15 @@ class TestSpringReportGenerator:
         assert PDF_DEPENDENCY["version"] == "3.0.5"
         assert not re.match(r"^[\^~]", PDF_DEPENDENCY["version"])
 
+    def test_pdf_writer_uses_the_pinned_openpdf_namespace(self, leave_summary_app):
+        """OpenPDF 3.x moved its public API from com.lowagie to org.openpdf."""
+        defs = build_report_definitions(leave_summary_app)
+        files, _ = generate_report_sources(defs)
+
+        assert "import org.openpdf.text.Document;" in files["PdfReportWriter.java"]
+        assert "import org.openpdf.text.DocumentException;" in files["ReportController.java"]
+        assert "com.lowagie" not in files["PdfReportWriter.java"]
+
     def test_generated_sql_text_block_is_escaped(self):
         """A backslash in report SQL must not break the Java text block."""
         app = ApplicationIR(

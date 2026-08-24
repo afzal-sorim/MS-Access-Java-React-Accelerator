@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useRef, useMemo } from 'react';
 
 const WizardContext = createContext(null);
 
@@ -217,12 +217,19 @@ function wizardReducer(state, action) {
         }
 
         case ActionTypes.SELECT_ALL_OBJECTS: {
-            const allIds = action.payload.map(obj => obj.id);
-            return { ...state, selectedObjects: new Set(allIds) };
+            const newSelected = new Set(state.selectedObjects);
+            action.payload.forEach(obj => newSelected.add(obj.id));
+            return { ...state, selectedObjects: newSelected };
         }
 
-        case ActionTypes.DESELECT_ALL_OBJECTS:
+        case ActionTypes.DESELECT_ALL_OBJECTS: {
+            if (action.payload && action.payload.length > 0) {
+                const newSelected = new Set(state.selectedObjects);
+                action.payload.forEach(id => newSelected.delete(id));
+                return { ...state, selectedObjects: newSelected };
+            }
             return { ...state, selectedObjects: new Set() };
+        }
 
         case ActionTypes.UPDATE_OBJECT_MAPPING: {
             const { tab, objectId, mapping } = action.payload;
@@ -299,47 +306,59 @@ export function WizardProvider({ children }) {
     const [state, dispatch] = useReducer(wizardReducer, initialState);
     const wsRef = useRef(null);
 
-    const actions = {
-        setStep: useCallback((step) => dispatch({ type: ActionTypes.SET_STEP, payload: step }), []),
-        nextStep: useCallback(() => dispatch({ type: ActionTypes.NEXT_STEP }), []),
-        prevStep: useCallback(() => dispatch({ type: ActionTypes.PREV_STEP }), []),
+    // NOTE: every function below is individually memoized with useCallback,
+    // but without wrapping the container itself in useMemo, `actions` was a
+    // brand-new object literal on every render. Any consumer effect with
+    // `actions` (or a callback derived from it) in its dependency array -
+    // e.g. Step2Analyze's "fetch versions on mount" effect - saw a "changed"
+    // dependency on every single render and re-ran, which called
+    // actions.setVersions(), which dispatched a state update, which
+    // re-rendered the provider, which created a new `actions` object again -
+    // an infinite loop that hammered GET /api/versions (1000+ requests) and
+    // starved the browser, which is why the Step 2 wizard page looked stuck.
+    const actions = useMemo(() => ({
+        setStep: (step) => dispatch({ type: ActionTypes.SET_STEP, payload: step }),
+        nextStep: () => dispatch({ type: ActionTypes.NEXT_STEP }),
+        prevStep: () => dispatch({ type: ActionTypes.PREV_STEP }),
 
-        setFile: useCallback((file) => dispatch({ type: ActionTypes.SET_FILE, payload: file }), []),
-        setFileMetadata: useCallback((meta) => dispatch({ type: ActionTypes.SET_FILE_METADATA, payload: meta }), []),
-        clearFile: useCallback(() => dispatch({ type: ActionTypes.CLEAR_FILE }), []),
+        setFile: (file) => dispatch({ type: ActionTypes.SET_FILE, payload: file }),
+        setFileMetadata: (meta) => dispatch({ type: ActionTypes.SET_FILE_METADATA, payload: meta }),
+        clearFile: () => dispatch({ type: ActionTypes.CLEAR_FILE }),
 
-        setAnalysisJob: useCallback((jobId) => dispatch({ type: ActionTypes.SET_ANALYSIS_JOB, payload: jobId }), []),
-        updateAnalysisProgress: useCallback((progress) => dispatch({ type: ActionTypes.UPDATE_ANALYSIS_PROGRESS, payload: progress }), []),
-        setAnalysisComplete: useCallback((complete) => dispatch({ type: ActionTypes.SET_ANALYSIS_COMPLETE, payload: complete }), []),
-        setAnalysisResult: useCallback((result) => dispatch({ type: ActionTypes.SET_ANALYSIS_RESULT, payload: result }), []),
+        setAnalysisJob: (jobId) => dispatch({ type: ActionTypes.SET_ANALYSIS_JOB, payload: jobId }),
+        updateAnalysisProgress: (progress) => dispatch({ type: ActionTypes.UPDATE_ANALYSIS_PROGRESS, payload: progress }),
+        setAnalysisComplete: (complete) => dispatch({ type: ActionTypes.SET_ANALYSIS_COMPLETE, payload: complete }),
+        setAnalysisResult: (result) => dispatch({ type: ActionTypes.SET_ANALYSIS_RESULT, payload: result }),
 
-        updateConfig: useCallback((config) => dispatch({ type: ActionTypes.UPDATE_CONFIG, payload: config }), []),
-        setVersions: useCallback((versions) => dispatch({ type: ActionTypes.SET_VERSIONS, payload: versions }), []),
+        updateConfig: (config) => dispatch({ type: ActionTypes.UPDATE_CONFIG, payload: config }),
+        setVersions: (versions) => dispatch({ type: ActionTypes.SET_VERSIONS, payload: versions }),
 
-        setReviewData: useCallback((data) => dispatch({ type: ActionTypes.SET_REVIEW_DATA, payload: data }), []),
-        setReviewTab: useCallback((tab) => dispatch({ type: ActionTypes.SET_REVIEW_TAB, payload: tab }), []),
-        toggleObjectSelection: useCallback((id) => dispatch({ type: ActionTypes.TOGGLE_OBJECT_SELECTION, payload: id }), []),
-        selectAllObjects: useCallback((objects) => dispatch({ type: ActionTypes.SELECT_ALL_OBJECTS, payload: objects }), []),
-        deselectAllObjects: useCallback(() => dispatch({ type: ActionTypes.DESELECT_ALL_OBJECTS }), []),
-        updateObjectMapping: useCallback((tab, objectId, mapping) =>
-            dispatch({ type: ActionTypes.UPDATE_OBJECT_MAPPING, payload: { tab, objectId, mapping } }), []),
+        setReviewData: (data) => dispatch({ type: ActionTypes.SET_REVIEW_DATA, payload: data }),
+        setReviewTab: (tab) => dispatch({ type: ActionTypes.SET_REVIEW_TAB, payload: tab }),
+        toggleObjectSelection: (id) => dispatch({ type: ActionTypes.TOGGLE_OBJECT_SELECTION, payload: id }),
+        selectAllObjects: (objects) => dispatch({ type: ActionTypes.SELECT_ALL_OBJECTS, payload: objects }),
+        deselectAllObjects: (ids) => dispatch({ type: ActionTypes.DESELECT_ALL_OBJECTS, payload: ids }),
+        updateObjectMapping: (tab, objectId, mapping) =>
+            dispatch({ type: ActionTypes.UPDATE_OBJECT_MAPPING, payload: { tab, objectId, mapping } }),
 
-        setGenerationJob: useCallback((jobId) => dispatch({ type: ActionTypes.SET_GENERATION_JOB, payload: jobId }), []),
-        updateGenerationProgress: useCallback((progress) => dispatch({ type: ActionTypes.UPDATE_GENERATION_PROGRESS, payload: progress }), []),
-        addGenerationDetail: useCallback((detail) => dispatch({ type: ActionTypes.ADD_GENERATION_DETAIL, payload: detail }), []),
-        setGenerationComplete: useCallback((complete) => dispatch({ type: ActionTypes.SET_GENERATION_COMPLETE, payload: complete }), []),
-        setGenerationResult: useCallback((result) => dispatch({ type: ActionTypes.SET_GENERATION_RESULT, payload: result }), []),
+        setGenerationJob: (jobId) => dispatch({ type: ActionTypes.SET_GENERATION_JOB, payload: jobId }),
+        updateGenerationProgress: (progress) => dispatch({ type: ActionTypes.UPDATE_GENERATION_PROGRESS, payload: progress }),
+        addGenerationDetail: (detail) => dispatch({ type: ActionTypes.ADD_GENERATION_DETAIL, payload: detail }),
+        setGenerationComplete: (complete) => dispatch({ type: ActionTypes.SET_GENERATION_COMPLETE, payload: complete }),
+        setGenerationResult: (result) => dispatch({ type: ActionTypes.SET_GENERATION_RESULT, payload: result }),
 
-        setSummaryData: useCallback((data) => dispatch({ type: ActionTypes.SET_SUMMARY_DATA, payload: data }), []),
+        setSummaryData: (data) => dispatch({ type: ActionTypes.SET_SUMMARY_DATA, payload: data }),
 
-        setError: useCallback((error) => dispatch({ type: ActionTypes.SET_ERROR, payload: error }), []),
-        clearError: useCallback(() => dispatch({ type: ActionTypes.CLEAR_ERROR }), []),
+        setError: (error) => dispatch({ type: ActionTypes.SET_ERROR, payload: error }),
+        clearError: () => dispatch({ type: ActionTypes.CLEAR_ERROR }),
 
-        resetWizard: useCallback(() => dispatch({ type: ActionTypes.RESET_WIZARD }), []),
-    };
+        resetWizard: () => dispatch({ type: ActionTypes.RESET_WIZARD }),
+    }), []);
+
+    const contextValue = useMemo(() => ({ state, actions, wsRef }), [state, actions]);
 
     return (
-        <WizardContext.Provider value={{ state, actions, wsRef }}>
+        <WizardContext.Provider value={contextValue}>
             {children}
         </WizardContext.Provider>
     );

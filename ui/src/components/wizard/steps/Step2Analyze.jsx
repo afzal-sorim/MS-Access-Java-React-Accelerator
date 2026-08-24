@@ -30,6 +30,13 @@ export default function Step2Analyze() {
     const { selectedFile, analysisJobId, analysisProgress, analysisComplete, analysisResult, config } = state;
     const [isAnalyzing, setIsAnalyzing] = React.useState(false);
     const [ws, setWs] = React.useState(null);
+    // Guards against duplicate job creation. In dev, React.StrictMode
+    // mounts -> cleans up -> re-mounts every component once, which fires
+    // this effect twice in quick succession. Without this guard that sent
+    // two near-simultaneous POST /api/jobs for the same file, and the
+    // second write could hit SQLite's "database is locked" error and fail
+    // outright - leaving the wizard stuck at 0% with no visible job.
+    const startedRef = React.useRef(false);
 
     // Fetch available versions on mount
     useEffect(() => {
@@ -66,6 +73,7 @@ export default function Step2Analyze() {
         } catch (err) {
             actions.setError(err.message);
             setIsAnalyzing(false);
+            startedRef.current = false; // allow retry after a genuine failure
         }
     }, [selectedFile, config, actions]);
 
@@ -99,6 +107,7 @@ export default function Step2Analyze() {
                 reports: { ...analysisProgress.reports, count: progress.reports || 0, status: 'completed' },
                 macros: { ...analysisProgress.macros, count: progress.macros || 0, status: 'completed' },
                 vba: { ...analysisProgress.vba, count: progress.vba_modules || 0, status: 'completed' },
+                dependencies: { ...analysisProgress.dependencies, count: progress.dependencies || 0, status: 'completed' },
             });
         }
 
@@ -128,7 +137,8 @@ export default function Step2Analyze() {
 
     // Auto-start analysis
     useEffect(() => {
-        if (selectedFile && !analysisJobId && !isAnalyzing) {
+        if (selectedFile && !analysisJobId && !isAnalyzing && !startedRef.current) {
+            startedRef.current = true;
             startAnalysis();
         }
     }, [selectedFile, analysisJobId, isAnalyzing, startAnalysis]);

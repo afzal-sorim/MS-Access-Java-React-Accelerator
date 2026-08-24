@@ -10,6 +10,7 @@ Provides REST API for:
 - Report APIs
 """
 from __future__ import annotations
+from collections.abc import AsyncGenerator
 
 import asyncio
 import json
@@ -17,6 +18,27 @@ import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
+
+# Load .env file at startup
+def load_dotenv():
+    import os
+    env_path = Path(__file__).parents[2] / ".env"
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip("'\"")
+                    if key:
+                        os.environ[key] = val
+        except Exception:
+            pass
+
+load_dotenv()
 from typing import Any, Optional
 
 from fastapi import (
@@ -198,8 +220,8 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
             await db.commit()
             await manager.broadcast(job.id, {"state": job.state, "step": step})
 
-        def log_build(phase: str, step: str, status: str = "started", output: str = None, error: str = None):
-            return build_log_repo.create(job.id, phase, step, status, output, error)
+        async def log_build(phase: str, step: str, status: str = "started", output: str = None, error: str = None):
+            return await build_log_repo.create(job.id, phase, step, status, output, error)
 
         async def update_build_log(log_id: str, status: str, output: str = None, error: str = None):
             await build_log_repo.update(log_id, status, output, error)
@@ -207,7 +229,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
 
         # Step 1: Extract
         await update_state(JobState.EXTRACTING, "extracting")
-        extract_log = log_build("extraction", "run_extraction")
+        extract_log = await log_build("extraction", "run_extraction")
 
         extract_dir = job_dir / ".extract"
         extraction = run_extraction(job.source_file, str(extract_dir))
@@ -225,7 +247,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
 
         # Step 2: Build IR
         await update_state(JobState.ANALYZING, "building_ir")
-        ir_log = log_build("ir", "build_ir")
+        ir_log = await log_build("ir", "build_ir")
 
         app_ir = build_ir(job.extraction_path)
         app_ir.application_name = job.project_name
@@ -234,28 +256,44 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         ir_data = app_ir.model_dump()
         await ir_repo.create(job.id, ir_data, app_ir.application_name)
 
-        Path(job.ir_path).write_text(json.dumps(ir_data, indent=2, default=str))
+        Path(job.ir_path).write_text(json.dumps(ir_data, indent=2, default=str), encoding="utf-8")
         await update_build_log(ir_log.id, "completed", f"IR built: {app_ir.application_name}")
         await db.commit()
 
         # Step 3: Build dependency graph
         await update_state(JobState.DEPENDENCIES_DISCOVERED, "building_graph")
-        graph_log = log_build("graph", "build_dependency_graph")
+        graph_log = await log_build("graph", "build_dependency_graph")
 
         graph = build_dependency_graph(app_ir)
+
+        # Build edges list from the internal adjacency dict
+        edges_list = []
+        for from_id, to_ids in graph._adjacency.items():
+            for to_id in to_ids:
+                edges_list.append({"from": from_id, "to": to_id, "type": "depends_on"})
+
+        # find_cycles returns list[list[str]] (node IDs, not node objects)
+        cycles = graph.find_cycles()
+
+        # Find orphans: nodes with no dependencies and no dependents
+        orphans = [
+            n.id for n in graph.nodes.values()
+            if not graph.get_dependencies(n.id) and not graph.get_dependents(n.id)
+        ]
+
         await graph_repo.create(
             job.id,
-            nodes=[{"id": n.id, "type": n.type, "name": n.name} for n in graph.nodes.values()],
-            edges=[{"from": e.from_node, "to": e.to_node, "type": e.edge_type} for e in graph.edges],
-            cycles=[[n.id for n in c] for c in graph.find_cycles()],
-            orphans=[n.id for n in graph.find_orphans()],
+            nodes=[{"id": n.id, "type": n.node_type.value, "name": n.name} for n in graph.nodes.values()],
+            edges=edges_list,
+            cycles=cycles,
+            orphans=orphans,
         )
-        await update_build_log(graph_log.id, "completed", f"Graph: {len(graph.nodes)} nodes, {len(graph.find_cycles())} cycles")
+        await update_build_log(graph_log.id, "completed", f"Graph: {len(graph.nodes)} nodes, {len(cycles)} cycles")
         await db.commit()
 
         # Step 4: Analyze supportability
         await update_state(JobState.SUPPORTABILITY_ANALYZED, "analyzing_supportability")
-        support_log = log_build("supportability", "analyze_supportability")
+        support_log = await log_build("supportability", "analyze_supportability")
 
         support_results = analyze_supportability(app_ir)
         engine = SupportabilityEngine(app_ir)
@@ -280,7 +318,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
 
         # Step 5: Generate database
         await update_state(JobState.GENERATING_DATABASE, "generating_database")
-        db_log = log_build("database", "generate_schema")
+        db_log = await log_build("database", "generate_schema")
 
         db_dir = job_dir / "database"
         db_dir.mkdir(exist_ok=True)
@@ -292,7 +330,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
 
         # Step 6: Generate backend
         await update_state(JobState.GENERATING_BACKEND, "generating_backend")
-        backend_log = log_build("backend", "generate_spring_boot")
+        backend_log = await log_build("backend", "generate_spring_boot")
 
         backend_dir = job_dir / "backend"
         spring_gen = generate_spring_boot(
@@ -300,15 +338,25 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
             base_package=job.base_package,
             app_name=job.project_name,
         )
+        # Write generated backend files to disk
+        for file_path, content in spring_gen.items():
+            p = Path(file_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
         await update_build_log(backend_log.id, "completed", f"Generated {len(spring_gen)} backend files")
         await db.commit()
 
         # Step 7: Generate frontend
         await update_state(JobState.GENERATING_FRONTEND, "generating_frontend")
-        frontend_log = log_build("frontend", "generate_react")
+        frontend_log = await log_build("frontend", "generate_react")
 
         frontend_dir = job_dir / "frontend"
         react_gen = generate_react(app_ir, frontend_dir)
+        # Write generated frontend files to disk
+        for file_path, content in react_gen.items():
+            p = Path(file_path)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
         await update_build_log(frontend_log.id, "completed", f"Generated {len(react_gen)} frontend files")
         await db.commit()
 
@@ -355,24 +403,24 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
                 "java_version": job.java_version,
                 "spring_boot_version": job.spring_boot_version,
                 "react_version": job.react_version,
-                "authentication_strategy": job.authentication_strategy,
-                "report_strategy": job.report_strategy,
-                "migration_strategy": job.migration_strategy,
+                "authentication_strategy": getattr(job, "authentication_strategy", "jwt"),
+                "report_strategy": getattr(job, "report_strategy", "spring-boot"),
+                "migration_strategy": getattr(job, "migration_strategy", "direct"),
             },
         }
 
         report_path = report_dir / "migration-report.json"
-        report_path.write_text(json.dumps(report, indent=2))
+        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
         # Generate HTML report
         html_report = generate_html_report(report)
         html_path = report_dir / "migration-report.html"
-        html_path.write_text(html_report)
+        html_path.write_text(html_report, encoding="utf-8")
         await db.commit()
 
         # Step 9: Build validation
         await update_state(JobState.BUILDING, "validating_build")
-        build_log = log_build("build", "validate_project")
+        build_log = await log_build("build", "validate_project")
 
         try:
             validation_result = validate_project(str(job_dir))
@@ -392,7 +440,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         # Step 10: Complete
         await update_state(JobState.COMPLETED, "completed")
         job.output_path = str(job_dir)
-        job.result = JobResult(
+        job_result = JobResult(
             output_path=str(job_dir),
             coverage=coverage,
             files_generated=len(spring_gen) + len(react_gen) + 1,
@@ -404,22 +452,30 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
                 if r.status.value == "UNSUPPORTED"
             ],
         )
+        job.result = job_result.model_dump()
         await job_repo.update(job)
         await db.commit()
 
         await manager.broadcast(job.id, {
-            "state": job.state.value,
+            "state": job.state,
             "step": "completed",
-            "result": job.result.model_dump(),
+            "result": job.result,
         })
 
     except Exception as e:
         import traceback
-        job = await job_repo.get_simple(job_id)
-        if job:
-            job.fail("CONVERSION_ERROR", str(e), {"traceback": traceback.format_exc()})
-            await job_repo.update(job)
-            await db.commit()
+        print(f"[PIPELINE ERROR] Job {job_id}: {e}")
+        traceback.print_exc()
+        try:
+            await db.rollback()
+            job = await job_repo.get_simple(job_id)
+            if job:
+                job.transition_to(JobState.FAILED)
+                job.error = {"code": "CONVERSION_ERROR", "message": str(e), "details": {"traceback": traceback.format_exc()}}
+                await job_repo.update(job)
+                await db.commit()
+        except Exception:
+            pass
         await manager.broadcast(job_id, {
             "state": JobState.FAILED.value,
             "error": str(e),
@@ -750,10 +806,10 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
                 job = await job_repo.get_simple(job_id)
                 if job:
                     await websocket.send_json({
-                        "state": job.state.value,
+                        "state": job.state,
                         "progress": job.progress,
                     })
-                    if job.state in (JobState.COMPLETED, JobState.FAILED):
+                    if job.state in (JobState.COMPLETED.value, JobState.FAILED.value):
                         break
             await asyncio.sleep(1)
     except WebSocketDisconnect:
@@ -899,7 +955,7 @@ async def llm_generate(request: LLMRequest, db: AsyncSession = Depends(get_db)):
     provider_type = LLMProviderType.OLLAMA if request.provider == "ollama" else LLMProviderType.OPENROUTER
     config = LLMConfig(
         provider_type=provider_type,
-        model=request.model or "llama3.1:8b",
+        model=request.model or "deepseek-r1:1.5b",
         temperature=request.temperature,
         max_tokens=request.max_tokens,
     )
@@ -927,7 +983,7 @@ async def llm_generate_structured(request: LLMStructuredRequest, db: AsyncSessio
     provider_type = LLMProviderType.OLLAMA if request.provider == "ollama" else LLMProviderType.OPENROUTER
     config = LLMConfig(
         provider_type=provider_type,
-        model=request.model or "llama3.1:8b",
+        model=request.model or "deepseek-r1:1.5b",
         temperature=request.temperature,
         max_tokens=request.max_tokens,
     )

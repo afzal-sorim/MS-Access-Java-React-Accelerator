@@ -213,13 +213,18 @@ export default function Step4Review() {
         }, {});
     }, [reviewData, reviewTab]);
 
+    // Count how many of the current tab's objects are selected
+    const currentSelectedCount = useMemo(() => {
+        return currentObjects.filter(o => selectedObjects.has(o.id)).length;
+    }, [currentObjects, selectedObjects]);
+
     const handleSelectAll = () => {
-        const allIds = currentObjects.map(o => o.id);
         actions.selectAllObjects(currentObjects);
     };
 
     const handleDeselectAll = () => {
-        actions.deselectAllObjects();
+        const currentIds = currentObjects.map(o => o.id);
+        actions.deselectAllObjects(currentIds);
     };
 
     const handleRowClick = (objectId) => {
@@ -376,20 +381,20 @@ export default function Step4Review() {
                             <button
                                 className="btn btn-secondary btn-sm"
                                 onClick={handleSelectAll}
-                                disabled={selectedObjects.size === currentObjects.length}
+                                disabled={currentSelectedCount === currentObjects.length}
                             >
                                 Select All ({formatNumber(currentObjects.length)})
                             </button>
                             <button
                                 className="btn btn-secondary btn-sm"
                                 onClick={handleDeselectAll}
-                                disabled={selectedObjects.size === 0}
+                                disabled={currentSelectedCount === 0}
                             >
                                 Deselect All
                             </button>
                         </div>
                         <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                            {formatNumber(selectedObjects.size)} of {formatNumber(currentObjects.length)} selected
+                            {formatNumber(currentSelectedCount)} of {formatNumber(currentObjects.length)} selected
                         </div>
                     </div>
 
@@ -401,9 +406,9 @@ export default function Step4Review() {
                                     <th style={{ width: '40px' }}>
                                         <input
                                             type="checkbox"
-                                            checked={selectedObjects.size === currentObjects.length && currentObjects.length > 0}
-                                            indeterminate={selectedObjects.size > 0 && selectedObjects.size < currentObjects.length}
-                                            onChange={() => selectedObjects.size === currentObjects.length ? handleDeselectAll() : handleSelectAll()}
+                                            checked={currentSelectedCount === currentObjects.length && currentObjects.length > 0}
+                                            indeterminate={currentSelectedCount > 0 && currentSelectedCount < currentObjects.length ? true : undefined}
+                                            onChange={() => currentSelectedCount === currentObjects.length ? handleDeselectAll() : handleSelectAll()}
                                             aria-label="Select all"
                                         />
                                     </th>
