@@ -78,6 +78,16 @@ class TestLLMEndpoints:
         assert "total_tokens" in data
         assert "total_accesses" in data
 
+    @pytest.mark.asyncio
+    async def test_llm_status(self, client):
+        response = await client.get("/api/llm/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "connected"
+        assert "provider" in data
+        assert "model" in data
+        assert "base_url" in data
+
 
 class TestHealthCheck:
     """Health check tests."""

@@ -26,6 +26,9 @@ class IRBuilder:
         self.extraction_path = Path(extraction_path)
         self.raw: dict = {}
         self.warnings: list[str] = []
+        # Name sets used to resolve record sources; populated during build().
+        self._table_names_lc: set[str] = set()
+        self._query_names_lc: set[str] = set()
 
     def load(self) -> "IRBuilder":
         """Load the extraction JSON file."""
@@ -50,6 +53,7 @@ class IRBuilder:
         # Build tables
         for table_data in self.raw.get("tables", []):
             app.tables.append(self._build_table(table_data))
+        self._table_names_lc = {t.name.lower() for t in app.tables}
 
         # Build relationships
         for rel_data in self.raw.get("relationships", []):
@@ -59,6 +63,7 @@ class IRBuilder:
         # Build queries
         for query_data in self.raw.get("queries", []):
             app.queries.append(self._build_query(query_data))
+        self._query_names_lc = {q.name.lower() for q in app.queries}
 
         # Build forms
         for form_data in self.raw.get("forms", []):
@@ -82,8 +87,43 @@ class IRBuilder:
         # Discover external dependencies
         app.external_dependencies = self._discover_external_dependencies()
 
+        # De-duplicate: the extractor folds form/report code-behind modules
+        # into the modules list so nothing is lost.  The IR builder already
+        # built form.report module entries; remove duplicates to avoid
+        # double-counting in supportability, dependency graph, and reports.
+        _form_module_names = {f.module_name for f in app.forms if f.module_name}
+        _report_module_names = {r.module_name for r in app.reports if r.module_name}
+        seen: set[str] = set()
+        deduped: list[VbaModuleIR] = []
+        for m in app.vba_modules:
+            key = m.name.lower()
+            if key in seen:
+                continue
+            if m.module_type == "FORM" and m.name in _form_module_names:
+                existing = next(
+                    (mm for mm in deduped if mm.name == m.name), None)
+                if existing and not (existing.source or "").strip():
+                    deduped.remove(existing)
+                elif existing:
+                    continue
+            if m.module_type == "REPORT" and m.name in _report_module_names:
+                existing = next(
+                    (mm for mm in deduped if mm.name == m.name), None)
+                if existing and not (existing.source or "").strip():
+                    deduped.remove(existing)
+                elif existing:
+                    continue
+            seen.add(key)
+            deduped.append(m)
+        app.vba_modules = deduped
+
+        # Attach extraction manifest if available.
+        manifest = self.raw.get("manifest")
+        if isinstance(manifest, dict):
+            app.extraction_manifest = manifest
+
         # Transfer warnings
-        app.warnings = self.raw.get("warnings", [])
+        app.warnings = self.raw.get('warnings', [])
         app.warnings.extend(self.warnings)
 
         return app
@@ -355,13 +395,14 @@ class IRBuilder:
         """Build FormIR from raw form data."""
         form = FormIR(
             name=data["name"],
-            record_source=data.get("record_source"),
+            record_source=data.get("record_source") or None,
             record_source_kind=self._detect_source_kind(data.get("record_source")),
             caption=data.get("caption"),
             is_subform=data.get("is_subform", False),
             parent_links=data.get("parent_links", {}),
             events=data.get("events", {}),
             module_name=data.get("module"),
+            module_source=data.get("module_source") or "",
             tabbed=False,  # Would need to parse source dump
         )
 
@@ -390,19 +431,32 @@ class IRBuilder:
         )
 
     def _detect_source_kind(self, source: Optional[str]) -> Optional[str]:
-        """Detect if a source is TABLE, QUERY, or SQL."""
-        if not source:
-            return None
+        """Classify a RecordSource/RowSource as TABLE, QUERY, SQL, or NONE.
+
+        This must be resolved against the actual table and query inventories:
+        assuming "TABLE" for every named source mis-types query-bound forms
+        (e.g. 950_Leszynski_Conventions_frm) and sends the React generator
+        hunting for a CRUD API that does not exist.
+        """
+        if not source or not source.strip():
+            return "NONE"
 
         source_stripped = source.strip()
 
-        # Check if it's a SQL statement
+        # Embedded SQL statement rather than a saved object name.
         if source_stripped.upper().startswith(("SELECT", "PARAMETERS")):
             return "SQL"
 
-        # Otherwise assume it's a table or query name
-        # We'd need to check against table/query lists to be sure
-        return "TABLE"  # Default assumption
+        # Named object: resolve against inventories (Access names are
+        # case-insensitive). Brackets around the name are legal.
+        bare = source_stripped.strip("[]")
+        if bare.lower() in self._table_names_lc:
+            return "TABLE"
+        if bare.lower() in self._query_names_lc:
+            return "QUERY"
+
+        # Unknown name: be honest rather than guessing TABLE.
+        return "UNKNOWN"
 
     # ---------------------------------------------------------------- report
 
@@ -410,9 +464,11 @@ class IRBuilder:
         """Build ReportIR from raw report data."""
         report = ReportIR(
             name=data["name"],
-            record_source=data.get("record_source"),
+            record_source=data.get("record_source") or None,
+            record_source_kind=self._detect_source_kind(data.get("record_source")),
             caption=data.get("caption"),
             module_name=data.get("module"),
+            module_source=data.get("module_source") or "",
         )
 
         # Build groups
@@ -434,29 +490,47 @@ class IRBuilder:
     # ---------------------------------------------------------------- macro
 
     def _build_macro(self, data: dict) -> MacroIR:
-        """Build MacroIR from raw macro data."""
+        """Build MacroIR from raw macro data, parsing actions from source."""
         macro = MacroIR(
             name=data["name"],
             is_autoexec=data.get("is_autoexec", False),
+            source=data.get("source") or "",
         )
 
-        # Macro actions would be parsed from source_dump if available
-        # For now, we leave actions empty as the extractor only captures metadata
+        if macro.source:
+            from ..analyzers.macro import MacroParser
+            parsed = MacroParser(macro).parse()
+            macro.actions = parsed.actions
+            if not parsed.actions:
+                self.warnings.append(
+                    f"macro {macro.name}: source present but no actions parsed")
+        elif not macro.actions:
+            self.warnings.append(
+                f"macro {macro.name}: no source captured; actions unknown")
 
         return macro
 
     # ---------------------------------------------------------------- module
 
     def _build_module(self, data: dict) -> VbaModuleIR:
-        """Build VbaModuleIR from raw module data."""
+        """Build VbaModuleIR from raw module data and analyze its source."""
         module = VbaModuleIR(
             name=data["name"],
             module_type=data.get("module_type", "STANDARD"),
             source=data.get("source", ""),
+            extraction_strategy=data.get("extraction_strategy"),
         )
+        module.extraction_status = "SUCCESS" if (module.source or "").strip() else "FAILED"
 
-        # Procedures, references, etc. would be extracted by VBA analyzer
-        # This is placeholder for Phase 11
+        # Parse procedures and external references. The parser also syncs
+        # references_com / uses_external / declares_api onto the module IR,
+        # which supportability and the dependency graph consume.
+        if (module.source or "").strip():
+            from ..analyzers.vba import parse_vba_module
+            analysis = parse_vba_module(module)
+            if not analysis.procedures:
+                self.warnings.append(
+                    f"module {module.name}: source present but no procedures parsed")
 
         return module
 

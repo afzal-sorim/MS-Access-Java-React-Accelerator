@@ -104,10 +104,58 @@ class ReactGenerator:
                     self._pk_map[table.name] = idx.columns[0]
                     break
 
+    # Build table name lookup for resolving record_source -> table
+    def _table_names(self) -> set[str]:
+        return {t.name for t in self.app.tables}
+
+    def _resolve_api_name(self, record_source: str) -> str:
+        """Resolve a form's record source to the API name exported by api.js.
+
+        api.js generates CRUD functions per *table*, not per query/form.
+        If the record_source is a table, use its PascalCase name directly.
+        If it's a query, try to find the underlying table(s).
+        """
+        if not record_source:
+            return ""
+        table_names = self._table_names()
+        # Direct table match
+        if record_source in table_names:
+            return self._to_pascal(record_source)
+        # Try matching by query -> underlying tables in IR queries
+        for q in self.app.queries:
+            if q.name == record_source and hasattr(q, 'sql') and q.sql:
+                # Find the first referenced table from the query SQL
+                for tname in table_names:
+                    if tname.lower() in q.sql.lower():
+                        return self._to_pascal(tname)
+        # Fallback: use record_source PascalCase (may not match api.js)
+        return self._to_pascal(record_source)
+
+    @staticmethod
+    def _is_access_expression(value: str) -> bool:
+        """Check if a string is an Access calculated expression."""
+        if not value:
+            return False
+        stripped = value.strip()
+        return stripped.startswith("=") or "(" in stripped and ")" in stripped
+
+    @staticmethod
+    def _sanitize_control_source(source: str) -> str:
+        """Delegate to the shared expression engine."""
+        from ...expressions import _to_js_identifier
+        return _to_js_identifier(source)
+
     def _generate_page(self, form) -> str:
         """Generate a React page component from an Access form."""
         page_name = self._to_pascal(form.name.replace("frm", ""))
-        endpoint = self._to_kebab(form.record_source) if form.record_source else ""
+
+        # Fix 4: Unbound forms (no record_source) get info/dashboard pages, not CRUD
+        if not form.record_source:
+            return self._generate_unbound_page(form, page_name)
+
+        endpoint = self._to_kebab(form.record_source)
+        # Fix 5: API name must match api.js exports (table-based names)
+        api_name = self._resolve_api_name(form.record_source)
 
         # Determine if this is a list page or form page
         is_list = any(
@@ -117,29 +165,136 @@ class ReactGenerator:
         )
 
         if is_list and form.record_source:
-            return self._generate_list_page(form, page_name, endpoint)
+            return self._generate_list_page(form, page_name, endpoint, api_name)
         else:
-            return self._generate_form_page(form, page_name, endpoint)
+            return self._generate_form_page(form, page_name, endpoint, api_name)
 
-    def _generate_list_page(self, form, page_name: str, endpoint: str) -> str:
+    def _generate_unbound_page(self, form, page_name: str) -> str:
+        """Generate an info/dashboard page for unbound forms (no record source).
+
+        Unbound forms in Access are typically UI/utility/business-logic forms,
+        NOT database CRUD forms. We render them as informational pages with
+        labels and buttons that have TODO comments for their event logic.
+        """
+        # Separate controls by type
+        labels = [c for c in form.controls if c.control_type == "Label"]
+        buttons = [c for c in form.controls if c.control_type == "CommandButton"]
+        text_fields = [c for c in form.controls if c.control_type in ("TextBox", "ComboBox") and c.visible]
+        checkboxes = [c for c in form.controls if c.control_type == "CheckBox"]
+
+        # Generate label display
+        label_elements = []
+        for ctrl in labels:
+            caption = ctrl.caption or ctrl.name
+            source = ctrl.control_source or ""
+            if self._is_access_expression(source):
+                # Render Access expression as a comment, not as broken JSX
+                sanitized = self._sanitize_control_source(source)
+                safe_expr = source.replace('"', "'")
+                label_elements.append(f"""
+            <div className="info-field">
+                <span className="info-label">{caption}</span>
+                <span className="info-value" id="{sanitized}">{{/* TODO: Access expression: {safe_expr} */}}</span>
+            </div>""")
+            elif source:
+                sanitized = self._sanitize_control_source(source)
+                label_elements.append(f"""
+            <div className="info-field">
+                <span className="info-label">{caption}</span>
+                <span className="info-value">{source}</span>
+            </div>""")
+            else:
+                label_elements.append(f"""
+            <div className="info-field">
+                <span className="info-label">{caption}</span>
+            </div>""")
+
+        # Generate text field display (read-only for unbound forms)
+        field_elements = []
+        for ctrl in text_fields:
+            source = ctrl.control_source or ctrl.name
+            label = ctrl.caption or source
+            if self._is_access_expression(source):
+                sanitized = self._sanitize_control_source(source)
+                safe_expr = source.replace('"', "'")
+                field_elements.append(f"""
+            <div className="info-field">
+                <span className="info-label">{label}</span>
+                <span className="info-value" id="{sanitized}">{{/* TODO: Access expression: {safe_expr} */}}</span>
+            </div>""")
+            else:
+                sanitized = self._sanitize_control_source(source)
+                field_elements.append(f"""
+            <div className="info-field">
+                <span className="info-label">{label}</span>
+                <span className="info-value" id="{sanitized}"></span>
+            </div>""")
+
+        # Generate button elements with TODO handlers
+        button_elements = []
+        for ctrl in buttons:
+            caption = ctrl.caption or ctrl.name
+            handler_name = self._to_camel(ctrl.name)
+            button_elements.append(f"""
+            <button
+                className="btn"
+                onClick={{() => console.warn('TODO: Implement {handler_name} — original Access event handler not yet converted')}}
+            >
+                {caption}
+            </button>""")
+
+        labels_js = "\n".join(label_elements) if label_elements else ""
+        fields_js = "\n".join(field_elements) if field_elements else ""
+        buttons_js = "\n".join(button_elements) if button_elements else ""
+
+        return f"""import React from 'react';
+
+/**
+ * {page_name} — Unbound Access form (no database record source).
+ *
+ * Original Access form: {form.name}
+ * This form has {len(form.controls)} controls including {len(buttons)} buttons.
+ * Business logic from Access VBA event handlers has NOT been converted.
+ * TODO: Implement button click handlers to match original Access behavior.
+ */
+export default function {page_name}Page() {{
+    return (
+        <div className="{page_name.lower()}-page">
+            <h1>{form.caption or page_name}</h1>
+            <p className="form-description">This page corresponds to Access form: {form.name}</p>
+{labels_js}
+{fields_js}
+            <div className="button-group">
+{buttons_js}
+            </div>
+        </div>
+    );
+}}
+"""
+
+    def _generate_list_page(self, form, page_name: str, endpoint: str, api_name: str = "") -> str:
         """Generate a list/table page."""
+        api_name = api_name or page_name
         var_name = self._to_camel(page_name)
 
-        # Find display columns (non-ID, non-hidden)
+        # Find display columns (non-ID, non-hidden), sanitizing Access expressions
         display_cols = []
         for ctrl in form.controls:
             if ctrl.control_type in ("TextBox", "ComboBox") and ctrl.visible:
-                if ctrl.control_source and not ctrl.control_source.lower().endswith("id"):
-                    display_cols.append(ctrl.control_source)
+                source = ctrl.control_source
+                if source and not source.lower().endswith("id"):
+                    if not self._is_access_expression(source):
+                        display_cols.append(source)
 
-        columns_js = ",\n        ".join(
-            f'{{ key: "{self._to_camel(col)}", header: "{col}" }}'
-            for col in display_cols[:6]  # Limit columns
+        # Fix 6: Render as proper <th> elements, not raw JS object literals
+        header_ths = "\n                        ".join(
+            f'<th>{col}</th>'
+            for col in display_cols[:6]
         )
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ Link }} from 'react-router-dom';
-import {{ get{page_name} }} from '../services/api';
+import {{ get{api_name} }} from '../services/api';
 
 export default function {page_name}Page() {{
     const [{var_name}, set{page_name}] = useState([]);
@@ -149,7 +304,7 @@ export default function {page_name}Page() {{
     useEffect(() => {{
         async function fetchData() {{
             try {{
-                const data = await get{page_name}();
+                const data = await get{api_name}();
                 set{page_name}(data);
             }} catch (err) {{
                 setError(err.message);
@@ -170,7 +325,7 @@ export default function {page_name}Page() {{
                 <thead>
                     <tr>
                         <th>Action</th>
-                        {columns_js}
+                        {header_ths}
                     </tr>
                 </thead>
                 <tbody>
@@ -190,49 +345,61 @@ export default function {page_name}Page() {{
 }}
 """
 
-    def _generate_form_page(self, form, page_name: str, endpoint: str) -> str:
+    def _generate_form_page(self, form, page_name: str, endpoint: str, api_name: str = "") -> str:
         """Generate a form page for create/edit."""
+        api_name = api_name or page_name
         var_name = self._to_camel(page_name)
 
-        # Generate form fields
+        # Generate form fields with Access expression sanitization (Fix 3)
         form_fields = []
         for ctrl in form.controls:
             if ctrl.control_type in ("TextBox", "ComboBox", "CheckBox"):
-                if ctrl.control_source:
-                    field_name = self._to_camel(ctrl.control_source)
-                    label = ctrl.caption or ctrl.control_source
-                    input_type = "text"
-                    if ctrl.control_type == "CheckBox":
-                        input_type = "checkbox"
-                    elif "Date" in ctrl.control_source:
-                        input_type = "date"
-                    elif "Email" in ctrl.control_source:
-                        input_type = "email"
+                # Use control_source if available, fall back to control name
+                raw_source = ctrl.control_source or ctrl.name
 
-                    if ctrl.control_type == "CheckBox":
-                        form_fields.append(f"""
-            <div className="form-group">
+                # Fix 3: Sanitize Access expressions into valid JS identifiers
+                field_name = self._to_camel(self._sanitize_control_source(raw_source))
+                label = ctrl.caption or raw_source
+                input_type = "text"
+                if ctrl.control_type == "CheckBox":
+                    input_type = "checkbox"
+                elif "Date" in raw_source:
+                    input_type = "date"
+                elif "Email" in raw_source:
+                    input_type = "email"
+
+                # Evaluate disabled attribute at generation time
+                disabled_attr = ' disabled' if ctrl.locked else ''
+
+                # Add a TODO comment for Access-expression fields
+                expr_comment = ""
+                if self._is_access_expression(raw_source):
+                    safe_expr = raw_source.replace('"', "'")
+                    expr_comment = f"\n                    {{/* TODO: Original Access expression: {safe_expr} */}}"
+
+                if ctrl.control_type == "CheckBox":
+                    form_fields.append(f"""
+            <div className="form-group">{expr_comment}
                 <label>
                     <input
                         type="checkbox"
                         name="{field_name}"
                         checked={{formData.{field_name} || false}}
-                        onChange={{handleChange}}
+                        onChange={{handleChange}}{disabled_attr}
                     />
                     {label}
                 </label>
             </div>""")
-                    else:
-                        form_fields.append(f"""
-            <div className="form-group">
+                else:
+                    form_fields.append(f"""
+            <div className="form-group">{expr_comment}
                 <label htmlFor="{field_name}">{label}</label>
                 <input
                     type="{input_type}"
                     id="{field_name}"
                     name="{field_name}"
                     value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}
-                    {{...ctrl.locked && {{ disabled: true }}}}
+                    onChange={{handleChange}}{disabled_attr}
                 />
             </div>""")
 
@@ -240,7 +407,7 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{page_name}ById, create{page_name}, update{page_name} }} from '../services/api';
+import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
@@ -255,7 +422,7 @@ export default function {page_name}FormPage() {{
         if (isEdit) {{
             async function fetchData() {{
                 try {{
-                    const data = await get{page_name}ById(id);
+                    const data = await get{api_name}ById(id);
                     setFormData(data);
                 }} catch (err) {{
                     setError(err.message);
@@ -278,9 +445,9 @@ export default function {page_name}FormPage() {{
         setLoading(true);
         try {{
             if (isEdit) {{
-                await update{page_name}(id, formData);
+                await update{api_name}(id, formData);
             }} else {{
-                await create{page_name}(formData);
+                await create{api_name}(formData);
             }}
             navigate('/{endpoint}');
         }} catch (err) {{
@@ -729,24 +896,22 @@ export default defineConfig({{
 </html>
 """
 
+    # Naming is delegated to the shared naming module (PHASE 5 / 18).
+    # Import locally to avoid circular imports at module level.
     @staticmethod
     def _to_pascal(name: str) -> str:
-        """Convert to PascalCase."""
-        parts = name.replace("_", " ").replace("-", " ").split()
-        return "".join(p.capitalize() for p in parts)
+        from ...naming import to_pascal
+        return to_pascal(name)
 
     @staticmethod
     def _to_camel(name: str) -> str:
-        """Convert to camelCase."""
-        pascal = ReactGenerator._to_pascal(name)
-        return pascal[0].lower() + pascal[1:] if pascal else pascal
+        from ...naming import to_camel
+        return to_camel(name)
 
     @staticmethod
     def _to_kebab(name: str) -> str:
-        """Convert to kebab-case."""
-        import re
-        s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1-\2', name)
-        return re.sub(r'([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+        from ...naming import to_kebab
+        return to_kebab(name)
 
 
 def generate_react(app_ir, output_dir: str | Path, **kwargs) -> dict[str, str]:

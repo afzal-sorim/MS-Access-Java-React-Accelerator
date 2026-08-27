@@ -113,9 +113,11 @@ class MacroParser:
             result.warnings.append("No source available for macro")
             return result
 
-        # Detect format: XML (modern) vs legacy text
+        # Detect format: XML (modern embedded) vs SaveAsText dump vs legacy
         if "<?xml" in self.source or "<mac:" in self.source or "<Action " in self.source:
             self._parse_xml(result)
+        elif re.search(r'^\s*Action\s*=\s*"', self.source, re.MULTILINE):
+            self._parse_savedastext(result)
         else:
             self._parse_legacy(result)
 
@@ -178,6 +180,66 @@ class MacroParser:
 
         return actions
 
+    def _parse_savedastext(self, result: ParsedMacro) -> None:
+        """Parse the SaveAsText dump format Access actually writes.
+
+        The dump is a sequence of blocks:
+
+            Begin
+                Action ="OpenForm"
+                Argument ="002_Splash_Screen_frm"
+                Argument ="0"
+                ...
+            End
+
+        Arguments are positional; they are mapped onto the documented
+        argument names for the action when known (``MACRO_ACTIONS``),
+        falling back to ``ArgumentN``.
+        """
+        current: Optional[MacroActionIR] = None
+
+        def flush() -> None:
+            nonlocal current
+            if current is not None:
+                result.actions.append(current)
+                current = None
+
+        for raw_line in self.source.splitlines():
+            line = raw_line.strip()
+            if not line or line == "Begin" or line == "End":
+                if line == "End":
+                    flush()
+                continue
+
+            action_match = re.match(r'^Action\s*=\s*"(\w+)"$', line)
+            if action_match:
+                flush()
+                current = MacroActionIR(
+                    action=action_match.group(1),
+                    arguments={},
+                )
+                continue
+
+            if current is None:
+                # Header lines like Version =196611 / ColumnsShown =3.
+                continue
+
+            condition_match = re.match(r'^Condition\s*=\s*"(.*)"$', line)
+            if condition_match:
+                current.condition = condition_match.group(1) or None
+                continue
+
+            argument_match = re.match(r'^Argument\s*=\s*"(.*)"$', line)
+            if argument_match:
+                position = len(current.arguments) + 1
+                expected = MACRO_ACTIONS.get(current.action, [])
+                name = (expected[position - 1]
+                        if position <= len(expected)
+                        else f"Argument{position}")
+                current.arguments[name] = argument_match.group(1)
+
+        flush()
+
     def _parse_legacy(self, result: ParsedMacro) -> None:
         """Parse legacy macro text format."""
         lines = self.source.split("\n")
@@ -236,7 +298,7 @@ class MacroParser:
     def to_service_method(self) -> str:
         """Generate a Java service method from this macro."""
         result = self.parse()
-        lines = ["// Generated from macro: {self.name}"]
+        lines = [f"// Generated from macro: {self.name}"]
 
         if result.is_autoexec:
             lines.append("// This macro runs on application startup")

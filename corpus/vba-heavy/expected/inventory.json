@@ -9,7 +9,7 @@
     "forms": 13,
     "reports": 8,
     "macros": 3,
-    "vba_modules": 12
+    "vba_modules": 33
   },
   "tables": [
     "CMD_LINE_TB",
@@ -73,6 +73,27 @@
     "zzzAutoExec"
   ],
   "vba_modules": [
+    "Form_001_About_frm",
+    "Form_002_Splash_Screen_frm",
+    "Form_003_Buttons_frm",
+    "Form_004_DSN_Password_frm",
+    "Form_005_Access_Security_frm",
+    "Form_006_Dialogbox_Examples_frm",
+    "Form_010_Date_Calendar_frm",
+    "Form_301_Roulette_frm",
+    "Form_700_Create_Filelist_frm",
+    "Form_800_Link_Manager_frm",
+    "Form_900_Check_Runtime_frm",
+    "Form_950_Leszynski_Conventions_frm",
+    "Form_980_Data_Dictionary_frm",
+    "Report_001_Organization_Logo_srp",
+    "Report_099_Object_Listing_Report_rpt",
+    "Report_803_Object_Calendar_List_rpt",
+    "Report_803a_Calendar_List_srp",
+    "Report_804_Weekly_Report_rpt",
+    "Report_805_Timeline_Report_rpt",
+    "Report_950_Leszynski_Conventions_rpt",
+    "Report_980_Data_Dictionary_rpt",
     "clsMonthCal",
     "modCalendar",
     "modDate",

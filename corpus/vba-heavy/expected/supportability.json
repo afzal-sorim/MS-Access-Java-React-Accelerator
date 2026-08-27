@@ -1,11 +1,11 @@
 {
   "_status": "CAPTURED_UNREVIEWED",
   "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
-  "total": 65,
+  "total": 86,
   "by_status": {
-    "SUPPORTED": 33,
-    "SUPPORTED_WITH_REVIEW": 8,
-    "SUPPORTED_WITH_TRANSFORMATION": 13,
+    "SUPPORTED": 27,
+    "SUPPORTED_WITH_REVIEW": 14,
+    "SUPPORTED_WITH_TRANSFORMATION": 34,
     "UNSUPPORTED": 11
   }
 }

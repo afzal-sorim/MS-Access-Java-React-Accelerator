@@ -23,65 +23,69 @@ def cmd_convert(args) -> int:
         print(f"Error: Input file not found: {input_path}", file=sys.stderr)
         return 1
 
-    print(f"Converting {input_path.name}...")
-    print(f"Output directory: {output_dir}")
+    print("=" * 60)
+    print(f"Starting conversion for: {input_path.name}")
+    print(f"Target output path:     {output_dir}")
+    print("=" * 60)
 
     # Step 1: Extract
-    print("\n[1/7] Extracting Access database...")
-    from ..access.extractor import run_extraction
+    print("\n➤ [Progress: 10%] [Step 1/8] Extracting Access database objects (tables, queries, forms, reports, macros, VBA)...")
+    from converter.app.access.extractor import run_extraction
 
     extract_dir = output_dir / ".extract"
     extract_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         extraction = run_extraction(str(input_path), str(extract_dir))
-        print(f"  - Tables: {len(extraction.get('tables', []))}")
-        print(f"  - Queries: {len(extraction.get('queries', []))}")
-        print(f"  - Forms: {len(extraction.get('forms', []))}")
-        print(f"  - Reports: {len(extraction.get('reports', []))}")
-        print(f"  - Macros: {len(extraction.get('macros', []))}")
-        print(f"  - Warnings: {len(extraction.get('warnings', []))}")
+        print(f"  ✓ Tables:      {len(extraction.get('tables', []))}")
+        print(f"  ✓ Queries:     {len(extraction.get('queries', []))}")
+        print(f"  ✓ Forms:       {len(extraction.get('forms', []))}")
+        print(f"  ✓ Reports:     {len(extraction.get('reports', []))}")
+        print(f"  ✓ Macros:      {len(extraction.get('macros', []))}")
+        print(f"  ✓ VBA Modules: {len(extraction.get('modules', []))}")
+        if extraction.get('warnings'):
+            print(f"  ! Warnings:    {len(extraction.get('warnings', []))}")
     except Exception as e:
         print(f"Error during extraction: {e}", file=sys.stderr)
         return 1
 
     # Step 2: Build IR
-    print("\n[2/7] Building Intermediate Representation...")
-    from ..ir.builder import build_ir
+    print("\n➤ [Progress: 25%] [Step 2/8] Building canonical Intermediate Representation (AIR)...")
+    from converter.app.ir.builder import build_ir
 
     extraction_path = extract_dir / "extraction.json"
     app_ir = build_ir(extraction_path)
-    print(f"  - Application: {app_ir.application_name}")
-    print(f"  - Source: {app_ir.source_file}")
+    print(f"  ✓ Application: {app_ir.application_name}")
+    print(f"  ✓ Source File: {app_ir.source_file}")
 
     # Step 3: Build dependency graph
-    print("\n[3/7] Building dependency graph...")
-    from ..graph.builder import build_dependency_graph
+    print("\n➤ [Progress: 35%] [Step 3/8] Constructing dependency graph & discovering object relationships...")
+    from converter.app.graph.builder import build_dependency_graph
 
     graph = build_dependency_graph(app_ir)
     cycles = graph.find_cycles()
     orphans = graph.find_orphans()
-    print(f"  - Nodes: {len(graph.nodes)}")
-    print(f"  - Cycles: {len(cycles)}")
-    print(f"  - Orphans: {len(orphans)}")
+    print(f"  ✓ Graph Nodes: {len(graph.nodes)}")
+    print(f"  ✓ Cycles:      {len(cycles)}")
+    print(f"  ✓ Orphans:     {len(orphans)}")
 
     # Step 4: Analyze supportability
-    print("\n[4/7] Analyzing supportability...")
-    from ..supportability.engine import analyze_supportability, SupportabilityEngine
+    print("\n➤ [Progress: 48%] [Step 4/8] Analyzing supportability, complexity & conversion feasibility...")
+    from converter.app.supportability.engine import analyze_supportability, SupportabilityEngine
 
     support_results = analyze_supportability(app_ir)
     engine = SupportabilityEngine(app_ir)
     engine.results = support_results
     coverage = engine.calculate_coverage()
 
-    print(f"  - Overall coverage: {coverage.get('overall', 0)}%")
-    print(f"  - Fully supported: {coverage.get('fully_supported_pct', 0)}%")
-    print(f"  - Needs review: {coverage.get('supported_with_review_pct', 0)}%")
-    print(f"  - Unsupported: {coverage.get('unsupported_pct', 0)}%")
+    print(f"  ✓ Overall Feasibility: {coverage.get('overall', 0)}%")
+    print(f"  ✓ Fully Supported:     {coverage.get('fully_supported_pct', 0)}%")
+    print(f"  ✓ Supported w/ Review: {coverage.get('supported_with_review_pct', 0)}%")
+    print(f"  ✓ Unsupported:         {coverage.get('unsupported_pct', 0)}%")
 
     # Step 5: Generate PostgreSQL schema
-    print("\n[5/7] Generating PostgreSQL schema...")
-    from ..generators.database.postgres import generate_schema
+    print("\n➤ [Progress: 60%] [Step 5/8] Generating PostgreSQL DDL schema & data migration scripts...")
+    from converter.app.generators.database.postgres import generate_schema
 
     db_dir = output_dir / "database"
     db_dir.mkdir(parents=True, exist_ok=True)
@@ -91,11 +95,11 @@ def cmd_convert(args) -> int:
 
     schema_path = db_dir / "schema.sql"
     generate_schema(app_ir, schema_path)
-    print(f"  - Schema written to: {schema_path}")
+    print(f"  ✓ PostgreSQL Schema written to: {schema_path}")
 
     # Step 6: Generate Spring Boot backend
-    print("\n[6/7] Generating Spring Boot backend...")
-    from ..generators.spring import SpringBootGenerator
+    print("\n➤ [Progress: 75%] [Step 6/8] Generating Spring Boot backend (Entities, Repositories, Services, Controllers, Stubs)...")
+    from converter.app.generators.spring import SpringBootGenerator
 
     backend_dir = output_dir / "backend"
     base_package = args.package or "com.generated.app"
@@ -107,33 +111,53 @@ def cmd_convert(args) -> int:
         report_strategy=args.report_strategy,
     )
     spring_gen = spring_generator.generate(backend_dir)
-    print(f"  - Generated {len(spring_gen)} files")
-    print(f"  - Base package: {base_package}")
+    print(f"  ✓ Generated {len(spring_gen)} Spring Boot files")
+    print(f"  ✓ Base Package: {base_package}")
 
     report_definitions = spring_generator.report_definitions
     generated_reports = [d for d in report_definitions if d.generatable]
     if report_definitions:
-        print(f"  - Reports: {len(generated_reports)}/{len(report_definitions)} converted")
+        print(f"  ✓ Reports converted: {len(generated_reports)}/{len(report_definitions)}")
         for warning in spring_generator.warnings:
             print(f"    ! {warning}")
 
     # Step 7: Generate React frontend
-    print("\n[7/7] Generating React frontend...")
-    from ..generators.react import generate_react
+    print("\n➤ [Progress: 88%] [Step 7/8] Generating React frontend (Pages, Components, API Clients, Router)...")
+    from converter.app.generators.react import generate_react
 
     frontend_dir = output_dir / "frontend"
 
     react_gen = generate_react(
         app_ir, frontend_dir, report_strategy=args.report_strategy
     )
-    print(f"  - Generated {len(react_gen)} files")
+    print(f"  ✓ Generated {len(react_gen)} React files")
 
-    # Generate migration report
-    print("\nGenerating migration report...")
+    # Step 7b: Cross-layer contract validation (React ↔ api.js ↔ Spring ↔ DB)
+    from converter.app.validation.contract import ContractValidator
+
+    all_generated = {**spring_gen, **react_gen}
+    all_generated[str(schema_path)] = schema_path.read_text(encoding="utf-8")
+    contract_report = ContractValidator(app_ir).validate(all_generated)
+    if contract_report.violations:
+        error_count = sum(1 for v in contract_report.violations if v.severity == "ERROR")
+        print(f"  ! Contract validation: {error_count} error(s), "
+              f"{len(contract_report.violations) - error_count} warning(s)")
+        for v in contract_report.violations[:5]:
+            print(f"      [{v.severity}] {v.layer} {v.object}: {v.detail}")
+
+    # Step 8: Generate conversion manifest + migration report
+    print("\n➤ [Progress: 95%] [Step 8/8] Generating conversion manifest & migration reports...")
     report_dir = output_dir / "migration-report"
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    from ..app.reporting import report_migration_summary, write_report_manifest
+    from converter.app.reporting import report_migration_summary, write_report_manifest
+    from converter.app.manifest import ConversionManifest
+
+    conversion_manifest = ConversionManifest.build(app_ir)
+    scores = conversion_manifest.calculate_scores()
+    (report_dir / "conversion-manifest.json").write_text(
+        json.dumps(conversion_manifest.to_dict(), indent=2), encoding="utf-8")
+    print(f"  ✓ Conversion manifest written ({len(conversion_manifest.objects)} objects)")
 
     reports_summary = report_migration_summary(report_definitions)
     if report_definitions:
@@ -166,8 +190,51 @@ def cmd_convert(args) -> int:
             }
             for r in support_results
         ],
+        "extraction_failures": [
+            {
+                "object": r.object,
+                "category": r.category,
+                "reason": r.reason,
+            }
+            for r in support_results
+            if r.status.value == "FAILED_EXTRACTION"
+        ],
+        "dropped_queries": [
+            {
+                "name": q.name,
+                "kind": q.kind.value if hasattr(q.kind, 'value') else str(q.kind),
+                "sql_present": bool((q.sql or "").strip()),
+                "custom_vba_functions": [
+                    f for f in q.access_functions
+                    if f not in ('Nz', 'IIf', 'Format', 'DatePart', 'DateAdd',
+                                 'DateDiff', 'Year', 'Month', 'Day', 'Now',
+                                 'Date', 'Time', 'Trim', 'UCase', 'LCase',
+                                 'Left', 'Right', 'Mid', 'Len', 'InStr')
+                ],
+                "reason": "References custom VBA functions not available in target"
+                          if any(f not in ('Nz', 'IIf', 'Format', 'DatePart', 'DateAdd',
+                                           'DateDiff', 'Year', 'Month', 'Day', 'Now',
+                                           'Date', 'Time', 'Trim', 'UCase', 'LCase',
+                                           'Left', 'Right', 'Mid', 'Len', 'InStr')
+                                 for f in q.access_functions)
+                          else "Query not converted to endpoint (emitted as TODO stub)",
+            }
+            for q in app_ir.queries
+        ],
+        "forms_breakdown": {
+            "total_forms": len(app_ir.forms),
+            "bound_crud_forms": len([f for f in app_ir.forms if f.record_source]),
+            "unbound_ui_forms": len([f for f in app_ir.forms if not f.record_source]),
+            "unbound_form_names": [f.name for f in app_ir.forms if not f.record_source],
+            "forms_with_unconverted_vba_events": len([
+                f for f in app_ir.forms if f.events or f.module_name
+            ]),
+            "notice": "Unbound forms were converted to informational layout scaffolds; Access VBA event handlers were not modernized into backend logic.",
+        },
         "warnings": app_ir.warnings + spring_generator.warnings,
         "reports": reports_summary,
+        "modernization_scores": scores,
+        "contract_validation": contract_report.to_dict(),
         "generated": {
             "backend_files": len(spring_gen),
             "frontend_files": len(react_gen),
@@ -205,7 +272,7 @@ def cmd_extract(args) -> int:
 
     print(f"Extracting {input_path.name}...")
 
-    from ..access.extractor import run_extraction
+    from converter.app.access.extractor import run_extraction
 
     output_dir.mkdir(parents=True, exist_ok=True)
     extraction = run_extraction(str(input_path), str(output_dir))
@@ -237,9 +304,9 @@ def cmd_analyze(args) -> int:
 
     print(f"Analyzing {extraction_path}...")
 
-    from ..ir.builder import build_ir
-    from ..graph.builder import build_dependency_graph
-    from ..supportability.engine import analyze_supportability, SupportabilityEngine
+    from converter.app.ir.builder import build_ir
+    from converter.app.graph.builder import build_dependency_graph
+    from converter.app.supportability.engine import analyze_supportability, SupportabilityEngine
 
     app_ir = build_ir(extraction_path)
     graph = build_dependency_graph(app_ir)

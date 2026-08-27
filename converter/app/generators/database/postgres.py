@@ -61,11 +61,13 @@ class PostgresSchemaGenerator:
         self.warnings: list[str] = []
         self._pk_map: dict[str, str] = {}  # table -> pk column
         self._fk_map: dict[str, list[dict]] = {}  # table -> list of FKs
+        self._emitted_constraints: set[tuple[str, str]] = set()  # (table, constraint) -> avoid duplicates
 
     def generate(self) -> str:
         """Generate the complete schema.sql content."""
         self.statements = []
         self.warnings = []
+        self._emitted_constraints = set()
 
         # Header comment
         self.statements.append("-- Generated PostgreSQL Schema")
@@ -142,6 +144,13 @@ class PostgresSchemaGenerator:
 
         columns_sql = []
         primary_key_col = self._pk_map.get(table.name)
+
+        # If no primary key defined, add a synthetic surrogate PK
+        if primary_key_col is None:
+            columns_sql.append('"generated_id" BIGSERIAL PRIMARY KEY')
+            self.warnings.append(
+                f"Table {table.name} has no primary key — synthetic 'generated_id' added"
+            )
 
         for col in table.columns:
             col_spec = self._column_spec(col, table.name, primary_key_col)
@@ -256,32 +265,21 @@ class PostgresSchemaGenerator:
         return base_type
 
     def _convert_default(self, default: str, access_type: str) -> Optional[str]:
-        """Convert Access default value to PostgreSQL."""
+        """Convert Access default value to PostgreSQL.
+
+        Delegates to the shared expression engine.
+        """
+        from ...expressions import translate_postgres_default
+
         if not default:
             return None
 
-        default = default.strip("'\"")
-
-        # Common Access defaults
-        if default.lower() == "true":
-            return "TRUE"
-        if default.lower() == "false":
-            return "FALSE"
-        if default.lower() in ("now()", "date()", "time()"):
-            return "CURRENT_TIMESTAMP"
-
-        # String literal
-        if access_type in ("Short Text", "Long Text", "Hyperlink"):
-            return f"'{default}'"
-
-        # Number
-        try:
-            float(default)
-            return default
-        except ValueError:
-            pass
-
-        return f"'{default}'"
+        result = translate_postgres_default(default, access_type)
+        if result is None and default.strip().startswith("="):
+            self.warnings.append(
+                f"Access default expression '{default}' could not be converted to PostgreSQL; omitted"
+            )
+        return result
 
     def _convert_validation(self, rule: str) -> Optional[str]:
         """Convert Access validation rule to PostgreSQL CHECK constraint."""
@@ -341,6 +339,12 @@ class PostgresSchemaGenerator:
         col = self._to_snake(fk["column"])
         parent = self._to_snake(fk["parent_table"])
         parent_col = self._to_snake(fk["parent_column"])
+
+        # Prevent duplicate constraints on the same table
+        constraint_key = (table, constraint)
+        if constraint_key in self._emitted_constraints:
+            return
+        self._emitted_constraints.add(constraint_key)
 
         self.statements.append(
             f"ALTER TABLE \"{table}\" "
@@ -408,10 +412,8 @@ class PostgresSchemaGenerator:
 
     @staticmethod
     def _to_snake(name: str) -> str:
-        """Convert CamelCase to snake_case."""
-        import re
-        s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        from ...naming import to_snake
+        return to_snake(name)
 
     def write(self, output_path: str | Path) -> None:
         """Write the generated schema to a file."""

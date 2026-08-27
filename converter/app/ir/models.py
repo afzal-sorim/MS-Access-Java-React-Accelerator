@@ -150,13 +150,14 @@ class ControlIR(BaseModel):
 class FormIR(BaseModel):
     name: str
     record_source: Optional[str] = None
-    record_source_kind: Optional[str] = None  # TABLE | QUERY
+    record_source_kind: Optional[str] = None  # TABLE | QUERY | SQL | NONE
     caption: Optional[str] = None
     is_subform: bool = False
     parent_links: dict[str, str] = Field(default_factory=dict)  # child field -> master field
     controls: list[ControlIR] = Field(default_factory=list)
     events: dict[str, str] = Field(default_factory=dict)
     module_name: Optional[str] = None     # Form_frmX if HasModule
+    module_source: str = ""               # code-behind VBA captured live
     tabbed: bool = False
 
 
@@ -172,11 +173,13 @@ class ReportGroupIR(BaseModel):
 class ReportIR(BaseModel):
     name: str
     record_source: Optional[str] = None
+    record_source_kind: Optional[str] = None  # TABLE | QUERY | SQL | NONE
     caption: Optional[str] = None
     groups: list[ReportGroupIR] = Field(default_factory=list)
     controls: list[ControlIR] = Field(default_factory=list)
     summary_fields: list[str] = Field(default_factory=list)  # =Sum(...) etc.
     module_name: Optional[str] = None
+    module_source: str = ""
     subreports: list[str] = Field(default_factory=list)
 
 
@@ -184,7 +187,7 @@ class ReportIR(BaseModel):
 
 class MacroActionIR(BaseModel):
     action: str
-    arguments: str = ""
+    arguments: dict[str, str] = Field(default_factory=dict)  # argument name -> value
     condition: Optional[str] = None
 
 
@@ -192,14 +195,22 @@ class MacroIR(BaseModel):
     name: str
     actions: list[MacroActionIR] = Field(default_factory=list)
     is_autoexec: bool = False
+    source: str = ""                      # SaveAsText dump content
+    extraction_status: Optional[str] = None  # SUCCESS | PARTIAL | FAILED | None (unknown)
 
 
 class VbaProcedureIR(BaseModel):
     name: str
-    kind: str = "SUB"                     # SUB | FUNCTION | EVENT
+    kind: str = "SUB"                     # SUB | FUNCTION | PROPERTY_GET | PROPERTY_LET | PROPERTY_SET
+    visibility: str = "PUBLIC"            # PUBLIC | PRIVATE | FRIEND
     signature: str = ""
+    parameters: list[dict[str, str]] = Field(default_factory=list)  # {"name","type"}
+    return_type: Optional[str] = None
     body: str = ""
     calls: list[str] = Field(default_factory=list)
+    references_tables: list[str] = Field(default_factory=list)
+    uses_recordset: bool = False
+    has_error_handling: bool = False
     business_rules: list[str] = Field(default_factory=list)  # rule ids extracted
 
 
@@ -211,6 +222,8 @@ class VbaModuleIR(BaseModel):
     references_com: list[str] = Field(default_factory=list)   # CreateObject targets
     declares_api: list[str] = Field(default_factory=list)     # Declare statements
     uses_external: list[str] = Field(default_factory=list)    # Outlook., Excel., ...
+    extraction_strategy: Optional[str] = None                 # SaveAsText | ModulesLines | VBEExport | FallbackDumps
+    extraction_status: Optional[str] = None                   # SUCCESS | FAILED | None
 
 
 class BusinessRuleIR(BaseModel):
@@ -296,6 +309,9 @@ class ApplicationIR(BaseModel):
     coverage: Optional[CoverageReport] = None
     warnings: list[str] = Field(default_factory=list)
     origin_facts: KnowledgeOrigin = KnowledgeOrigin.FACT
+    # Extraction manifest (PHASE 1): per-object extraction statuses keyed by
+    # category, mirroring extraction.json's "manifest" section.
+    extraction_manifest: dict[str, list[dict]] = Field(default_factory=dict)
 
     def table(self, name: str) -> Optional[TableIR]:
         return next((t for t in self.tables if t.name.lower() == name.lower()), None)

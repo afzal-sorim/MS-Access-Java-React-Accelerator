@@ -14,6 +14,49 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+# ---------------------------------------------------------------- manifest
+
+# Strict extraction statuses (spec: "OBJECT DISCOVERED != EXTRACTED").
+# "NOT_PRESENT" is only legal for object kinds the database genuinely lacks;
+# a failed read must surface as PARTIAL/FAILED, never as absence.
+EXTRACTION_STATUSES = ("SUCCESS", "PARTIAL", "FAILED", "UNSUPPORTED", "NOT_PRESENT")
+
+AC_MODULE_CONST = 5  # DoCmd acModule
+
+
+def _manifest_entry(name: str, obj_type: str, status: str,
+                    source_available: bool, errors: Optional[list[str]] = None) -> dict:
+    assert status in EXTRACTION_STATUSES, status
+    return {
+        "name": name,
+        "type": obj_type,
+        "extractionStatus": status,
+        "sourceAvailable": source_available,
+        "errors": errors or [],
+    }
+
+
+def read_text_auto(path: str | Path) -> str:
+    """Read a SaveAsText dump with encoding detection.
+
+    Access writes SaveAsText files as UTF-16LE (macros, some forms) or as
+    8-bit text (modules exported via VBE). Reading everything as latin-1
+    produced NUL-padded gibberish for the UTF-16 half, which silently broke
+    every downstream parser.
+    """
+    data = Path(path).read_bytes()
+    if data[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        # The 'utf-16' codec consumes the BOM itself.
+        return data.decode("utf-16")
+    if data.startswith(b"\xef\xbb\xbf"):
+        return data.decode("utf-8-sig")
+    for encoding in ("utf-8", "cp1252", "latin-1"):
+        try:
+            return data.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("latin-1", errors="replace")
+
 # ---------------------------------------------------------------- constants
 # DAO DataTypeEnum
 DAO_FIELD_TYPES = {
@@ -93,14 +136,27 @@ class AccessExtractor:
     """Drives MS Access via COM to produce a raw extraction payload."""
 
     def __init__(self, db_path: str, workdir: Path, *, extract_data: bool = True,
-                 max_rows_per_table: int = 5000):
+                 max_rows_per_table: int = 5000,
+                 fallback_source_dir: str | Path | None = None):
         self.db_path = str(Path(db_path).resolve())
-        self.workdir = Path(workdir)
+        # SaveAsText hands the path straight to the Access COM object, which
+        # resolves it against Access's own CWD — a relative workdir produced
+        # "Microsoft Access can't open the file 'outputs\...'" for every
+        # single dump. Everything downstream must be absolute.
+        self.workdir = Path(workdir).resolve()
         self.source_dir = self.workdir / "source"
         self.extract_data = extract_data
         self.max_rows = max_rows_per_table
+        # Optional directory of previously captured SaveAsText/VBE dumps
+        # (e.g. corpus saved-text or vbs_access_export output) used as the
+        # last-resort extraction strategy.
+        self.fallback_source_dir = Path(fallback_source_dir).resolve() if fallback_source_dir else None
         self.warnings: list[str] = []
         self.data: dict[str, list[dict]] = {}
+        self.manifest: dict[str, list[dict]] = {
+            "tables": [], "queries": [], "forms": [], "reports": [],
+            "macros": [], "vbaModules": [], "relationships": [],
+        }
 
     # ------------------------------------------------------------ entry
     def run(self) -> dict:
@@ -124,6 +180,7 @@ class AccessExtractor:
         payload["table_data"] = {
             name: rows for name, rows in self.data.items()
         }
+        payload["manifest"] = self.manifest
         self._write_json(payload)
         return payload
 
@@ -145,6 +202,16 @@ class AccessExtractor:
             self.warnings.append(f"SaveAsText failed for {subdir}/{name}: {exc}")
             return None
 
+    def _read_dump(self, path: Optional[str]) -> Optional[str]:
+        """Read a dump file with encoding detection; None if missing."""
+        if not path:
+            return None
+        try:
+            return read_text_auto(path)
+        except Exception as exc:
+            self.warnings.append(f"read failed for {path}: {exc}")
+            return None
+
     # ------------------------------------------------------------ database
     def _extract_all(self, app) -> dict:
         db = app.CurrentDb()
@@ -163,12 +230,42 @@ class AccessExtractor:
 
         for table in self._extract_tables(db):
             payload["tables"].append(table)
+            self.manifest["tables"].append(_manifest_entry(
+                table["name"], "TABLE", "SUCCESS", True))
         payload["relationships"] = self._extract_relationships(db)
+        self.manifest["relationships"] = [
+            _manifest_entry(r["name"], "RELATIONSHIP", "SUCCESS", True)
+            for r in payload["relationships"]]
         payload["queries"] = self._extract_queries(db)
+        for query in payload["queries"]:
+            status = "SUCCESS" if (query.get("sql") or "").strip() else "PARTIAL"
+            self.manifest["queries"].append(_manifest_entry(
+                query["name"], "QUERY", status, bool((query.get("sql") or "").strip()),
+                [] if status == "SUCCESS" else ["query SQL is empty"]))
         payload["forms"] = self._extract_forms(app)
         payload["reports"] = self._extract_reports(app)
         payload["macros"] = self._extract_macros(app)
         payload["modules"] = self._extract_modules(app)
+
+        # Form/report code-behind modules are not part of AllModules; fold
+        # their captured sources into the modules payload so the IR sees a
+        # single complete VBA inventory.
+        for form in payload["forms"]:
+            if form.get("has_module"):
+                payload["modules"].append({
+                    "name": form.get("module") or f"Form_{form['name']}",
+                    "module_type": "FORM",
+                    "source": form.get("module_source") or "",
+                    "extraction_strategy": "FormModule" if form.get("module_source") else None,
+                })
+        for report in payload["reports"]:
+            if report.get("has_module"):
+                payload["modules"].append({
+                    "name": report.get("module") or f"Report_{report['name']}",
+                    "module_type": "REPORT",
+                    "source": report.get("module_source") or "",
+                    "extraction_strategy": "ReportModule" if report.get("module_source") else None,
+                })
         return payload
 
     def _database_info(self, db, app) -> dict:
@@ -364,17 +461,26 @@ class AccessExtractor:
                 "controls": [],
                 "events": {},
                 "module": None,
+                "module_source": None,
                 "has_module": False,
                 "parent_links": {},
             }
+            opened = False
             try:
                 app.DoCmd.OpenForm(name, 1, None, None, -1, 4)  # design, hidden
+                opened = True
                 frm = app.Forms(name)
                 form["record_source"] = _safe(lambda: frm.RecordSource) or None
                 form["caption"] = _safe(lambda: frm.Caption) or None
                 form["has_module"] = bool(_safe(lambda: frm.HasModule, False))
                 if form["has_module"]:
                     form["module"] = f"Form_{name}"
+                    # Event-handler VBA lives in the form's code-behind.
+                    # SaveAsText cannot reach it while hidden; the Module
+                    # object is the authoritative source.
+                    source = self._read_com_module(lambda: frm.Module)
+                    if source:
+                        form["module_source"] = source
                 for event in FORM_EVENTS:
                     handler = _prop(frm, event)
                     if handler:
@@ -385,13 +491,38 @@ class AccessExtractor:
                 app.DoCmd.Close(AC_FORM, name, 2)  # acSaveNo
             except Exception as exc:
                 self.warnings.append(f"form {name}: extraction failed: {exc}")
-                app = app  # keep reference; close attempt below
                 _safe(lambda: app.DoCmd.Close(AC_FORM, name, 2))
             dump = self._save_as_text(app, AC_FORM, name, "forms")
             if dump:
                 form["source_dump"] = dump
+
+            if not opened:
+                self.manifest["forms"].append(_manifest_entry(
+                    name, "FORM", "FAILED", dump is not None,
+                    ["form could not be opened in design view"]))
+            elif form["module_source"] is None and form["has_module"]:
+                # Properties extracted but code-behind missing.
+                self.manifest["forms"].append(_manifest_entry(
+                    name, "FORM", "PARTIAL", dump is not None,
+                    ["form module source not captured"]))
+            else:
+                self.manifest["forms"].append(_manifest_entry(
+                    name, "FORM", "SUCCESS", dump is not None or not form["has_module"]))
             forms.append(form)
         return forms
+
+    def _read_com_module(self, module_getter) -> Optional[str]:
+        """Read all lines from a COM VBA Module object, safely."""
+        try:
+            module = module_getter()
+            count = int(_safe(lambda: module.CountOfLines, 0) or 0)
+            if count <= 0:
+                return None
+            lines = _safe(lambda: module.Lines(1, count))
+            return str(lines) if lines else None
+        except Exception as exc:
+            self.warnings.append(f"module line read failed: {exc}")
+            return None
 
     def _control(self, ctl) -> dict:
         ctype = int(_safe(lambda: ctl.ControlType, 0))
@@ -442,16 +573,22 @@ class AccessExtractor:
                 "controls": [],
                 "summary_fields": [],
                 "module": None,
+                "module_source": None,
                 "has_module": False,
             }
+            opened = False
             try:
                 app.DoCmd.OpenReport(name, 1, None, None, 4)  # design, hidden
+                opened = True
                 rpt = app.Reports(name)
                 report["record_source"] = _safe(lambda: rpt.RecordSource) or None
                 report["caption"] = _safe(lambda: rpt.Caption) or None
                 report["has_module"] = bool(_safe(lambda: rpt.HasModule, False))
                 if report["has_module"]:
                     report["module"] = f"Report_{name}"
+                    source = self._read_com_module(lambda: rpt.Module)
+                    if source:
+                        report["module_source"] = source
                 group_count = _safe(lambda: rpt.GroupCount, None)
                 if group_count:
                     for g in range(int(group_count)):
@@ -476,6 +613,18 @@ class AccessExtractor:
             dump = self._save_as_text(app, AC_REPORT, name, "reports")
             if dump:
                 report["source_dump"] = dump
+
+            if not opened:
+                self.manifest["reports"].append(_manifest_entry(
+                    name, "REPORT", "FAILED", dump is not None,
+                    ["report could not be opened in design view"]))
+            elif report["has_module"] and report["module_source"] is None:
+                self.manifest["reports"].append(_manifest_entry(
+                    name, "REPORT", "PARTIAL", dump is not None,
+                    ["report module source not captured"]))
+            else:
+                self.manifest["reports"].append(_manifest_entry(
+                    name, "REPORT", "SUCCESS", dump is not None or not report["has_module"]))
             reports.append(report)
         return reports
 
@@ -486,15 +635,37 @@ class AccessExtractor:
         for i in range(all_macros.Count):
             name = all_macros(i).Name
             dump = self._save_as_text(app, AC_MACRO, name, "macros")
+            source = self._read_dump(dump)
+            if source is None and self.fallback_source_dir:
+                source = self._fallback_dump(name, ("macros", "Macros"))
             macros.append({
                 "name": name,
                 "is_autoexec": name.lower() == "autoexec",
                 "source_dump": dump,
+                "source": source,
             })
+            if source:
+                self.manifest["macros"].append(_manifest_entry(
+                    name, "MACRO", "SUCCESS", True))
+            else:
+                self.manifest["macros"].append(_manifest_entry(
+                    name, "MACRO", "FAILED", False,
+                    ["macro source not captured (SaveAsText failed)"]))
         return macros
 
     # ------------------------------------------------------------ modules
     def _extract_modules(self, app) -> list[dict]:
+        """Extract VBA modules using layered strategies (most reliable first).
+
+        Strategy 1: SaveAsText — canonical, but fails with "Reserved Error"
+                    on many databases (observed on the whole corpus).
+        Strategy 2: DoCmd.OpenModule + Modules(name).Lines — reads the live
+                    module through COM; works for standard and class modules.
+        Strategy 3: VBE.ActiveVBProject.VBComponents export — requires
+                    "Trust access to the VBA project object model".
+        Strategy 4: previously captured dumps (fallback_source_dir), e.g.
+                    corpus saved-text or vbs_access_export output.
+        """
         modules = []
         all_modules = app.CurrentProject.AllModules
         for i in range(all_modules.Count):
@@ -503,17 +674,112 @@ class AccessExtractor:
                 "name": name,
                 "module_type": ("FORM" if name.startswith("Form_")
                                 else "REPORT" if name.startswith("Report_")
+                                else "CLASS" if name.startswith("cls")
                                 else "STANDARD"),
                 "source": "",
+                "extraction_strategy": None,
+                "extraction_error": None,
             }
+
+            # Strategy 1: SaveAsText
             dump = self._save_as_text(app, AC_MODULE, name, "modules")
             if dump:
-                try:
-                    module["source"] = Path(dump).read_text(encoding="latin-1", errors="replace")
-                except Exception as exc:
-                    self.warnings.append(f"module {name}: read failed: {exc}")
+                content = self._read_dump(dump)
+                if content and content.strip():
+                    module["source"] = content
+                    module["extraction_strategy"] = "SaveAsText"
+
+            # Strategy 2: live module line read
+            if not module["source"]:
+                source = self._open_and_read_module(app, name)
+                if source:
+                    module["source"] = source
+                    module["extraction_strategy"] = "ModulesLines"
+
+            # Strategy 3: VBE export
+            if not module["source"]:
+                source = self._vbe_export(app, name)
+                if source:
+                    module["source"] = source
+                    module["extraction_strategy"] = "VBEExport"
+
+            # Strategy 4: previously captured dumps
+            if not module["source"] and self.fallback_source_dir:
+                source = self._fallback_dump(
+                    name, ("modules", "Modules_VBA"),
+                    extensions=(".bas", ".cls", ".txt"))
+                if source:
+                    module["source"] = source
+                    module["extraction_strategy"] = "FallbackDumps"
+
+            if module["source"].strip():
+                self.manifest["vbaModules"].append(_manifest_entry(
+                    name, "VBA_MODULE", "SUCCESS", True))
+            else:
+                module["extraction_error"] = (
+                    "all extraction strategies failed: SaveAsText, module "
+                    "line read, VBE export, fallback dumps")
+                self.manifest["vbaModules"].append(_manifest_entry(
+                    name, "VBA_MODULE", "FAILED", False,
+                    [module["extraction_error"]]))
             modules.append(module)
         return modules
+
+    def _open_and_read_module(self, app, name: str) -> Optional[str]:
+        """Strategy 2: open the module and read its lines via COM."""
+        try:
+            app.DoCmd.OpenModule(name)
+            try:
+                module = app.Modules(name)
+                count = int(_safe(lambda: module.CountOfLines, 0) or 0)
+                if count <= 0:
+                    return None
+                lines = _safe(lambda: module.Lines(1, count))
+                return str(lines) if lines else None
+            finally:
+                _safe(lambda: app.DoCmd.Close(AC_MODULE_CONST, name, 2))
+        except Exception as exc:
+            self.warnings.append(f"module {name}: line read failed: {exc}")
+            return None
+
+    def _vbe_export(self, app, name: str) -> Optional[str]:
+        """Strategy 3: export through the VBE object model.
+
+        Raises COM errors when the database is not trusted for programmatic
+        VBA access; that is expected and simply falls through.
+        """
+        try:
+            components = app.VBE.ActiveVBProject.VBComponents
+            for i in range(components.Count):
+                component = components.Item(i + 1)
+                if _safe(lambda: component.Name) != name:
+                    continue
+                folder = self.source_dir / "vbe"
+                folder.mkdir(parents=True, exist_ok=True)
+                # vbext_ct_StdModule=1 -> .bas, vbext_ct_ClassModule=2 -> .cls
+                ext = ".cls" if int(_safe(lambda: component.Type, 1)) == 2 else ".bas"
+                path = folder / f"{re.sub(r'[^A-Za-z0-9_]', '_', name)}{ext}"
+                component.Export(str(path))
+                return self._read_dump(str(path))
+        except Exception as exc:
+            self.warnings.append(f"module {name}: VBE export failed: {exc}")
+        return None
+
+    def _fallback_dump(self, name: str, subdirs: tuple[str, ...],
+                       extensions: tuple[str, ...] = (".txt",)) -> Optional[str]:
+        """Strategy 4: read from previously captured dumps."""
+        if not self.fallback_source_dir:
+            return None
+        safe_name = re.sub(r"[^A-Za-z0-9_\-]", "_", name)
+        for subdir in subdirs:
+            for ext in extensions:
+                for candidate in (self.fallback_source_dir / subdir / f"{safe_name}{ext}",
+                                  self.fallback_source_dir / f"{safe_name}{ext}"):
+                    if candidate.exists():
+                        content = self._read_dump(str(candidate))
+                        if content and content.strip():
+                            return content
+        return None
 
 
 def run_extraction(db_path: str, workdir: str | Path, **options) -> dict:

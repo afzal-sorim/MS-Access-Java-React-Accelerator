@@ -576,64 +576,169 @@
   },
   "business_rule_count": 0,
   "vba_modules": {
-    "clsMonthCal": {
-      "module_type": "STANDARD",
+    "Form_001_About_frm": {
+      "module_type": "FORM",
+      "procedure_count": 5,
+      "has_source": true
+    },
+    "Form_002_Splash_Screen_frm": {
+      "module_type": "FORM",
+      "procedure_count": 3,
+      "has_source": true
+    },
+    "Form_003_Buttons_frm": {
+      "module_type": "FORM",
+      "procedure_count": 17,
+      "has_source": true
+    },
+    "Form_004_DSN_Password_frm": {
+      "module_type": "FORM",
+      "procedure_count": 11,
+      "has_source": true
+    },
+    "Form_005_Access_Security_frm": {
+      "module_type": "FORM",
+      "procedure_count": 14,
+      "has_source": true
+    },
+    "Form_006_Dialogbox_Examples_frm": {
+      "module_type": "FORM",
+      "procedure_count": 4,
+      "has_source": true
+    },
+    "Form_010_Date_Calendar_frm": {
+      "module_type": "FORM",
+      "procedure_count": 7,
+      "has_source": true
+    },
+    "Form_301_Roulette_frm": {
+      "module_type": "FORM",
+      "procedure_count": 7,
+      "has_source": true
+    },
+    "Form_700_Create_Filelist_frm": {
+      "module_type": "FORM",
+      "procedure_count": 10,
+      "has_source": true
+    },
+    "Form_800_Link_Manager_frm": {
+      "module_type": "FORM",
+      "procedure_count": 25,
+      "has_source": true
+    },
+    "Form_900_Check_Runtime_frm": {
+      "module_type": "FORM",
+      "procedure_count": 10,
+      "has_source": true
+    },
+    "Form_950_Leszynski_Conventions_frm": {
+      "module_type": "FORM",
+      "procedure_count": 1,
+      "has_source": true
+    },
+    "Form_980_Data_Dictionary_frm": {
+      "module_type": "FORM",
+      "procedure_count": 5,
+      "has_source": true
+    },
+    "Report_001_Organization_Logo_srp": {
+      "module_type": "REPORT",
       "procedure_count": 0,
+      "has_source": true
+    },
+    "Report_099_Object_Listing_Report_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 9,
+      "has_source": true
+    },
+    "Report_803_Object_Calendar_List_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 8,
+      "has_source": true
+    },
+    "Report_803a_Calendar_List_srp": {
+      "module_type": "REPORT",
+      "procedure_count": 0,
+      "has_source": true
+    },
+    "Report_804_Weekly_Report_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 4,
+      "has_source": true
+    },
+    "Report_805_Timeline_Report_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 6,
+      "has_source": true
+    },
+    "Report_950_Leszynski_Conventions_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 3,
+      "has_source": true
+    },
+    "Report_980_Data_Dictionary_rpt": {
+      "module_type": "REPORT",
+      "procedure_count": 4,
+      "has_source": true
+    },
+    "clsMonthCal": {
+      "module_type": "CLASS",
+      "procedure_count": 52,
       "has_source": true
     },
     "modCalendar": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 18,
       "has_source": true
     },
     "modDate": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 20,
       "has_source": true
     },
     "modFileFunctions": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 14,
       "has_source": true
     },
     "modMain": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 4,
       "has_source": true
     },
     "modMathAreaVolume": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 17,
       "has_source": true
     },
     "modMathCumulative": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 2,
       "has_source": true
     },
     "modMathStatistics": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 6,
       "has_source": true
     },
     "modMathTrig": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 24,
       "has_source": true
     },
     "modMathXYZ": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 8,
       "has_source": true
     },
     "modOutlook": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 3,
       "has_source": true
     },
     "modString": {
       "module_type": "STANDARD",
-      "procedure_count": 0,
+      "procedure_count": 23,
       "has_source": true
     }
   }

@@ -349,9 +349,28 @@ class SupportabilityEngine:
 
         # Check for VBA module
         if form.module_name:
-            complexity = "HIGH"
-            issues.append("Form has VBA module - requires analysis")
-            confidence = 0.75
+            # Check if VBA source was actually extracted
+            vba_module = next(
+                (m for m in self.app.vba_modules if m.name == form.module_name), None
+            )
+            if vba_module and not (vba_module.source or "").strip() and not vba_module.procedures:
+                issues.append(f"Form VBA module {form.module_name} source not extracted")
+                complexity = "HIGH"
+                confidence = 0.30
+                return ObjectSupport(
+                    object=form.name,
+                    category="FORM",
+                    status=SupportStatus.FAILED_EXTRACTION,
+                    complexity=complexity,
+                    risk="HIGH",
+                    conversion="REACT_PAGE",
+                    confidence=confidence,
+                    reason="; ".join(issues),
+                )
+            else:
+                complexity = "HIGH"
+                issues.append("Form has VBA module - requires analysis")
+                confidence = 0.75
 
         # Check events
         if form.events:
@@ -435,6 +454,19 @@ class SupportabilityEngine:
         issues: list[str] = []
         confidence = 0.85
 
+        # If macro has no actions and is not a simple stub, extraction may have failed
+        if not macro.actions:
+            return ObjectSupport(
+                object=macro.name,
+                category="MACRO",
+                status=SupportStatus.FAILED_EXTRACTION,
+                complexity="UNKNOWN",
+                risk="HIGH",
+                conversion="MANUAL",
+                confidence=0.0,
+                reason="Macro actions not extracted — conversion requires re-extraction",
+            )
+
         # Check for AutoExec
         if macro.is_autoexec:
             complexity = "MEDIUM"
@@ -471,6 +503,20 @@ class SupportabilityEngine:
 
     def _analyze_module(self, module: VbaModuleIR) -> ObjectSupport:
         """Analyze a VBA module's convertibility."""
+
+        # If source code was not extracted, mark as failed extraction
+        if not (module.source or "").strip() and not module.procedures:
+            return ObjectSupport(
+                object=module.name,
+                category="VBA",
+                status=SupportStatus.FAILED_EXTRACTION,
+                complexity="UNKNOWN",
+                risk="HIGH",
+                conversion="MANUAL",
+                confidence=0.0,
+                reason="VBA source code not extracted — conversion requires re-extraction",
+            )
+
         complexity = "MEDIUM"
         issues: list[str] = []
         confidence = 0.75

@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
+
+logger = logging.getLogger("converter.llm")
 
 
 class LLMProviderType(str, Enum):
@@ -121,6 +124,13 @@ class OllamaProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.base_url or "http://localhost:11434"
         self._client = None
+        logger.info(
+            "✓ LLM Connection Initialized: [Provider: OLLAMA] | [Connected Model: %s] | [Base URL: %s] | [Timeout: %ss] | [Temp: %.2f]",
+            self.config.model,
+            self.base_url,
+            self.config.timeout,
+            self.config.temperature,
+        )
 
     def _get_client(self):
         """Lazy import and create HTTP client."""
@@ -139,7 +149,16 @@ class OllamaProvider(LLMProvider):
         cache_key = self._cache_key(prompt, system_prompt)
         cached = self._check_cache(cache_key)
         if cached:
+            logger.info("LLM cache hit for model %s (prompt length: %d)", self.config.model, len(prompt))
             return cached
+
+        logger.info(
+            "Sending request to Ollama LLM: Model='%s' | BaseURL='%s' | PromptLength=%d | JSONMode=%s",
+            self.config.model,
+            self.base_url,
+            len(prompt),
+            json_mode,
+        )
 
         client = self._get_client()
 
@@ -166,13 +185,15 @@ class OllamaProvider(LLMProvider):
         response.raise_for_status()
 
         data = response.json()
+        tokens = data.get("eval_count", 0) + data.get("prompt_eval_count", 0)
         result = LLMResponse(
             content=data.get("response", ""),
             model=self.config.model,
-            tokens_used=data.get("eval_count", 0) + data.get("prompt_eval_count", 0),
+            tokens_used=tokens,
             raw_response=data,
         )
 
+        logger.info("Received response from Ollama LLM: Model='%s' | TokensUsed=%d", self.config.model, tokens)
         self._store_cache(cache_key, result)
         return result
 
@@ -199,6 +220,7 @@ Respond ONLY with the JSON, no other text."""
         try:
             return json.loads(response.content)
         except json.JSONDecodeError as e:
+            logger.warning("JSON decode failed from LLM (%s), retrying with correction prompt...", e)
             # Retry with correction instruction
             retry_prompt = f"""The previous response was invalid JSON. Error: {e}
 
@@ -222,6 +244,12 @@ class OpenRouterProvider(LLMProvider):
         super().__init__(config)
         self.base_url = config.base_url or "https://openrouter.ai/api/v1"
         self._client = None
+        logger.info(
+            "✓ LLM Connection Initialized: [Provider: OPENROUTER] | [Connected Model: %s] | [Base URL: %s] | [Timeout: %ss]",
+            self.config.model,
+            self.base_url,
+            self.config.timeout,
+        )
 
     def _get_client(self):
         """Lazy import and create HTTP client."""
@@ -247,7 +275,15 @@ class OpenRouterProvider(LLMProvider):
         cache_key = self._cache_key(prompt, system_prompt)
         cached = self._check_cache(cache_key)
         if cached:
+            logger.info("LLM cache hit for model %s (prompt length: %d)", self.config.model, len(prompt))
             return cached
+
+        logger.info(
+            "Sending request to OpenRouter LLM: Model='%s' | BaseURL='%s' | PromptLength=%d",
+            self.config.model,
+            self.base_url,
+            len(prompt),
+        )
 
         client = self._get_client()
 
@@ -274,13 +310,15 @@ class OpenRouterProvider(LLMProvider):
 
         data = response.json()
         usage = data.get("usage", {})
+        tokens = usage.get("total_tokens", 0)
         result = LLMResponse(
             content=data["choices"][0]["message"]["content"],
             model=self.config.model,
-            tokens_used=usage.get("total_tokens", 0),
+            tokens_used=tokens,
             raw_response=data,
         )
 
+        logger.info("Received response from OpenRouter LLM: Model='%s' | TokensUsed=%d", self.config.model, tokens)
         self._store_cache(cache_key, result)
         return result
 
@@ -313,6 +351,8 @@ class LLMProviderFactory:
     @staticmethod
     def create(config: LLMConfig) -> LLMProvider:
         """Create an LLM provider based on configuration."""
+        p_type = config.provider_type.value if config.provider_type else "unknown"
+        logger.info("Initializing LLM connection provider: [Type: %s] | [Target Model: %s]", p_type, config.model)
         if config.provider_type == LLMProviderType.OLLAMA:
             return OllamaProvider(config)
         elif config.provider_type == LLMProviderType.OPENROUTER:
@@ -331,8 +371,9 @@ def get_default_provider() -> LLMProvider:
     """Get or create the default LLM provider."""
     global _default_provider
     if _default_provider is None:
-        # Default to configured LLM (which will resolve to Ollama deepseek-r1:1.5b by default)
-        _default_provider = LLMProviderFactory.create(LLMConfig())
+        logger.info("Loading default LLM provider from environment configuration...")
+        config = LLMConfig()
+        _default_provider = LLMProviderFactory.create(config)
     return _default_provider
 
 
@@ -340,3 +381,5 @@ def set_default_provider(provider: LLMProvider) -> None:
     """Set the default LLM provider."""
     global _default_provider
     _default_provider = provider
+    logger.info("Default LLM provider updated: Model=%s", getattr(provider.config, 'model', 'unknown'))
+

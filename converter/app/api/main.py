@@ -14,10 +14,18 @@ from collections.abc import AsyncGenerator
 
 import asyncio
 import json
+import logging
 import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
+
+# Configure logging for backend
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("converter.api")
 
 # Load .env file at startup
 def load_dotenv():
@@ -88,11 +96,36 @@ from converter.app.build.pipeline import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    # Startup
+    logger.info("============================================================")
+    logger.info("MS Access Converter Backend API starting up...")
+    logger.info("============================================================")
+
+    # Startup DB
     await init_database()
+    logger.info("✓ Database initialized successfully.")
+
+    # Initialize and log LLM Connection and Connected Model
+    try:
+        from converter.app.llm.provider import get_default_provider
+        default_provider = get_default_provider()
+        cfg = default_provider.config
+        p_name = cfg.provider_type.value.upper() if cfg.provider_type else "OLLAMA"
+        logger.info("------------------------------------------------------------")
+        logger.info("✓ LLM Connection Initialized successfully:")
+        logger.info("  • Provider:        %s", p_name)
+        logger.info("  • Connected Model: %s", cfg.model)
+        logger.info("  • Base URL:        %s", cfg.base_url)
+        logger.info("  • Temperature:     %.2f", cfg.temperature)
+        logger.info("  • Max Tokens:      %d", cfg.max_tokens)
+        logger.info("------------------------------------------------------------")
+    except Exception as e:
+        logger.warning("! LLM Connection initialization notice: %s", e)
+
     yield
+
     # Shutdown
     await close_database()
+    logger.info("MS Access Converter Backend API shut down.")
 
 
 # ---------------------------------------------------------------- models
@@ -193,11 +226,20 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Serialize pipeline execution to avoid SQLite "database is locked" errors
+# when multiple jobs are submitted concurrently.
+_pipeline_lock = asyncio.Lock()
+
 
 # ---------------------------------------------------------------- Conversion Pipeline
 
 async def run_conversion_pipeline(job_id: str, db: AsyncSession):
     """Run the full conversion pipeline for a job using database repositories."""
+    async with _pipeline_lock:
+        await _run_conversion_pipeline_locked(job_id, db)
+
+
+async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
     job_repo = JobRepository(db)
     extraction_repo = ExtractionRepository(db)
     ir_repo = IRRepository(db)
@@ -214,7 +256,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         job_dir.mkdir(parents=True, exist_ok=True)
 
         # Helper to update job state and broadcast
-        async def update_state(new_state: JobState, step: str = None):
+        async def update_state(new_state: JobState, step: str = None, percentage: float = 0.0, description: str = ""):
             job.transition_to(new_state)
             progress_dict = dict(job.progress or {})
             stats = {
@@ -226,13 +268,29 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
                 "vba_modules": job.vba_modules_count or 0,
                 "dependencies": getattr(job, "dependencies_count", 0) or 0,
             }
-            progress_dict.update(stats)
+            progress_dict.update({
+                **stats,
+                "percentage": percentage,
+                "current_step": step or new_state.value,
+                "message": description,
+            })
             job.progress = progress_dict
             await job_repo.update(job)
             await db.commit()
+
+            logger.info(
+                "➤ [Job %s] [%3.0f%%] %s — %s",
+                job.id[:8],
+                percentage,
+                (step or new_state.value).upper(),
+                description,
+            )
+
             await manager.broadcast(job.id, {
                 "state": job.state,
                 "step": step,
+                "percentage": percentage,
+                "message": description,
                 "progress": job.progress,
                 "statistics": stats,
             })
@@ -245,7 +303,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
             await db.commit()
 
         # Step 1: Extract
-        await update_state(JobState.EXTRACTING, "extracting")
+        await update_state(JobState.EXTRACTING, "extracting", 10.0, f"Extracting Access database objects from {Path(job.source_file).name}...")
         extract_log = await log_build("extraction", "run_extraction")
 
         extract_dir = job_dir / ".extract"
@@ -259,11 +317,11 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         job.macros_count = len(extraction.get("macros", []))
         job.vba_modules_count = len(extraction.get("modules", []))
         job.extraction_path = str(extract_dir / "extraction.json")
-        await update_build_log(extract_log.id, "completed", f"Extracted {job.tables_count} tables, {job.queries_count} queries")
-        await update_state(JobState.EXTRACTING, "extracting")
+        await update_build_log(extract_log.id, "completed", f"Extracted {job.tables_count} tables, {job.queries_count} queries, {job.forms_count} forms, {job.reports_count} reports")
+        await update_state(JobState.EXTRACTING, "extraction_completed", 18.0, f"Extracted {job.tables_count} tables, {job.queries_count} queries, {job.forms_count} forms, {job.reports_count} reports, {job.vba_modules_count} VBA modules")
 
         # Step 2: Build IR
-        await update_state(JobState.ANALYZING, "building_ir")
+        await update_state(JobState.ANALYZING, "building_ir", 25.0, f"Building canonical Intermediate Representation (AIR) for {job.project_name}...")
         ir_log = await log_build("ir", "build_ir")
 
         app_ir = build_ir(job.extraction_path)
@@ -278,7 +336,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 3: Build dependency graph
-        await update_state(JobState.DEPENDENCIES_DISCOVERED, "building_graph")
+        await update_state(JobState.DEPENDENCIES_DISCOVERED, "building_graph", 35.0, "Constructing dependency graph and analyzing object relationships...")
         graph_log = await log_build("graph", "build_dependency_graph")
 
         graph = build_dependency_graph(app_ir)
@@ -310,7 +368,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 4: Analyze supportability
-        await update_state(JobState.SUPPORTABILITY_ANALYZED, "analyzing_supportability")
+        await update_state(JobState.SUPPORTABILITY_ANALYZED, "analyzing_supportability", 48.0, "Analyzing conversion feasibility, complexity, and feature supportability...")
         support_log = await log_build("supportability", "analyze_supportability")
 
         support_results = analyze_supportability(app_ir)
@@ -335,7 +393,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 5: Generate database
-        await update_state(JobState.GENERATING_DATABASE, "generating_database")
+        await update_state(JobState.GENERATING_DATABASE, "generating_database", 60.0, f"Generating PostgreSQL DDL schema and seed data SQL ({len(app_ir.tables)} tables)...")
         db_log = await log_build("database", "generate_schema")
 
         db_dir = job_dir / "database"
@@ -347,7 +405,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 6: Generate backend
-        await update_state(JobState.GENERATING_BACKEND, "generating_backend")
+        await update_state(JobState.GENERATING_BACKEND, "generating_backend", 75.0, f"Generating Spring Boot backend: Entities, Repositories, Services, and REST Controllers...")
         backend_log = await log_build("backend", "generate_spring_boot")
 
         backend_dir = job_dir / "backend"
@@ -365,7 +423,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 7: Generate frontend
-        await update_state(JobState.GENERATING_FRONTEND, "generating_frontend")
+        await update_state(JobState.GENERATING_FRONTEND, "generating_frontend", 88.0, f"Generating React frontend: Pages, Components, Router, and API Client...")
         frontend_log = await log_build("frontend", "generate_react")
 
         frontend_dir = job_dir / "frontend"
@@ -379,6 +437,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 8: Generate migration report
+        await update_state(JobState.GENERATING_FRONTEND, "generating_reports", 92.0, "Generating migration summary and transparent coverage reports...")
         report_dir = job_dir / "migration-report"
         report_dir.mkdir(exist_ok=True)
 
@@ -409,6 +468,47 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
                 }
                 for r in support_results
             ],
+            "extraction_failures": [
+                {
+                    "object": r.object,
+                    "category": r.category,
+                    "reason": r.reason,
+                }
+                for r in support_results
+                if r.status.value == "FAILED_EXTRACTION"
+            ],
+            "dropped_queries": [
+                {
+                    "name": q.name,
+                    "kind": q.kind.value if hasattr(q.kind, 'value') else str(q.kind),
+                    "sql_present": bool((q.sql or "").strip()),
+                    "custom_vba_functions": [
+                        f for f in q.access_functions
+                        if f not in ('Nz', 'IIf', 'Format', 'DatePart', 'DateAdd',
+                                     'DateDiff', 'Year', 'Month', 'Day', 'Now',
+                                     'Date', 'Time', 'Trim', 'UCase', 'LCase',
+                                     'Left', 'Right', 'Mid', 'Len', 'InStr')
+                    ],
+                    "reason": "References custom VBA functions not available in target"
+                              if any(f not in ('Nz', 'IIf', 'Format', 'DatePart', 'DateAdd',
+                                               'DateDiff', 'Year', 'Month', 'Day', 'Now',
+                                               'Date', 'Time', 'Trim', 'UCase', 'LCase',
+                                               'Left', 'Right', 'Mid', 'Len', 'InStr')
+                                     for f in q.access_functions)
+                              else "Query not converted to endpoint (emitted as TODO stub)",
+                }
+                for q in app_ir.queries
+            ],
+            "forms_breakdown": {
+                "total_forms": len(app_ir.forms),
+                "bound_crud_forms": len([f for f in app_ir.forms if f.record_source]),
+                "unbound_ui_forms": len([f for f in app_ir.forms if not f.record_source]),
+                "unbound_form_names": [f.name for f in app_ir.forms if not f.record_source],
+                "forms_with_unconverted_vba_events": len([
+                    f for f in app_ir.forms if f.events or f.module_name
+                ]),
+                "notice": "Unbound forms were converted to informational layout scaffolds; Access VBA event handlers were not modernized into backend logic.",
+            },
             "warnings": app_ir.warnings,
             "generated": {
                 "backend_files": len(spring_gen),
@@ -437,7 +537,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await db.commit()
 
         # Step 9: Build validation
-        await update_state(JobState.BUILDING, "validating_build")
+        await update_state(JobState.BUILDING, "validating_build", 95.0, "Validating Maven and React build artifacts...")
         build_log = await log_build("build", "validate_project")
 
         try:
@@ -449,6 +549,7 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
 
             # Self-healing build repair if validation failed (spec section 35)
             if not build_success:
+                await update_state(JobState.BUILDING, "self_healing_repair", 97.0, "Running self-healing build repairs...")
                 await self_heal_build(job_id, job_dir, validation_result, db)
         except Exception as e:
             await update_build_log(build_log.id, "failed", error=str(e))
@@ -456,12 +557,13 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
             job.build_validation = {"status": "error", "error": str(e)}
 
         # Step 10: Complete
-        await update_state(JobState.COMPLETED, "completed")
+        total_files = len(spring_gen) + len(react_gen) + 1
+        await update_state(JobState.COMPLETED, "completed", 100.0, f"Conversion complete! Successfully generated {total_files} project files.")
         job.output_path = str(job_dir)
         job_result = JobResult(
             output_path=str(job_dir),
             coverage=coverage,
-            files_generated=len(spring_gen) + len(react_gen) + 1,
+            files_generated=total_files,
             build_success=build_success,
             test_success=False,
             warnings=app_ir.warnings,
@@ -477,6 +579,8 @@ async def run_conversion_pipeline(job_id: str, db: AsyncSession):
         await manager.broadcast(job.id, {
             "state": job.state,
             "step": "completed",
+            "percentage": 100.0,
+            "message": f"Conversion complete! Successfully generated {total_files} project files.",
             "result": job.result,
         })
 
@@ -816,32 +920,47 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
 async def websocket_progress(websocket: WebSocket, job_id: str):
     """WebSocket endpoint for real-time progress updates."""
     await manager.connect(websocket, job_id)
+    ws_closed = False
     try:
         while True:
-            # Use a new session for polling
-            async with get_session() as session:
-                job_repo = JobRepository(session)
-                job = await job_repo.get_simple(job_id)
-                if job:
-                    stats = {
-                        "tables": job.tables_count or 0,
-                        "queries": job.queries_count or 0,
-                        "forms": job.forms_count or 0,
-                        "reports": job.reports_count or 0,
-                        "macros": job.macros_count or 0,
-                        "vba_modules": job.vba_modules_count or 0,
-                        "dependencies": getattr(job, "dependencies_count", 0) or 0,
-                    }
-                    await websocket.send_json({
-                        "state": job.state,
-                        "progress": job.progress,
-                        "statistics": stats,
-                    })
-                    if job.state in (JobState.COMPLETED.value, JobState.FAILED.value):
-                        break
+            try:
+                # Use a new session for polling
+                async with get_session() as session:
+                    job_repo = JobRepository(session)
+                    job = await job_repo.get_simple(job_id)
+                    if job:
+                        stats = {
+                            "tables": job.tables_count or 0,
+                            "queries": job.queries_count or 0,
+                            "forms": job.forms_count or 0,
+                            "reports": job.reports_count or 0,
+                            "macros": job.macros_count or 0,
+                            "vba_modules": job.vba_modules_count or 0,
+                            "dependencies": getattr(job, "dependencies_count", 0) or 0,
+                        }
+                        await websocket.send_json({
+                            "state": job.state,
+                            "progress": job.progress,
+                            "statistics": stats,
+                        })
+                        if job.state in (JobState.COMPLETED.value, JobState.FAILED.value):
+                            break
+            except (RuntimeError, WebSocketDisconnect):
+                # Client disconnected while we were sending — stop cleanly
+                ws_closed = True
+                break
+            except Exception as poll_err:
+                logger.debug("WS poll error for job %s: %s", job_id, poll_err)
             await asyncio.sleep(1)
     except WebSocketDisconnect:
+        ws_closed = True
+    finally:
         manager.disconnect(websocket, job_id)
+        if not ws_closed:
+            try:
+                await websocket.close()
+            except Exception:
+                pass
 
 
 @app.get("/api/jobs/{job_id}/download")
@@ -987,6 +1106,7 @@ async def llm_generate(request: LLMRequest, db: AsyncSession = Depends(get_db)):
         temperature=request.temperature,
         max_tokens=request.max_tokens,
     )
+    logger.info("Handling /api/llm/generate request: Provider=%s, Model=%s", config.provider_type.value, config.model)
     provider = LLMProviderFactory.create(config)
     response = provider.generate(
         request.prompt,
@@ -999,6 +1119,28 @@ async def llm_generate(request: LLMRequest, db: AsyncSession = Depends(get_db)):
         "tokens_used": response.tokens_used,
         "cached": response.cached,
     }
+
+
+@app.get("/api/llm/status")
+async def llm_status():
+    """Get current LLM connection status and connected model."""
+    from converter.app.llm.provider import get_default_provider
+    try:
+        provider = get_default_provider()
+        cfg = provider.config
+        return {
+            "status": "connected",
+            "provider": cfg.provider_type.value if cfg.provider_type else "ollama",
+            "model": cfg.model,
+            "base_url": cfg.base_url,
+            "temperature": cfg.temperature,
+            "max_tokens": cfg.max_tokens,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+        }
 
 
 @app.post("/api/llm/generate_structured")

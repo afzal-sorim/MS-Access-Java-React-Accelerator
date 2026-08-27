@@ -90,6 +90,17 @@ class SpringBootGenerator:
             dto_content = self._generate_dto(table)
             files[str(src_main / "dto" / f"{entity_name}DTO.java")] = dto_content
 
+        # Generate query stubs for unconverted Access queries (spec section 18)
+        query_stubs = self._generate_query_stubs()
+        if query_stubs:
+            files[str(src_main / "service" / "QueryStubs.java")] = query_stubs
+
+        # Generate main application class (spec section 43 / Fix 7)
+        files[str(src_main / "Application.java")] = self._generate_application_class()
+
+        # Generate web / CORS configuration (Fix 8)
+        files[str(src_main / "config" / "WebConfig.java")] = self._generate_cors_config()
+
         # Generate reports (spec section 20) before the pom, which may need
         # the PDF dependency.
         for name, content in self._generate_reports().items():
@@ -177,6 +188,17 @@ class SpringBootGenerator:
             f"public class {entity_name} {{",
         ]
 
+        # If no primary key was defined, synthesize a surrogate key
+        if pk_col is None:
+            lines.append("    @Id")
+            lines.append("    @GeneratedValue(strategy = GenerationType.IDENTITY)")
+            lines.append('    @Column(name = "generated_id")')
+            lines.append("    private Long generatedId;")
+            lines.append("")
+            self.warnings.append(
+                f"Table {table.name} has no primary key — synthetic 'generated_id' added"
+            )
+
         # Fields
         for col in table.columns:
             field_name = self._to_camel(col.name)
@@ -221,7 +243,12 @@ class SpringBootGenerator:
         lines.append(f"    public {entity_name}() {{}}")
         lines.append("")
 
-        # Getters and Setters
+        # Getters and Setters (include synthetic PK if added)
+        if pk_col is None:
+            lines.append("    public Long getGeneratedId() { return generatedId; }")
+            lines.append("    public void setGeneratedId(Long generatedId) { this.generatedId = generatedId; }")
+            lines.append("")
+
         for col in table.columns:
             field_name = self._to_camel(col.name)
             java_type = self._map_java_type(col.access_type)
@@ -443,6 +470,125 @@ public class {entity_name}Controller {{
         lines.append("}")
         return "\n".join(lines)
 
+    def _generate_query_stubs(self) -> str:
+        """Generate TODO stubs for Access queries not converted to endpoints.
+
+        Queries that reference custom VBA functions or unsupported features are
+        not automatically converted. This file lists them with their original
+        SQL so nothing is silently dropped.
+        """
+        # Built-in Access functions that the SQL translator handles
+        _BUILTIN_FUNCS = {
+            'Nz', 'IIf', 'Format', 'DatePart', 'DateAdd', 'DateDiff',
+            'Year', 'Month', 'Day', 'Now', 'Date', 'Time',
+            'Trim', 'UCase', 'LCase', 'Left', 'Right', 'Mid',
+            'Len', 'InStr', 'Val', 'CStr', 'CInt', 'CLng', 'CDbl',
+            'CBool', 'CDate', 'IsNull', 'IsNumeric',
+        }
+
+        stubs = []
+        for query in self.app.queries:
+            # Check if query references custom VBA functions
+            vba_funcs = [f for f in query.access_functions if f not in _BUILTIN_FUNCS]
+            if vba_funcs:
+                self.warnings.append(
+                    f"Query '{query.name}' references custom VBA functions: "
+                    f"{', '.join(vba_funcs)} — emitted as TODO stub, not a live endpoint"
+                )
+
+            # Sanitize SQL for Java comment (prevent premature comment close)
+            sql = (query.sql or '').replace('*/', '* /').strip()
+            sql_lines = sql[:500].split('\n') if sql else ['(no SQL extracted)']
+            sql_comment = '\n     *   '.join(sql_lines)
+
+            kind = query.kind.value if hasattr(query.kind, 'value') else str(query.kind)
+            funcs = ', '.join(query.access_functions) if query.access_functions else 'none'
+
+            stubs.append(f"""
+    /**
+     * TODO: Access query '{query.name}' ({kind})
+     *
+     * Original SQL:
+     *   {sql_comment}
+     *
+     * Access functions used: {funcs}
+     * Custom/VBA functions: {', '.join(vba_funcs) if vba_funcs else 'none'}
+     *
+     * This query was not automatically converted to a service method.
+     * To implement: translate the SQL above into a Spring Data JPA query
+     * or native SQL, and add the missing VBA function equivalents as Java methods.
+     */
+    // public List<?> {self._to_camel(query.name)}() {{ throw new UnsupportedOperationException("Not yet implemented"); }}""")
+
+        if not stubs:
+            return ""
+
+        return f"""package {self.base_package}.service;
+
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * Stub file for Access queries that were not automatically converted.
+ *
+ * Each stub below contains the original Access SQL and notes about which
+ * VBA functions it references. Implement these as needed by translating
+ * the SQL into Spring Data JPA queries or native SQL.
+ *
+ * Total unconverted queries: {len(stubs)}
+ */
+@Service
+public class QueryStubs {{
+{''.join(stubs)}
+}}
+"""
+
+    def _generate_application_class(self) -> str:
+        """Generate Spring Boot main application class."""
+        return f"""package {self.base_package};
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * Main entry point for {self.app_name}.
+ * Generated from MS Access application.
+ */
+@SpringBootApplication
+public class Application {{
+
+    public static void main(String[] args) {{
+        SpringApplication.run(Application.class, args);
+    }}
+}}
+"""
+
+    def _generate_cors_config(self) -> str:
+        """Generate Spring Web and CORS configuration."""
+        return f"""package {self.base_package}.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+/**
+ * Web and CORS configuration for React frontend communication.
+ */
+@Configuration
+public class WebConfig implements WebMvcConfigurer {{
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {{
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+    }}
+}}
+"""
+
     def _generate_application_yml(self) -> str:
         """Generate application.yml configuration."""
         return f"""spring:
@@ -575,27 +721,23 @@ logging:
 
     @staticmethod
     def _to_pascal(name: str) -> str:
-        """Convert to PascalCase."""
-        parts = name.replace("_", " ").replace("-", " ").split()
-        return "".join(p.capitalize() for p in parts)
+        from ...naming import to_pascal
+        return to_pascal(name)
 
     @staticmethod
     def _to_camel(name: str) -> str:
-        """Convert to camelCase."""
-        pascal = SpringBootGenerator._to_pascal(name)
-        return pascal[0].lower() + pascal[1:] if pascal else pascal
+        from ...naming import to_camel
+        return to_camel(name)
 
     @staticmethod
     def _to_snake(name: str) -> str:
-        """Convert to snake_case."""
-        import re
-        s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
-        return re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+        from ...naming import to_snake
+        return to_snake(name)
 
     @staticmethod
     def _to_kebab(name: str) -> str:
-        """Convert to kebab-case."""
-        return SpringBootGenerator._to_snake(name).replace("_", "-")
+        from ...naming import to_kebab
+        return to_kebab(name)
 
 
 def generate_spring_boot(app_ir, output_dir: str | Path, **kwargs) -> dict[str, str]:

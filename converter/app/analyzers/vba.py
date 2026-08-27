@@ -13,9 +13,10 @@ from typing import Optional
 from ..ir.models import VbaModuleIR, VbaProcedureIR
 
 
-# VBA patterns (spec section 31)
+# VBA procedure declarations; captures visibility, kind, name, the full
+# parameter list, and the return type (Functions/Property Get only).
 PROCEDURE_PATTERN = re.compile(
-    r'^\s*(Public\s+|Private\s+)?(Sub|Function|Property\s+(?:Get|Let|Set))\s+(\w+)\s*\(',
+    r'^\s*(?:(Public|Private|Friend)\s+)?((?:Sub|Function)|Property\s+(?:Get|Let|Set))\s+(\w+)\s*\(([^)]*)\)(?:\s+As\s+([\w.]+))?',
     re.MULTILINE
 )
 PROCEDURE_END_PATTERN = re.compile(r'^\s*End\s+(Sub|Function|Property)\b', re.MULTILINE)
@@ -302,6 +303,13 @@ class VBAParser:
         # Extract business rules from procedures
         result.business_rules = self._extract_business_rules(result.procedures)
 
+        # Sync findings onto the module IR itself: downstream consumers
+        # (supportability engine, dependency graph, external-dependency
+        # discovery) read the IR, not the transient analysis object.
+        self.module.references_com = result.references_com
+        self.module.uses_external = result.uses_external
+        self.module.declares_api = result.declares_api
+
         return result
 
     def _extract_procedures(self) -> list[VbaProcedureIR]:
@@ -309,9 +317,11 @@ class VBAParser:
         procedures = []
 
         for match in PROCEDURE_PATTERN.finditer(self.source):
-            visibility = (match.group(1) or "Public").strip().lower()
-            proc_type = match.group(2).strip()
+            visibility = (match.group(1) or "Public").upper()
+            proc_type = re.sub(r"\s+", "", match.group(2))  # e.g. PropertyGet
             proc_name = match.group(3)
+            param_text = (match.group(4) or "").strip()
+            return_type = match.group(5)
 
             # Find the end of the procedure
             start_pos = match.start()
@@ -321,6 +331,8 @@ class VBAParser:
                 body = self.source[start_pos:end_match.end()]
             else:
                 body = self.source[start_pos:]
+
+            signature = match.group(0).strip()
 
             # Extract features
             calls = self._extract_calls(body)
@@ -333,8 +345,11 @@ class VBAParser:
 
             proc = VbaProcedureIR(
                 name=proc_name,
-                procedure_type=proc_type.replace(" ", ""),
+                kind=proc_type.upper(),
                 visibility=visibility,
+                signature=signature,
+                parameters=self._parse_parameters(param_text),
+                return_type=return_type,
                 body=body,
                 calls=calls,
                 references_tables=self._extract_table_refs(body),
@@ -349,6 +364,47 @@ class VBAParser:
                 self.module.procedures.append(proc)
 
         return procedures
+
+    @staticmethod
+    def _parse_parameters(param_text: str) -> list[dict[str, str]]:
+        """Parse a VBA parameter list into {"name", "type"} dicts.
+
+        Handles Optional/ByVal/ByRef/ParamArray modifiers and default values;
+        complex cases degrade to a name with an empty type rather than
+        dropping the parameter.
+        """
+        params: list[dict[str, str]] = []
+        if not param_text:
+            return params
+
+        # Split on commas that are not inside parentheses (array bounds).
+        parts, depth, current = [], 0, []
+        for ch in param_text:
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            if ch == "," and depth == 0:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(ch)
+        if current:
+            parts.append("".join(current))
+
+        modifiers = {"optional", "byval", "byref", "paramarray"}
+        for part in parts:
+            tokens = part.strip().split()
+            tokens = [t for t in tokens if t.lower() not in modifiers]
+            if not tokens:
+                continue
+            # Strip default values: name As String = "x"
+            first = tokens[0].split("=")[0].strip()
+            ptype = None
+            if len(tokens) >= 3 and tokens[1].lower() == "as":
+                ptype = " ".join(t.split("=")[0].strip() for t in tokens[2:])
+            params.append({"name": first, "type": ptype or ""})
+        return params
 
     def _extract_calls(self, body: str) -> list[str]:
         """Extract function/sub calls from a procedure body."""
