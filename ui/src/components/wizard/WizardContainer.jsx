@@ -41,7 +41,7 @@ export default function WizardContainer() {
     const canProceed = () => {
         switch (currentStep) {
             case 1:
-                return !!state.selectedFile;
+                return !!state.selectedFile || !!state.localSource;
             case 2:
                 return state.analysisComplete;
             case 3:

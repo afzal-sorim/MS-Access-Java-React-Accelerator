@@ -315,22 +315,25 @@ class VBAParser:
     def _extract_procedures(self) -> list[VbaProcedureIR]:
         """Extract all procedures (Sub, Function, Property) from the source."""
         procedures = []
+        # CRLF-normalized working copy: Access/VBE sources are CRLF and
+        # every downstream parser assumes LF.
+        src = self.source.replace("\r\n", "\n").replace("\r", "\n")
 
-        for match in PROCEDURE_PATTERN.finditer(self.source):
+        for match in PROCEDURE_PATTERN.finditer(src):
             visibility = (match.group(1) or "Public").upper()
             proc_type = re.sub(r"\s+", "", match.group(2))  # e.g. PropertyGet
             proc_name = match.group(3)
             param_text = (match.group(4) or "").strip()
             return_type = match.group(5)
 
-            # Find the end of the procedure
-            start_pos = match.start()
-            end_match = PROCEDURE_END_PATTERN.search(self.source, start_pos)
+            # Body starts AFTER the signature; find the procedure end.
+            # The body excludes the terminating End Sub/Function line.
+            end_match = PROCEDURE_END_PATTERN.search(src, match.start())
 
             if end_match:
-                body = self.source[start_pos:end_match.end()]
+                body = src[match.end():end_match.start()]
             else:
-                body = self.source[start_pos:]
+                body = src[match.end():]
 
             signature = match.group(0).strip()
 
@@ -367,15 +370,17 @@ class VBAParser:
 
     @staticmethod
     def _parse_parameters(param_text: str) -> list[dict[str, str]]:
-        """Parse a VBA parameter list into {"name", "type"} dicts.
+        """Parse a VBA parameter list into {"name","type"[,"default","optional"]}.
 
-        Handles Optional/ByVal/ByRef/ParamArray modifiers and default values;
-        complex cases degrade to a name with an empty type rather than
-        dropping the parameter.
+        Handles Optional/ByVal/ByRef/ParamArray modifiers, line-continuation
+        underscores inside the signature, and default values.
         """
         params: list[dict[str, str]] = []
         if not param_text:
             return params
+
+        # Join line continuations: ' _\n' inside a signature.
+        param_text = re.sub(r"_\s*\n\s*", " ", param_text)
 
         # Split on commas that are not inside parentheses (array bounds).
         parts, depth, current = [], 0, []
@@ -389,21 +394,51 @@ class VBAParser:
                 current = []
             else:
                 current.append(ch)
-        if current:
+        if "".join(current).strip():
             parts.append("".join(current))
 
         modifiers = {"optional", "byval", "byref", "paramarray"}
         for part in parts:
             tokens = part.strip().split()
+            optional = any(t.lower() == "optional" for t in tokens)
             tokens = [t for t in tokens if t.lower() not in modifiers]
             if not tokens:
                 continue
-            # Strip default values: name As String = "x"
-            first = tokens[0].split("=")[0].strip()
-            ptype = None
-            if len(tokens) >= 3 and tokens[1].lower() == "as":
-                ptype = " ".join(t.split("=")[0].strip() for t in tokens[2:])
-            params.append({"name": first, "type": ptype or ""})
+            # name [As Type] [= default]
+            entry: dict[str, str] = {"name": "", "type": ""}
+            if "=" in " ".join(tokens):
+                eq_at = None
+                for idx, tok in enumerate(tokens):
+                    if "=" in tok:
+                        eq_at = idx
+                        break
+                if eq_at is not None:
+                    before = tokens[:eq_at]
+                    default_tail = tokens[eq_at:]
+                    joined_default = " ".join(default_tail).split("=", 1)[1].strip()
+                    if before:
+                        entry["name"] = before[0]
+                        if len(before) >= 3 and before[1].lower() == "as":
+                            entry["type"] = " ".join(before[2:])
+                    if joined_default:
+                        entry["default"] = joined_default
+                        entry["optional"] = "1"
+            else:
+                first = tokens[0]
+                ptype = ""
+                if len(tokens) >= 3 and tokens[1].lower() == "as":
+                    ptype = " ".join(tokens[2:])
+                pname = first.split("=")[0].strip()
+                # array parameter: a() As Double
+                if pname.endswith("()"):
+                    pname = pname[:-2]
+                    entry["array"] = "1"
+                    ptype = ptype or "Variant"
+                entry["name"] = pname
+                entry["type"] = ptype or ""
+            if not entry["name"] or entry["name"] in ("(", ")"):
+                continue
+            params.append(entry)
         return params
 
     def _extract_calls(self, body: str) -> list[str]:

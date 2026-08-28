@@ -73,6 +73,16 @@ from converter.app.database import (
 )
 from converter.app.jobs.models import MigrationJob as PydanticMigrationJob
 from converter.app.access.extractor import run_extraction
+from converter.app.access.local_source import (
+    LocalSourceError,
+    SOURCE_MODE_LOCAL,
+    SOURCE_MODE_UPLOAD,
+    discover_open_databases,
+    discover_recent_databases,
+    probe_capability,
+    resolve_local_source,
+    stage_local_source,
+)
 from converter.app.ir.builder import build_ir
 from converter.app.graph.builder import build_dependency_graph, DependencyGraph
 from converter.app.supportability.engine import analyze_supportability, SupportabilityEngine
@@ -149,6 +159,18 @@ class JobCreateRequest(BaseModel):
     config: ConversionConfig
 
 
+class LocalPathRequest(BaseModel):
+    """A local filesystem path to an Access database on the backend machine."""
+    path: str
+
+
+class LocalJobRequest(BaseModel):
+    """Request to convert a database picked directly from the local machine."""
+    path: str
+    project_name: str = "ConvertedApplication"
+    base_package: str = "com.generated.app"
+
+
 class JobResponse(BaseModel):
     """Response with job details."""
     id: str
@@ -156,6 +178,8 @@ class JobResponse(BaseModel):
     progress: JobProgress
     created_at: datetime
     source_file: Optional[str] = None
+    source_mode: str = SOURCE_MODE_UPLOAD
+    source_origin: Optional[str] = None
     result: Optional[JobResult] = None
     error: Optional[dict] = None
     statistics: dict[str, int] = {}
@@ -445,6 +469,11 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
             "source": {
                 "file": job.source_file,
                 "application": app_ir.application_name,
+                # For a local-direct job, source_file is the staged copy the
+                # extractor consumed; source_origin is the database the user
+                # actually picked.
+                "mode": job.source_mode or SOURCE_MODE_UPLOAD,
+                "origin": job.source_origin,
             },
             "statistics": {
                 "tables": job.tables_count,
@@ -814,6 +843,52 @@ async def root():
     }
 
 
+async def _start_job(
+    *,
+    job_id: str,
+    source_path: Path,
+    display_name: str,
+    project_name: str,
+    base_package: str,
+    source_mode: str,
+    source_origin: Optional[str],
+    background_tasks: BackgroundTasks,
+    db: AsyncSession,
+) -> JobResponse:
+    """Persist a job for an already-staged source file and queue the pipeline.
+
+    Shared by both input modes: the upload endpoint saves a multipart file, the
+    local endpoint copies a local database, and from here on the two are
+    indistinguishable — the pipeline only ever reads job.source_file.
+    """
+    job_repo = JobRepository(db)
+    job = JobModel(
+        id=job_id,
+        source_file=str(source_path),
+        source_file_size=source_path.stat().st_size,
+        source_mode=source_mode,
+        source_origin=source_origin,
+        project_name=project_name,
+        base_package=base_package,
+    )
+    job.transition_to(JobState.UPLOADED)
+    await job_repo.create(job)
+    await db.commit()
+
+    background_tasks.add_task(run_conversion_pipeline, job_id, db)
+
+    return JobResponse(
+        id=job.id,
+        state=job.state,
+        progress=job.progress,
+        created_at=job.created_at,
+        source_file=display_name,
+        source_mode=source_mode,
+        source_origin=source_origin,
+        statistics={},
+    )
+
+
 @app.post("/api/jobs", response_model=JobResponse)
 async def create_job(
     background_tasks: BackgroundTasks,
@@ -822,7 +897,7 @@ async def create_job(
     base_package: str = "com.generated.app",
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new conversion job."""
+    """Create a new conversion job from an uploaded Access file."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
@@ -836,29 +911,111 @@ async def create_job(
     with open(upload_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
-    # Create job in database
-    job_repo = JobRepository(db)
-    job = JobModel(
-        id=job_id,
-        source_file=str(upload_path),
-        source_file_size=upload_path.stat().st_size,
+    return await _start_job(
+        job_id=job_id,
+        source_path=upload_path,
+        display_name=file.filename,
         project_name=project_name,
         base_package=base_package,
+        source_mode=SOURCE_MODE_UPLOAD,
+        source_origin=None,
+        background_tasks=background_tasks,
+        db=db,
     )
-    job.transition_to(JobState.UPLOADED)
-    await job_repo.create(job)
-    await db.commit()
 
-    # Start conversion in background
-    background_tasks.add_task(run_conversion_pipeline, job_id, db)
 
-    return JobResponse(
-        id=job.id,
-        state=job.state,
-        progress=job.progress,
-        created_at=job.created_at,
-        source_file=file.filename,
-        statistics={},
+# ------------------------------------------- Direct local MS Access source
+
+@app.get("/api/local-access/capability")
+async def local_access_capability():
+    """Report whether this backend can extract directly from local MS Access.
+
+    The wizard calls this to decide whether to offer the direct input mode, so
+    an unavailable Access install is a normal 200 response with a reason.
+    """
+    # COM calls are blocking; keep them off the event loop.
+    return await asyncio.to_thread(probe_capability)
+
+
+@app.get("/api/local-access/sources")
+async def local_access_sources():
+    """List Access databases discoverable on the backend machine."""
+    open_dbs: list[dict] = []
+    recent: list[dict] = []
+    errors: list[str] = []
+
+    # Discovery is best-effort and independent: a failure to attach to a
+    # running Access instance must not hide the recent-files list.
+    try:
+        open_dbs = await asyncio.to_thread(discover_open_databases)
+    except Exception as exc:
+        logger.warning("open-database discovery failed: %s", exc)
+        errors.append(f"Could not inspect the running MS Access instance: {exc}")
+
+    try:
+        recent = await asyncio.to_thread(discover_recent_databases)
+    except Exception as exc:
+        logger.warning("recent-database discovery failed: %s", exc)
+        errors.append(f"Could not read the MS Access recent-files list: {exc}")
+
+    return {"open": open_dbs, "recent": recent, "errors": errors}
+
+
+@app.post("/api/local-access/validate")
+async def local_access_validate(request: LocalPathRequest):
+    """Validate a local path and return database metadata for Step 1."""
+    try:
+        return resolve_local_source(request.path)
+    except LocalSourceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/jobs/local", response_model=JobResponse)
+async def create_local_job(
+    request: LocalJobRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a conversion job from a database on the backend machine.
+
+    The local file is copied into the job workdir first and the pipeline runs
+    against that copy: extraction opens forms in design view and drives the
+    VBA project, which writes to the database it opens. The user's own file
+    must never be the one handed to the extractor.
+    """
+    try:
+        info = resolve_local_source(request.path)
+    except LocalSourceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    job_id = str(uuid.uuid4())[:8]
+    staging_dir = UPLOAD_DIR / f"local-{job_id}"
+
+    try:
+        staged = await asyncio.to_thread(stage_local_source, info["path"], staging_dir)
+    except OSError as exc:
+        # Surfaced synchronously so the user sees "disk full" / "denied" here
+        # rather than as an opaque background pipeline failure.
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not copy the local database into the workspace: {exc}",
+        ) from exc
+
+    logger.info(
+        "Local-direct job %s: staged %s (%s) -> %s",
+        job_id, info["path"], info["formatted_size"], staged,
+    )
+
+    return await _start_job(
+        job_id=job_id,
+        source_path=staged,
+        display_name=info["name"],
+        project_name=request.project_name,
+        base_package=request.base_package,
+        source_mode=SOURCE_MODE_LOCAL,
+        source_origin=info["path"],
+        background_tasks=background_tasks,
+        db=db,
     )
 
 
@@ -874,6 +1031,8 @@ async def list_jobs(limit: int = Query(50, le=100), db: AsyncSession = Depends(g
             progress=JobProgress(**job.progress) if job.progress else JobProgress(),
             created_at=job.created_at,
             source_file=Path(job.source_file).name if job.source_file else None,
+            source_mode=job.source_mode or SOURCE_MODE_UPLOAD,
+            source_origin=job.source_origin,
             result=JobResult(**job.result) if job.result else None,
             error=job.error,
             statistics={
@@ -903,6 +1062,8 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
         progress=JobProgress(**job.progress) if job.progress else JobProgress(),
         created_at=job.created_at,
         source_file=Path(job.source_file).name if job.source_file else None,
+        source_mode=job.source_mode or SOURCE_MODE_UPLOAD,
+        source_origin=job.source_origin,
         result=JobResult(**job.result) if job.result else None,
         error=job.error,
         statistics={
@@ -1033,6 +1194,13 @@ async def delete_job(job_id: str, db: AsyncSession = Depends(get_db)):
         upload_path = Path(job.source_file)
         if upload_path.exists():
             upload_path.unlink()
+        # A local-direct job staged its copy inside uploads/local-<job_id>/source/,
+        # so removing just the file would leave the directories behind. Only
+        # ever touch our own staging tree — never the user's original database.
+        if job.source_mode == SOURCE_MODE_LOCAL:
+            staging_dir = UPLOAD_DIR / f"local-{job.id}"
+            if staging_dir.is_dir():
+                shutil.rmtree(staging_dir, ignore_errors=True)
 
     if job.output_path:
         output_dir = Path(job.output_path)

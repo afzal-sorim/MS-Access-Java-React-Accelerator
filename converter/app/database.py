@@ -53,6 +53,12 @@ class JobModel(Base):
     # Input
     source_file = Column(String(500), nullable=True)
     source_file_size = Column(Integer, nullable=True)
+    # How the source was acquired: UPLOAD (multipart) or LOCAL_DIRECT (picked
+    # from the local machine / running Access). For LOCAL_DIRECT, source_file
+    # points at the staged copy the extractor consumed, so source_origin keeps
+    # the user's real path for the migration report.
+    source_mode = Column(String(20), nullable=True, default="UPLOAD")
+    source_origin = Column(String(500), nullable=True)
 
     # Configuration
     project_name = Column(String(200), nullable=False, default="ConvertedApplication")
@@ -313,6 +319,39 @@ async def init_database(database_url: Optional[str] = None) -> None:
         # Create tables
         async with _engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(_apply_additive_migrations)
+
+
+# Columns added after the first release. create_all() only ever CREATEs — it
+# never ALTERs an existing table — so a database created by an earlier version
+# is missing these and every query against JobModel would fail. Each entry is
+# (table, column, DDL type) and must be nullable or carry a default so it can
+# be added to a populated table.
+_ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
+    ("migration_jobs", "source_mode", "VARCHAR(20)"),
+    ("migration_jobs", "source_origin", "VARCHAR(500)"),
+]
+
+
+def _apply_additive_migrations(connection) -> None:
+    """Add missing nullable columns to existing tables (idempotent).
+
+    Runs on every startup inside the same transaction as create_all. Uses the
+    SQLAlchemy inspector so it works on both SQLite and PostgreSQL.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(connection)
+    existing_tables = set(inspector.get_table_names())
+
+    for table, column, ddl_type in _ADDITIVE_COLUMNS:
+        if table not in existing_tables:
+            continue  # create_all just made it with the column present
+        columns = {col["name"] for col in inspector.get_columns(table)}
+        if column in columns:
+            continue
+        connection.execute(
+            text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
 
 
 from contextlib import asynccontextmanager

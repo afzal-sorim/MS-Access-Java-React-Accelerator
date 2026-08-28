@@ -11,8 +11,12 @@ const initialState = {
     currentStep: 1,
 
     // Step 1: File selection
+    // Two input modes: 'upload' posts a File through multipart; 'local' points
+    // the backend at a database already on the machine running MS Access.
+    sourceMode: 'upload',
     selectedFile: null,
     fileMetadata: null,
+    localSource: null,
 
     // Step 2: Analysis
     analysisJobId: null,
@@ -96,6 +100,8 @@ const ActionTypes = {
     SET_FILE: 'SET_FILE',
     SET_FILE_METADATA: 'SET_FILE_METADATA',
     CLEAR_FILE: 'CLEAR_FILE',
+    SET_SOURCE_MODE: 'SET_SOURCE_MODE',
+    SET_LOCAL_SOURCE: 'SET_LOCAL_SOURCE',
 
     // Step 2: Analysis
     SET_ANALYSIS_JOB: 'SET_ANALYSIS_JOB',
@@ -171,7 +177,21 @@ function wizardReducer(state, action) {
             return { ...state, fileMetadata: action.payload };
 
         case ActionTypes.CLEAR_FILE:
-            return { ...state, selectedFile: null, fileMetadata: null };
+            return { ...state, selectedFile: null, fileMetadata: null, localSource: null };
+
+        case ActionTypes.SET_SOURCE_MODE:
+            // The two modes are mutually exclusive — switching clears the
+            // other mode's selection so Step 2 can never see both.
+            return {
+                ...state,
+                sourceMode: action.payload,
+                selectedFile: null,
+                fileMetadata: null,
+                localSource: null,
+            };
+
+        case ActionTypes.SET_LOCAL_SOURCE:
+            return { ...state, localSource: action.payload };
 
         case ActionTypes.SET_ANALYSIS_JOB:
             return { ...state, analysisJobId: action.payload, analysisComplete: false };
@@ -324,6 +344,8 @@ export function WizardProvider({ children }) {
         setFile: (file) => dispatch({ type: ActionTypes.SET_FILE, payload: file }),
         setFileMetadata: (meta) => dispatch({ type: ActionTypes.SET_FILE_METADATA, payload: meta }),
         clearFile: () => dispatch({ type: ActionTypes.CLEAR_FILE }),
+        setSourceMode: (mode) => dispatch({ type: ActionTypes.SET_SOURCE_MODE, payload: mode }),
+        setLocalSource: (source) => dispatch({ type: ActionTypes.SET_LOCAL_SOURCE, payload: source }),
 
         setAnalysisJob: (jobId) => dispatch({ type: ActionTypes.SET_ANALYSIS_JOB, payload: jobId }),
         updateAnalysisProgress: (progress) => dispatch({ type: ActionTypes.UPDATE_ANALYSIS_PROGRESS, payload: progress }),

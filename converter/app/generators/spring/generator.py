@@ -95,6 +95,11 @@ class SpringBootGenerator:
         if query_stubs:
             files[str(src_main / "service" / "QueryStubs.java")] = query_stubs
 
+        # Semantic conversion layer (plan §8-13): Access compatibility
+        # runtime, VBA module services, executable decomposed queries.
+        for name, content in self._generate_semantic_layer().items():
+            files[str(src_main / name)] = content
+
         # Generate main application class (spec section 43 / Fix 7)
         files[str(src_main / "Application.java")] = self._generate_application_class()
 
@@ -118,7 +123,6 @@ class SpringBootGenerator:
         """Generate the report package from the IR's reports."""
         from ...reporting.model import build_report_definitions
         from ...reporting.spring_reports import SpringReportGenerator
-
         self.report_definitions = build_report_definitions(self.app)
         if not self.report_definitions:
             return {}
@@ -135,6 +139,72 @@ class SpringBootGenerator:
             self.warnings.append(f"report {definition.name} not generated: {reason}")
 
         return generator.generate()
+
+    # ------------------------------------------------------------- semantic layer
+
+    def _generate_semantic_layer(self) -> dict[str, str]:
+        """Access runtime package + VBA services + executable queries.
+
+        Plan §8-13. Everything derives from the IR: module names drive
+        service naming, query SQL drives decomposition. Objects whose
+        strategy blocks generation stay in QueryStubs with reasons.
+        """
+        from ...generators.java_compat import RuntimeUsage, emit_runtime_files
+        from ...generators.vba_service import convert_module
+        from ...query_engine import build_query_plans, \
+            generate_query_service_java, generate_query_controller_java
+        from ...strategy import ConversionStrategyResolver
+
+        files: dict[str, str] = {}
+        resolver = ConversionStrategyResolver(self.app)
+
+        # 1) VBA modules -> services
+        usage = RuntimeUsage()
+        module_results = []
+        state_map: dict[str, dict] = {}
+        for module in self.app.vba_modules:
+            if not module.procedures:
+                self.warnings.append(
+                    f"VBA module {module.name} has no parsed procedures; "
+                    f"left for manual review")
+                continue
+            decision = resolver.resolve_module(module)
+            if decision.blocked:
+                self.warnings.append(
+                    f"VBA module {module.name}: {decision.strategy.value} "
+                    f"({', '.join(decision.reasons)})")
+                continue
+            result = convert_module(module, usage)
+            module_results.append(result)
+            state_map[module.name] = result.procedure_states
+            files[str(Path("service") / f"{result.class_name}.java")] = \
+                result.java_source
+            for note in result.notes:
+                self.warnings.append(f"VBA {module.name}.{note}")
+
+        # 2) queries -> decomposition plans (skip functions with markers)
+        blocked = set()
+        for result in module_results:
+            blocked.update(result.manual_review_procedures)
+        plans, deferred = build_query_plans(self.app, state_map, blocked)
+        self.query_plans = plans
+        self.deferred_queries = deferred
+
+        # 3) query services + controller
+        for plan in plans:
+            java_src = generate_query_service_java(plan, self.base_package)
+            files[str(Path("service") / f"{plan.service_class}.java")] = java_src
+        if plans:
+            files[str(Path("controller") / "QueryServicesController.java")] = \
+                generate_query_controller_java(plans, self.base_package)
+
+        # 4) compatibility runtime (only classes actually needed)
+        for result in module_results:
+            pass  # usage flags were filled during conversion
+        runtime = emit_runtime_files(self.base_package, usage)
+        for name, content in runtime.items():
+            files[str(Path("access") / name)] = content
+        return files
 
     def write(self, output_dir: str | Path) -> None:
         """Generate and write all files to disk."""

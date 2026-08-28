@@ -118,7 +118,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
             {/* Backdrop */}
             <div style={{
                 position: 'absolute', inset: 0,
-                background: 'rgba(0, 0, 0, 0.6)', backdropFilter: 'blur(4px)',
+                background: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(4px)',
             }} />
 
             {/* Modal Card */}
@@ -126,24 +126,25 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                 onClick={(e) => e.stopPropagation()}
                 style={{
                     position: 'relative', zIndex: 1,
-                    background: 'var(--color-bg-card, #1e1e2e)',
-                    border: '1px solid var(--color-border, #333)',
+                    background: 'var(--color-white, #ffffff)',
+                    color: 'var(--color-text, #1f2937)',
+                    border: '1px solid var(--color-border, #e5e7eb)',
                     borderRadius: '12px',
                     width: '520px', maxWidth: '92vw', maxHeight: '85vh',
                     overflow: 'auto',
-                    boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
+                    boxShadow: 'var(--shadow-lg, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04))',
                     animation: 'fadeIn 0.2s ease-out',
                 }}
             >
                 {/* Header */}
                 <div style={{
                     padding: '1.25rem 1.5rem',
-                    borderBottom: '1px solid var(--color-border, #333)',
+                    borderBottom: '1px solid var(--color-border, #e5e7eb)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
                     <div>
-                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Edit Mapping</h3>
-                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', opacity: 0.6 }}>
+                        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: 'var(--color-text, #1f2937)' }}>Edit Mapping</h3>
+                        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: 'var(--color-text-muted, #6b7280)' }}>
                             {object.name}
                         </p>
                     </div>
@@ -151,7 +152,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                         onClick={onClose}
                         style={{
                             background: 'none', border: 'none', cursor: 'pointer',
-                            fontSize: '1.25rem', color: 'var(--color-text-muted)', padding: '0.25rem',
+                            fontSize: '1.25rem', color: 'var(--color-text-muted, #6b7280)', padding: '0.25rem',
                         }}
                         aria-label="Close"
                     >✕</button>
@@ -161,7 +162,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                 <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {/* Target */}
                     <div>
-                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-text, #1f2937)' }}>
                             Target Architecture
                         </label>
                         <select
@@ -182,7 +183,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
 
                     {/* Conversion Strategy */}
                     <div>
-                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-text, #1f2937)' }}>
                             Conversion Strategy
                         </label>
                         <select
@@ -203,7 +204,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                     {/* Status + Risk side by side */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-text, #1f2937)' }}>
                                 Status Override
                             </label>
                             <select
@@ -218,7 +219,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                             </select>
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                            <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-text, #1f2937)' }}>
                                 Risk Level
                             </label>
                             <select
@@ -236,7 +237,7 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
 
                     {/* Notes */}
                     <div>
-                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>
+                        <label style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem', color: 'var(--color-text, #1f2937)' }}>
                             Notes
                         </label>
                         <textarea
@@ -253,7 +254,9 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                     {object.reason && (
                         <div style={{
                             padding: '0.75rem 1rem', borderRadius: '8px',
-                            background: 'var(--color-bg-alt, #2a2a3e)',
+                            background: 'var(--color-bg-alt, #f3f4f6)',
+                            color: 'var(--color-text, #1f2937)',
+                            border: '1px solid var(--color-border, #e5e7eb)',
                             fontSize: '0.8125rem', lineHeight: 1.5,
                         }}>
                             <span style={{ fontWeight: 600 }}>Analysis note: </span>
@@ -265,8 +268,11 @@ function MappingEditorModal({ object, tab, onSave, onClose }) {
                 {/* Footer */}
                 <div style={{
                     padding: '1rem 1.5rem',
-                    borderTop: '1px solid var(--color-border, #333)',
+                    borderTop: '1px solid var(--color-border, #e5e7eb)',
                     display: 'flex', justifyContent: 'flex-end', gap: '0.75rem',
+                    background: 'var(--color-bg, #f9fafb)',
+                    borderBottomLeftRadius: '12px',
+                    borderBottomRightRadius: '12px',
                 }}>
                     <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
                     <button className="btn btn-primary" onClick={handleSave}>Save Mapping</button>

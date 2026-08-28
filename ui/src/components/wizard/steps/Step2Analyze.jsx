@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, connectProgressWebSocket, getVersions, getJob } from '../../../services/api';
+import { createJob, createLocalJob, connectProgressWebSocket, getVersions, getJob } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 
@@ -27,7 +27,7 @@ const STATUS_ICONS = {
 
 export default function Step2Analyze() {
     const { state, actions } = useWizard();
-    const { selectedFile, analysisJobId, analysisProgress, analysisComplete, analysisResult, config } = state;
+    const { selectedFile, localSource, analysisJobId, analysisProgress, analysisComplete, analysisResult, config } = state;
     const [isAnalyzing, setIsAnalyzing] = React.useState(false);
     const [ws, setWs] = React.useState(null);
     // Guards against duplicate job creation. In dev, React.StrictMode
@@ -53,14 +53,17 @@ export default function Step2Analyze() {
 
     // Start analysis when entering step
     const startAnalysis = useCallback(async () => {
-        if (!selectedFile) return;
+        if (!selectedFile && !localSource) return;
 
         setIsAnalyzing(true);
         actions.setError(null);
 
         try {
-            // Create job with current config
-            const job = await createJob(selectedFile, config);
+            // Both input modes produce the same JobResponse; everything after
+            // this point (WebSocket, progress, completion) is identical.
+            const job = localSource
+                ? await createLocalJob(localSource.path, config)
+                : await createJob(selectedFile, config);
             const jobId = job.id;
             actions.setAnalysisJob(jobId);
 
@@ -75,7 +78,7 @@ export default function Step2Analyze() {
             setIsAnalyzing(false);
             startedRef.current = false; // allow retry after a genuine failure
         }
-    }, [selectedFile, config, actions]);
+    }, [selectedFile, localSource, config, actions]);
 
     // Handle WebSocket messages
     const handleWebSocketMessage = useCallback((message, activeJobId) => {
@@ -155,11 +158,11 @@ export default function Step2Analyze() {
 
     // Auto-start analysis
     useEffect(() => {
-        if (selectedFile && !analysisJobId && !isAnalyzing && !startedRef.current) {
+        if ((selectedFile || localSource) && !analysisJobId && !isAnalyzing && !startedRef.current) {
             startedRef.current = true;
             startAnalysis();
         }
-    }, [selectedFile, analysisJobId, isAnalyzing, startAnalysis]);
+    }, [selectedFile, localSource, analysisJobId, isAnalyzing, startAnalysis]);
 
     // Determine overall progress
     const completedCount = Object.values(analysisProgress).filter(p => p.status === 'completed').length;
