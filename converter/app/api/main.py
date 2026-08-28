@@ -1101,6 +1101,9 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
                         }
                         await websocket.send_json({
                             "state": job.state,
+                            "step": (job.progress or {}).get("current_step"),
+                            "percentage": (job.progress or {}).get("percentage", 0),
+                            "message": (job.progress or {}).get("message", ""),
                             "progress": job.progress,
                             "statistics": stats,
                         })

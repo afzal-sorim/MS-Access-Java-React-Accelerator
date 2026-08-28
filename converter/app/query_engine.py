@@ -87,6 +87,18 @@ def _access_strings_to_pg(sql: str) -> str:
     return "".join(out)
 
 
+def _java_class_ident(name: str) -> str:
+    """Pascal-case with digit-prefix rule (Leszynski '001_x' names)."""
+    s = _pascal(name)
+    return ("N" + s) if s and s[0].isdigit() else s
+
+
+def _java_method_ident(name: str) -> str:
+    """camel-case with digit-prefix rule for Java methods."""
+    s = _camel(name)
+    return ("n" + s) if s and s[0].isdigit() else s
+
+
 def plan_query(query_ir, app_ir,
                vba_registry: dict[str, dict]) -> QueryPlan:
     """Produce a QueryPlan for one QueryIR.
@@ -166,7 +178,7 @@ def plan_query(query_ir, app_ir,
 
     if plan.computed:
         plan.strategy = "SERVICE_DECOMPOSITION"
-        plan.service_class = _pascal(plan.name) + "QueryService"
+        plan.service_class = _java_class_ident(plan.name) + "QueryService"
         plan.reasons.append(
             f"row-level VBA functions {[c.func_name for c in plan.computed]} "
             f"evaluated by converted services in row order")
@@ -220,7 +232,7 @@ def generate_query_service_java(plan: QueryPlan, base_package: str) -> str:
     Computed columns carry their resolved service class, state class and
     trailing optional-argument defaults, so call sites always compile.
     """
-    cls = plan.service_class or (_pascal(plan.name) + "QueryService")
+    cls = plan.service_class or (_java_class_ident(plan.name) + "QueryService")
     lines = []
     lines.append("// ACCESS-SOURCE:")
     lines.append(f"// Query: {plan.name}")
@@ -315,20 +327,20 @@ def generate_query_controller_java(plans: list[QueryPlan],
     lines.append("@CrossOrigin(origins = \"*\")")
     lines.append("public class QueryServicesController {")
     for plan in plans:
-        svc = plan.service_class or (_pascal(plan.name) + "QueryService")
+        svc = plan.service_class or (_java_class_ident(plan.name) + "QueryService")
         var = _camel(svc)
         lines.append("")
         lines.append("    @Autowired")
         lines.append(f"    private {svc} {var};")
     lines.append("")
     for plan in plans:
-        svc = plan.service_class or (_pascal(plan.name) + "QueryService")
+        svc = plan.service_class or (_java_class_ident(plan.name) + "QueryService")
         var = _camel(svc)
         ep = plan.endpoint
         lines.append(f"    /** Converted from Access query: {plan.name} */")
         lines.append(f'    @GetMapping("/{ep}")')
         lines.append("    public List<Map<String, Object>> "
-                     f"{_camel(plan.name)}() {{")
+                     f"{_java_method_ident(plan.name)}() {{")
         lines.append(f"        return {var}.execute();")
         lines.append("    }")
     lines.append("}")

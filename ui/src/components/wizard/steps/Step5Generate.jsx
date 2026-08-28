@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, connectProgressWebSocket, downloadResult } from '../../../services/api';
+import { createJob, connectProgressWebSocket, downloadResult, getJob } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 
@@ -35,129 +35,262 @@ const STATUS_ICONS = {
     skipped: '⏭️',
 };
 
+/**
+ * Map backend step names and job states to frontend step keys.
+ * The backend pipeline sends step names like "generating_database",
+ * "generating_backend", etc. and job states like "GENERATING_DATABASE".
+ * We need to map these to our STEP_ORDER keys.
+ */
+const BACKEND_STEP_MAP = {
+    // Pipeline broadcast step names
+    'generating_database': 'database',
+    'generating_backend': 'backend',
+    'generating_frontend': 'frontend',
+    'generating_reports': 'frontend',  // report generation is part of the frontend phase
+    'resolving_dependencies': 'dependencies',
+    'validating_build': 'build_backend',
+    'self_healing_repair': 'repair',
+    'completed': 'behavioral',
+
+    // Job state values (sent by WebSocket polling)
+    'GENERATING_DATABASE': 'database',
+    'GENERATING_BACKEND': 'backend',
+    'GENERATING_FRONTEND': 'frontend',
+    'RESOLVING_DEPENDENCIES': 'dependencies',
+    'BUILDING': 'build_backend',
+    'REPAIRING': 'repair',
+    'TESTING': 'tests',
+    'VALIDATING': 'behavioral',
+    'COMPLETED': 'behavioral',
+};
+
+/**
+ * Ordered list of backend states that correspond to generation.
+ * Used to figure out which frontend steps are "completed" based on
+ * the current backend state.
+ */
+const BACKEND_STATE_ORDER = [
+    'GENERATING_DATABASE',
+    'GENERATING_BACKEND',
+    'GENERATING_FRONTEND',
+    'BUILDING',
+    'REPAIRING',
+    'TESTING',
+    'VALIDATING',
+    'COMPLETED',
+];
+
+function getCompletedFrontendSteps(backendState) {
+    const stateIndex = BACKEND_STATE_ORDER.indexOf(backendState);
+    if (stateIndex <= 0) return [];
+
+    const completed = [];
+    for (let i = 0; i < stateIndex; i++) {
+        const frontendKey = BACKEND_STEP_MAP[BACKEND_STATE_ORDER[i]];
+        if (frontendKey && !completed.includes(frontendKey)) {
+            completed.push(frontendKey);
+        }
+    }
+    return completed;
+}
+
 export default function Step5Generate() {
     const { state, actions } = useWizard();
-    const { selectedFile, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
+    const { selectedFile, localSource, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
     const [isGenerating, setIsGenerating] = useState(false);
-    const [ws, setWs] = useState(null);
-    const [stepDetails, setStepDetails] = useState({});
+    const wsRef = useRef(null);
+    const startedRef = useRef(false);
 
     // Start generation when entering step
     const startGeneration = useCallback(async () => {
-        if (!selectedFile || !analysisJobId) return;
+        if ((!selectedFile && !localSource) || !analysisJobId) return;
 
         setIsGenerating(true);
         actions.setError(null);
 
         try {
-            // Create a new generation job or continue from analysis job
-            // For now, we'll use the same job ID pattern
-            const job = await createJob(selectedFile, config);
-            const jobId = job.id;
+            // The analysis step already created a job and ran the full pipeline
+            // (extract → IR → graph → supportability → generate).
+            // The generation happens as part of the same pipeline.
+            // We just need to connect to the existing job's WebSocket to
+            // track its progress through the generation phases.
+            //
+            // However, if the pipeline already completed during analysis,
+            // we should check the job state first.
+            let jobId = analysisJobId;
+
+            try {
+                const existingJob = await getJob(analysisJobId);
+                if (existingJob && existingJob.state === JOB_STATES.COMPLETED) {
+                    // Job already completed during analysis - show results directly
+                    actions.setGenerationJob(analysisJobId);
+                    actions.updateGenerationProgress({
+                        currentStep: 'completed',
+                        completedSteps: [...STEP_ORDER],
+                        percentage: 100,
+                    });
+                    actions.setGenerationComplete(true);
+                    actions.setGenerationResult(existingJob.result || existingJob);
+                    setIsGenerating(false);
+                    return;
+                }
+                if (existingJob && existingJob.state === JOB_STATES.FAILED) {
+                    actions.setError(existingJob.error?.message || 'Previous job failed');
+                    setIsGenerating(false);
+                    return;
+                }
+            } catch (err) {
+                // If we can't fetch the existing job, fall through to create a new one
+                console.warn('Could not fetch existing job, creating new one:', err);
+            }
+
+            // If the analysis job is still running or in a pre-generation state,
+            // connect to its WebSocket. If we need a fresh generation, create a new job.
+            const needsNewJob = !jobId;
+            if (needsNewJob) {
+                const job = await createJob(selectedFile, config);
+                jobId = job.id;
+            }
+
             actions.setGenerationJob(jobId);
 
             // Connect WebSocket for real-time progress
             const websocket = connectProgressWebSocket(jobId, (message) => {
                 handleWebSocketMessage(message);
             });
-            setWs(websocket);
+            wsRef.current = websocket;
 
         } catch (err) {
             actions.setError(err.message);
             setIsGenerating(false);
+            startedRef.current = false;
         }
-    }, [selectedFile, config, analysisJobId, actions]);
+    }, [selectedFile, localSource, config, analysisJobId, actions]);
 
     // Handle WebSocket messages
+    // Using a ref-based approach to avoid stale closure issues
     const handleWebSocketMessage = useCallback((message) => {
-        const { state: jobState, step, progress, result, error, details } = message;
+        const { state: jobState, step, progress, result, error, statistics } = message;
 
-        // Update generation progress based on step
-        if (step) {
-            // Mark previous steps as completed
-            const currentIndex = STEP_ORDER.indexOf(step);
-            if (currentIndex > 0) {
-                const completedSteps = STEP_ORDER.slice(0, currentIndex);
-                actions.updateGenerationProgress({
-                    completedSteps: [...new Set([...generationProgress.completedSteps, ...completedSteps])],
-                });
-            }
+        // Determine the current frontend step key from the backend message.
+        // The backend sends step names via broadcast (e.g., "generating_database")
+        // and job states via polling (e.g., "GENERATING_DATABASE").
+        // The progress object may also contain current_step.
+        const backendStep = step
+            || (typeof progress === 'object' && progress?.current_step)
+            || null;
+        const backendState = jobState || null;
 
-            // Mark current step as in progress
-            actions.updateGenerationProgress({
-                currentStep: step,
-            });
-
-            // Add detail if provided
-            if (details) {
-                actions.addGenerationDetail({
-                    step,
-                    timestamp: new Date().toISOString(),
-                    message: details,
-                });
-            }
+        // Map to frontend step key
+        let frontendStepKey = null;
+        if (backendStep && BACKEND_STEP_MAP[backendStep]) {
+            frontendStepKey = BACKEND_STEP_MAP[backendStep];
+        } else if (backendState && BACKEND_STEP_MAP[backendState]) {
+            frontendStepKey = BACKEND_STEP_MAP[backendState];
         }
 
-        // Update percentage based on completed steps
-        const completedCount = generationProgress.completedSteps?.length || 0;
-        const totalSteps = STEP_ORDER.length;
-        const percentage = Math.min((completedCount / totalSteps) * 100, 100);
-        actions.updateGenerationProgress({ percentage });
+        // Determine completed steps based on the current backend state
+        const completedSteps = backendState
+            ? getCompletedFrontendSteps(backendState)
+            : [];
+
+        // Use backend percentage if available, otherwise calculate from steps
+        const backendPercentage = (typeof progress === 'object' && progress?.percentage)
+            || (typeof message.percentage === 'number' ? message.percentage : null);
+
+        // Map backend overall percentage (0-100) to generation phase (60-100 range)
+        // The generation steps start at ~60% in the backend pipeline
+        let displayPercentage = 0;
+        if (backendPercentage !== null) {
+            if (backendPercentage >= 60) {
+                // Map 60-100 backend range to 0-100 for generation display
+                displayPercentage = Math.min(((backendPercentage - 60) / 40) * 100, 100);
+            }
+        } else if (completedSteps.length > 0) {
+            displayPercentage = (completedSteps.length / STEP_ORDER.length) * 100;
+        }
+
+        // Build the progress update
+        const progressUpdate = {};
+
+        if (frontendStepKey) {
+            progressUpdate.currentStep = frontendStepKey;
+        }
+
+        if (completedSteps.length > 0) {
+            progressUpdate.completedSteps = completedSteps;
+        }
+
+        progressUpdate.percentage = displayPercentage;
+
+        // Apply progress update
+        if (Object.keys(progressUpdate).length > 0) {
+            actions.updateGenerationProgress(progressUpdate);
+        }
+
+        // Add detail message if provided
+        const detailMessage = message.message
+            || (typeof progress === 'object' && progress?.message)
+            || null;
+
+        if (detailMessage && frontendStepKey) {
+            actions.addGenerationDetail({
+                step: frontendStepKey,
+                timestamp: new Date().toISOString(),
+                message: detailMessage,
+            });
+        }
 
         // Handle completion
-        if (jobState === JOB_STATES.COMPLETED) {
+        if (backendState === JOB_STATES.COMPLETED) {
+            actions.updateGenerationProgress({
+                currentStep: 'completed',
+                completedSteps: [...STEP_ORDER],
+                percentage: 100,
+            });
             actions.setGenerationComplete(true);
-            actions.setGenerationResult(result || { jobId: generationJobId });
+            actions.setGenerationResult(result || { jobId: generationJobId || analysisJobId });
             setIsGenerating(false);
-            if (ws) ws.close();
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         }
 
         // Handle failure
-        if (jobState === JOB_STATES.FAILED) {
+        if (backendState === JOB_STATES.FAILED) {
             actions.setError(error || 'Generation failed');
             actions.setGenerationComplete(false);
-            actions.updateGenerationProgress({
-                failedSteps: [...new Set([...(generationProgress.failedSteps || []), generationProgress.currentStep])],
-            });
-            setIsGenerating(false);
-            if (ws) ws.close();
-        }
-
-        // Handle repair attempts
-        if (jobState === JOB_STATES.REPAIRING) {
-            actions.updateGenerationProgress({
-                currentStep: 'repair',
-            });
-            if (details) {
-                actions.addGenerationDetail({
-                    step: 'repair',
-                    timestamp: new Date().toISOString(),
-                    message: `Repair attempt: ${details}`,
+            if (frontendStepKey) {
+                actions.updateGenerationProgress({
+                    failedSteps: [frontendStepKey],
                 });
             }
+            setIsGenerating(false);
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         }
-
-        // Handle testing
-        if (jobState === JOB_STATES.TESTING) {
-            actions.updateGenerationProgress({
-                currentStep: 'behavioral',
-            });
-        }
-    }, [generationProgress, generationJobId, actions, ws]);
+    }, [actions, generationJobId, analysisJobId]);
 
     // Cleanup WebSocket on unmount
     useEffect(() => {
         return () => {
-            if (ws) ws.close();
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         };
-    }, [ws]);
+    }, []);
 
-    // Auto-start generation
+    // Auto-start generation (with guard against StrictMode double-mount)
     useEffect(() => {
-        if (selectedFile && analysisJobId && !generationJobId && !isGenerating) {
+        if ((selectedFile || localSource) && analysisJobId && !generationJobId && !isGenerating && !startedRef.current) {
+            startedRef.current = true;
             startGeneration();
         }
-    }, [selectedFile, analysisJobId, generationJobId, isGenerating, startGeneration]);
+    }, [selectedFile, localSource, analysisJobId, generationJobId, isGenerating, startGeneration]);
 
     // Build step status map
     const getStepStatus = (stepKey) => {
@@ -192,9 +325,14 @@ export default function Step5Generate() {
                         style={{ width: `${overallProgress}%` }}
                     />
                 </div>
-                {generationProgress.currentStep && (
+                {generationProgress.currentStep && generationProgress.currentStep !== 'initializing' && generationProgress.currentStep !== 'completed' && (
                     <p className="form-hint" style={{ marginTop: '0.5rem', textAlign: 'right' }}>
                         Current: <strong>{GENERATION_STEPS.find(s => s.key === generationProgress.currentStep)?.label || generationProgress.currentStep}</strong>
+                    </p>
+                )}
+                {generationProgress.currentStep === 'initializing' && (
+                    <p className="form-hint" style={{ marginTop: '0.5rem', textAlign: 'right' }}>
+                        Current: <strong>initializing</strong>
                     </p>
                 )}
             </div>
@@ -203,7 +341,6 @@ export default function Step5Generate() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {GENERATION_STEPS.map((step) => {
                     const status = getStepStatus(step.key);
-                    const detail = stepDetails[step.key];
 
                     return (
                         <div
@@ -234,12 +371,6 @@ export default function Step5Generate() {
                                     </div>
                                 </div>
                             </div>
-
-                            {detail && (
-                                <div style={{ marginTop: '0.75rem', paddingLeft: '3.5rem', fontSize: '0.75rem', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>
-                                    {detail.message}
-                                </div>
-                            )}
                         </div>
                     );
                 })}

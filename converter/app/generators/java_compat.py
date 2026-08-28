@@ -152,7 +152,7 @@ public final class AccessRuntime {{
         long x = Math.round(cDbl(a));
         long y = Math.round(cDbl(b));
         if (y == 0L) {{
-            throw new ArithmeticException("Division by zero (\\)");
+            throw new ArithmeticException("Division by zero (integer division)");
         }}
         return x / y;
     }}
@@ -187,7 +187,7 @@ public final class AccessRuntime {{
         if (value instanceof Number) return ((Number) value).doubleValue();
         String s = value.toString().stripLeading();
         java.util.regex.Matcher m = java.util.regex.Pattern
-                .compile("[-+]?(\\d+\\.?\\d*|\\.\\d+)([eE][-+]?\\d+)?")
+                .compile("[-+]?(\\\\d+\\\\.?\\\\d*|\\\\.\\\\d+)([eE][-+]?\\\\d+)?")
                 .matcher(s);
         if (m.find() && m.start() == 0) {{
             try {{

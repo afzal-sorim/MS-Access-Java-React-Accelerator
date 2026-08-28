@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from ..analyzers.vba_ast import (
     Assignment, CallStatement, DoLoop, ExitConstruct, ForEach, ForNext,
     GotoStatement, IfBlock, LabelDef, Node, OnError, ProcedureAST,
-    RedimStatement, ReturnAssignment, RawStatement, SelectCase,
+    RedimStatement, ReturnAssignment, RawStatement, SeqNode, SelectCase,
     SingleLineIf, VarDecl, WithBlock, parse_procedure,
 )
 from .java_compat import RuntimeUsage
@@ -31,9 +31,14 @@ from .java_compat import RuntimeUsage
 # ------------------------------------------------------------------ naming
 
 def _camel(name: str) -> str:
-    if re.match(r"^[A-Za-z_]\w*$", name.strip()):
+    name = name.strip()
+    # strip VBA array-parameter parens and any stray non-word characters
+    name = re.sub(r"[^A-Za-z0-9_]", "", name)
+    if not name:
+        return "_"
+    if re.match(r"^[A-Za-z_]\w*$", name):
         return name[0].lower() + name[1:]
-    parts = re.split(r"[\s_\-]+", name.strip())
+    parts = re.split(r"[\s_\-]+", name)
     joined = "".join(p[:1].lower() + p[1:] for p in parts if p)
     return joined or "_"
 
@@ -170,6 +175,13 @@ class ExprTranslator:
         s = expr.strip()
         if not s:
             return '""'
+        # Strip redundant outer parens so operators inside are reachable
+        # (VBA authors often wrap sub-expressions: (a = b And c)).
+        while s.startswith("(") and s.endswith(")") and \
+                self._matching_close(s, 0) == len(s) - 1:
+            s = s[1:-1].strip()
+            if not s:
+                return '""'
         # VBA precedence, lowest first — each split recurses on its sides:
         #   Or -> And -> Not -> comparisons -> & -> +- -> \ Mod -> */
         for word, java_op in (("Or", "||"), ("And", "&&")):
@@ -315,9 +327,10 @@ class ExprTranslator:
         n = len(s)
         while i < n:
             if s[i] == '"':
+                # already Java-escaped by _rewrite_static_refs; verbatim
                 jm = re.match(r'"(?:[^"]|"")*"', s[i:])
                 if jm:
-                    out.append(self._vlit(jm.group(0)))
+                    out.append(jm.group(0))
                     i += jm.end()
                     continue
             m = re.match(r"([A-Za-z_]\w*)\s*\(", s[i:])
@@ -464,7 +477,21 @@ class ExprTranslator:
         i = 0
         n = len(s)
         while i < n:
-            # VBA date literal: #1/2/2024# (or #1/2/2024 3:04:05 PM#)
+            # date/time literal: #m/d/yyyy[ h:mm[:ss] [AM|PM]]# (date optional)
+            tm = re.match(r"#\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp])?[Mm]?\s*#", s[i:])
+            if tm:
+                hh = int(tm.group(1))
+                mi = int(tm.group(2))
+                ss = int(tm.group(3) or 0)
+                pm = (tm.group(4) or "").lower() == "p"
+                am = (tm.group(4) or "").lower() == "a"
+                if pm and hh < 12:
+                    hh += 12
+                if am and hh == 12:
+                    hh = 0
+                out.append(f"java.time.LocalTime.of({hh}, {mi}, {ss})")
+                i += tm.end()
+                continue
             dm = re.match(r"#\s*(\d{1,2})/(\d{1,2})/(\d{2,4})"
                           r"(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?"
                           r"\s*([AaPp])?[Mm]?)?\s*#", s[i:])
@@ -484,9 +511,10 @@ class ExprTranslator:
                 i += dm.end()
                 continue
             if s[i] == '"':
+                # string literals already escaped upstream; verbatim
                 jm = re.match(r'"(?:[^"]|"")*"', s[i:])
                 if jm:
-                    out.append(self._vlit(jm.group(0)))
+                    out.append(jm.group(0))
                     i += jm.end()
                     continue
             # numeric literal with VBA type suffix: 1# 2& 3! 4@ 5% 6$
@@ -511,6 +539,27 @@ class ExprTranslator:
     _WORD_OPS = {
         "or": "Or", "and": "And", "mod": "Mod",
     }
+
+    @staticmethod
+    def _matching_close(s: str, open_pos: int) -> int:
+        depth = 0
+        i = open_pos
+        n = len(s)
+        while i < n:
+            ch = s[i]
+            if ch == '"':
+                jm = re.match(r'"(?:[^"]|"")*"', s[i:])
+                if jm:
+                    i += jm.end()
+                    continue
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    return i
+            i += 1
+        return -1
 
     def _top_word_op(self, s: str, word: str) -> tuple[int, str] | None:
         """Top-level VBA word operator (And/Or/Mod) outside strings/parens."""
@@ -981,6 +1030,14 @@ class JavaSemanticEmitter:
         pad = " " * ind
         T = self.translator
         lines: list[str] = []
+
+        if isinstance(node, SeqNode):
+            ok_all = True
+            for sub in node.stmts:
+                ln2, ok2 = self._emit_stmt(sub, ind)
+                lines.extend(ln2)
+                ok_all = ok_all and ok2
+            return lines, ok_all
 
         if isinstance(node, RawStatement):
             src = (node.source_line or node.text or "").rstrip()

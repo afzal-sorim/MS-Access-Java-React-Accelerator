@@ -138,6 +138,12 @@ class RedimStatement(Node):
 
 
 @dataclass
+class SeqNode(Node):
+    """Several statements that shared one physical line via ':'."""
+    stmts: list["Node"] = field(default_factory=list)
+
+
+@dataclass
 class RawStatement(Node):
     text: str = ""
     reason: str = "unparsed construct"
@@ -292,6 +298,26 @@ class StatementParser:
 
     # internals ----------------------------------------------------------
 
+    @staticmethod
+    def _top_level_colon(line: str) -> int:
+        """Position of a statement-separating colon outside strings/parens."""
+        depth = 0
+        in_string = False
+        for i, ch in enumerate(line):
+            if in_string:
+                if ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+            elif ch == ":" and depth == 0:
+                return i
+        return -1
+
     def _parse_seq(self, pairs: list[tuple[int, str]],
                    depth: int) -> tuple[list[Node], list[str]]:
         nodes: list[Node] = []
@@ -323,6 +349,22 @@ class StatementParser:
     def _parse_one(self, pairs, i) -> tuple[Optional[Node], int]:
         ln, line = pairs[i]
         low = line.lower().strip()
+
+        # colon-separated statements on one line: `x = 1: foo bar`
+        # (a whole-line label was already handled below)
+        colon = self._top_level_colon(line)
+        if colon != -1 and not re.match(r"^([A-Za-z_]\w*):\s*$", line.strip()):
+            left = line[:colon].strip()
+            right = line[colon + 1:].strip()
+            # `1:` numeric statement labels behave like no-ops here
+            if left:
+                sub_pairs = [(ln, left), (ln, right)] if \
+                    not re.fullmatch(r"\d+", left) else [(ln, right)]
+                node, consumed = self._parse_seq(sub_pairs, 0)
+                if len(node) == 1:
+                    return node[0], 1
+                seq = SeqNode(line=ln, source_line=line, stmts=node)
+                return seq, 1
 
         # labels: Identifier:
         lm = re.match(r"^([A-Za-z_]\w*):\s*$", line.strip())
@@ -725,7 +767,7 @@ def collect_unsupported(nodes: list[Node]) -> list[str]:
             out.append(f"{n.text}   ({n.reason})")
         elif unsup:
             out.extend(unsup)
-        for attr in ("then_stmts", "else_stmts", "body", "cases"):
+        for attr in ("then_stmts", "else_stmts", "body", "cases", "stmts"):
             val = getattr(n, attr, None)
             if attr == "cases" and isinstance(val, list):
                 for _, stmts in val:
