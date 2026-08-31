@@ -212,6 +212,7 @@ class BuildLogModel(Base):
     status = Column(String(50), nullable=False)  # started, completed, failed
     output = Column(Text, nullable=True)
     error = Column(Text, nullable=True)
+    duration_seconds = Column(Float, nullable=True)
     started_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
 
@@ -578,7 +579,7 @@ class BuildLogRepository:
         await self.session.flush()
         return log
 
-    async def update(self, log_id: str, status: str, output: str = None, error: str = None) -> Optional[BuildLogModel]:
+    async def update(self, log_id: str, status: str, output: str = None, error: str = None, duration_seconds: float = None) -> Optional[BuildLogModel]:
         result = await self.session.execute(
             select(BuildLogModel).where(BuildLogModel.id == log_id)
         )
@@ -589,6 +590,8 @@ class BuildLogRepository:
                 log.output = output
             if error:
                 log.error = error
+            if duration_seconds is not None:
+                log.duration_seconds = duration_seconds
             if status in ("completed", "failed"):
                 log.completed_at = datetime.utcnow()
             await self.session.flush()
