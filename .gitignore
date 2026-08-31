@@ -105,7 +105,7 @@ target/
 *.war
 *.ear
 .gradle/
-build/
+/build/
 
 # ------------------------------------------------------------------------------
 # IDEs & Editor Configurations
