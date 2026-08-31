@@ -379,7 +379,7 @@ class CorpusRunner:
         if existing_gaps:
             payload[KNOWN_GAPS_KEY] = existing_gaps
         payload.update(actual if isinstance(actual, dict) else {"value": actual})
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
     def _compare(self, name: str, path: Path, actual: Any) -> CheckResult:
         if not path.exists():

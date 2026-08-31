@@ -156,7 +156,7 @@ def cmd_convert(args) -> int:
     conversion_manifest = ConversionManifest.build(app_ir)
     scores = conversion_manifest.calculate_scores()
     (report_dir / "conversion-manifest.json").write_text(
-        json.dumps(conversion_manifest.to_dict(), indent=2), encoding="utf-8")
+        json.dumps(conversion_manifest.to_dict(), indent=2, default=str), encoding="utf-8")
     print(f"  ✓ Conversion manifest written ({len(conversion_manifest.objects)} objects)")
 
     reports_summary = report_migration_summary(report_definitions)
@@ -244,7 +244,7 @@ def cmd_convert(args) -> int:
     }
 
     report_path = report_dir / "migration-report.json"
-    report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    report_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
     print(f"  - Report written to: {report_path}")
 
     print("\n" + "=" * 60)
@@ -486,7 +486,7 @@ def cmd_corpus(args) -> int:
     if args.report:
         out = Path(args.report)
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        out.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
         print(f"  report written to {out}")
 
     if args.action == "capture":

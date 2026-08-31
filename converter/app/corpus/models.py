@@ -133,7 +133,7 @@ class CorpusRegistry:
             ),
             "items": [item.to_dict() for item in self.items],
         }
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
         return path
 
     def get(self, name: str) -> Optional[CorpusItem]:

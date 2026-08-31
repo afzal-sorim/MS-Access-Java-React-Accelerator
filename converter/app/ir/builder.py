@@ -93,29 +93,21 @@ class IRBuilder:
         # double-counting in supportability, dependency graph, and reports.
         _form_module_names = {f.module_name for f in app.forms if f.module_name}
         _report_module_names = {r.module_name for r in app.reports if r.module_name}
-        seen: set[str] = set()
-        deduped: list[VbaModuleIR] = []
+
+        # Optimize de-duplication using a dictionary for O(N) instead of O(N^2)
+        deduped_map: dict[str, VbaModuleIR] = {}
         for m in app.vba_modules:
             key = m.name.lower()
-            if key in seen:
+            if key in deduped_map:
+                existing = deduped_map[key]
+                # If we find a version with source, prefer it over an empty one
+                if (m.source or "").strip() and not (existing.source or "").strip():
+                    deduped_map[key] = m
                 continue
-            if m.module_type == "FORM" and m.name in _form_module_names:
-                existing = next(
-                    (mm for mm in deduped if mm.name == m.name), None)
-                if existing and not (existing.source or "").strip():
-                    deduped.remove(existing)
-                elif existing:
-                    continue
-            if m.module_type == "REPORT" and m.name in _report_module_names:
-                existing = next(
-                    (mm for mm in deduped if mm.name == m.name), None)
-                if existing and not (existing.source or "").strip():
-                    deduped.remove(existing)
-                elif existing:
-                    continue
-            seen.add(key)
-            deduped.append(m)
-        app.vba_modules = deduped
+
+            deduped_map[key] = m
+
+        app.vba_modules = list(deduped_map.values())
 
         # Attach extraction manifest if available.
         manifest = self.raw.get("manifest")

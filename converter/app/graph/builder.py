@@ -155,26 +155,28 @@ class DependencyGraph:
 
     def topological_sort(self) -> list[str]:
         """Return nodes in dependency order (dependencies first)."""
+        import heapq
+
         in_degree = {node_id: 0 for node_id in self.nodes}
         for node_id in self.nodes:
             for dep in self._adjacency.get(node_id, []):
                 in_degree[node_id] += 1
 
-        # Start with nodes that have no dependencies
+        # Start with nodes that have no dependencies.
+        # Use a min-heap for O(log N) maintenance of deterministic order.
         queue = [node_id for node_id, degree in in_degree.items() if degree == 0]
+        heapq.heapify(queue)
         result = []
 
         while queue:
-            # Sort queue for deterministic output
-            queue.sort()
-            node_id = queue.pop(0)
+            node_id = heapq.heappop(queue)
             result.append(node_id)
 
             # Reduce in-degree for dependents
             for dependent in self._reverse_adjacency.get(node_id, []):
                 in_degree[dependent] -= 1
                 if in_degree[dependent] == 0:
-                    queue.append(dependent)
+                    heapq.heappush(queue, dependent)
 
         # Check for cycles (nodes not in result)
         if len(result) != len(self.nodes):

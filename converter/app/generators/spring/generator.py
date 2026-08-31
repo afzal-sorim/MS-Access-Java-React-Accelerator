@@ -343,6 +343,7 @@ class SpringBootGenerator:
     def _generate_repository(self, table) -> str:
         """Generate Spring Data JPA repository."""
         entity_name = self._to_pascal(table.name)
+        pk_type = self._get_pk_type(table)
 
         return f"""package {self.base_package}.repository;
 
@@ -354,7 +355,7 @@ import org.springframework.stereotype.Repository;
  * Repository for {entity_name} entities.
  */
 @Repository
-public interface {entity_name}Repository extends JpaRepository<{entity_name}, Long> {{
+public interface {entity_name}Repository extends JpaRepository<{entity_name}, {pk_type}> {{
     // Custom query methods can be added here
 }}
 """
@@ -363,6 +364,7 @@ public interface {entity_name}Repository extends JpaRepository<{entity_name}, Lo
         """Generate service layer class."""
         entity_name = self._to_pascal(table.name)
         var_name = self._to_camel(table.name)
+        pk_type = self._get_pk_type(table)
 
         return f"""package {self.base_package}.service;
 
@@ -390,7 +392,7 @@ public class {entity_name}Service {{
         return {var_name}Repository.findAll();
     }}
 
-    public Optional<{entity_name}> findById(Long id) {{
+    public Optional<{entity_name}> findById({pk_type} id) {{
         return {var_name}Repository.findById(id);
     }}
 
@@ -400,7 +402,7 @@ public class {entity_name}Service {{
         return {var_name}Repository.save(entity);
     }}
 
-    public {entity_name} update(Long id, {entity_name}DTO dto) {{
+    public {entity_name} update({pk_type} id, {entity_name}DTO dto) {{
         Optional<{entity_name}> existing = {var_name}Repository.findById(id);
         if (existing.isEmpty()) {{
             throw new RuntimeException("{entity_name} not found: " + id);
@@ -410,7 +412,7 @@ public class {entity_name}Service {{
         return {var_name}Repository.save(entity);
     }}
 
-    public void delete(Long id) {{
+    public void delete({pk_type} id) {{
         {var_name}Repository.deleteById(id);
     }}
 }}
@@ -421,6 +423,7 @@ public class {entity_name}Service {{
         entity_name = self._to_pascal(table.name)
         var_name = self._to_camel(table.name)
         endpoint = self._to_kebab(table.name)
+        pk_type = self._get_pk_type(table)
 
         return f"""package {self.base_package}.controller;
 
@@ -450,7 +453,7 @@ public class {entity_name}Controller {{
     }}
 
     @GetMapping("/{{id}}")
-    public ResponseEntity<{entity_name}> getById(@PathVariable Long id) {{
+    public ResponseEntity<{entity_name}> getById(@PathVariable {pk_type} id) {{
         return {var_name}Service.findById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
@@ -462,12 +465,12 @@ public class {entity_name}Controller {{
     }}
 
     @PutMapping("/{{id}}")
-    public {entity_name} update(@PathVariable Long id, @RequestBody {entity_name}DTO dto) {{
+    public {entity_name} update(@PathVariable {pk_type} id, @RequestBody {entity_name}DTO dto) {{
         return {var_name}Service.update(id, dto);
     }}
 
     @DeleteMapping("/{{id}}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {{
+    public ResponseEntity<Void> delete(@PathVariable {pk_type} id) {{
         {var_name}Service.delete(id);
         return ResponseEntity.ok().build();
     }}
@@ -651,7 +654,7 @@ public class WebConfig implements WebMvcConfigurer {{
     @Override
     public void addCorsMappings(CorsRegistry registry) {{
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173")
+                .allowedOriginPatterns("http://localhost:[*]", "http://127.0.0.1:[*]")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
@@ -788,6 +791,18 @@ logging:
             "OLE Object": "byte[]",
         }
         return type_map.get(access_type, "String")
+
+    def _get_pk_type(self, table) -> str:
+        """Determine the Java type of a table's primary key."""
+        pk_col_name = self._pk_map.get(table.name)
+        if pk_col_name is None:
+            return "Long"  # Synthetic PK type
+
+        for col in table.columns:
+            if col.name == pk_col_name:
+                return self._map_java_type(col.access_type)
+
+        return "Long"
 
     @staticmethod
     def _to_pascal(name: str) -> str:

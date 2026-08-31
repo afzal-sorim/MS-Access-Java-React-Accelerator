@@ -374,27 +374,44 @@ class AccessExtractor:
         except Exception as exc:
             self.warnings.append(f"{name}: data extraction failed: {exc}")
             return
+
         rows: list[dict] = []
         try:
-            while not rs.EOF and len(rows) < self.max_rows:
-                row = {}
-                for col in table["columns"]:
-                    row[col["name"]] = self._value(rs.Fields(col["name"]).Value)
-                rows.append(row)
-                rs.MoveNext()
+            # Use GetRows for batch extraction - significantly faster than MoveNext loop.
+            # rs.GetRows(max_rows) returns a 2D tuple (columns, rows).
+            if not rs.EOF:
+                # We need to know column count for GetRows
+                raw_data = rs.GetRows(self.max_rows)
+                if raw_data:
+                    num_cols = len(raw_data)
+                    num_rows = len(raw_data[0])
+                    col_names = [col["name"] for col in table["columns"]]
+
+                    for r in range(num_rows):
+                        row = {}
+                        for c in range(num_cols):
+                            if c < len(col_names):
+                                name = col_names[c]
+                                row[name] = self._value(raw_data[c][r])
+                        rows.append(row)
+        except Exception as exc:
+            self.warnings.append(f"{name}: GetRows failed: {exc}")
         finally:
             _safe(rs.Close)
-        self.data[name] = rows
+        self.data[table["name"]] = rows
 
     @staticmethod
     def _value(value: Any) -> Any:
         import datetime as dt
+        from decimal import Decimal
         if isinstance(value, (dt.datetime, dt.date)):
             return value.isoformat(sep=" ")
         if isinstance(value, bytes):
             return f"<binary {len(value)} bytes>"
-        if isinstance(value, float):
-            return round(value, 10)
+        if isinstance(value, (float, Decimal)):
+            # Ensure it's a float for JSON serialization, but round to avoid
+            # precision artifacts from COM/DAO.
+            return round(float(value), 10)
         return value
 
     # ------------------------------------------------------------ relations

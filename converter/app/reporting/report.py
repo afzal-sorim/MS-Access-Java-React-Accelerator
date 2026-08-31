@@ -87,5 +87,5 @@ def write_report_manifest(
     summary = report_migration_summary(definitions)
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    path.write_text(json.dumps(summary, indent=2, default=str), encoding="utf-8")
     return summary

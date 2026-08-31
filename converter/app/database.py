@@ -33,6 +33,19 @@ from .jobs.models import JobState, JobError, JobProgress, JobResult
 # Base for declarative models
 Base = declarative_base()
 
+def _json_serializable(obj):
+    """Custom JSON serializer for types not supported by standard json module."""
+    from decimal import Decimal
+    from datetime import datetime, date
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
+def _json_dumps(obj, **kwargs):
+    return json.dumps(obj, default=_json_serializable, **kwargs)
+
 # Portable column types: JSONB on PostgreSQL, JSON elsewhere.
 JSONType = JSON().with_variant(JSONB, "postgresql")
 # Primary/foreign keys as 36-char UUID strings (portable across backends).
@@ -280,7 +293,11 @@ async def init_database(database_url: Optional[str] = None) -> None:
             return
 
         url = database_url or os.environ.get("CONVERTER_DATABASE_URL") or DEFAULT_DATABASE_URL
-        engine_kwargs: Dict[str, Any] = {"echo": False, "pool_pre_ping": True}
+        engine_kwargs: Dict[str, Any] = {
+            "echo": False,
+            "pool_pre_ping": True,
+            "json_serializer": _json_dumps
+        }
         if url.startswith("postgresql"):
             engine_kwargs.update(pool_size=10, max_overflow=20)
         elif url.startswith("sqlite"):

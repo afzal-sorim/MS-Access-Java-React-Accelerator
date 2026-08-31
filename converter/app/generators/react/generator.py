@@ -67,6 +67,9 @@ class ReactGenerator:
         # Generate API client
         files[str(src / "services" / "api.js")] = self._generate_api_client()
 
+        # Generate index.css (Spec section 46: Apply CSS for migrated codes)
+        files[str(src / "index.css")] = self._generate_index_css()
+
         # Generate App.jsx with routing
         files[str(src / "App.jsx")] = self._generate_app_jsx()
 
@@ -466,10 +469,10 @@ export default function {page_name}FormPage() {{
             <form onSubmit={{handleSubmit}}>
                 {form_fields_js}
                 <div className="form-actions">
-                    <button type="submit" disabled={{loading}}>
+                    <button type="submit" disabled={{loading}} className="btn">
                         {{isEdit ? 'Update' : 'Create'}}
                     </button>
-                    <button type="button" onClick={{() => navigate('/{endpoint}')}}>
+                    <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
                         Cancel
                     </button>
                 </div>
@@ -612,13 +615,14 @@ export default function ReportsPage() {{
                     ))}}
 
                     <div className="form-actions">
-                        <button type="submit" disabled={{loading || missingRequired.length > 0}}>
+                        <button type="submit" disabled={{loading || missingRequired.length > 0}} className="btn">
                             {{loading ? 'Running...' : 'Run Report'}}
                         </button>
                         <button
                             type="button"
                             onClick={{() => download('csv')}}
                             disabled={{loading || missingRequired.length > 0}}
+                            className="btn btn-secondary"
                         >
                             Download CSV
                         </button>{pdf_button}
@@ -761,7 +765,7 @@ function buildReportQuery(params) {
 }
 """
 
-        return f"""const API_BASE = 'http://localhost:8080/api';
+        return f"""const API_BASE = '/api';
 {''.join(endpoints)}{report_api}
 """
 
@@ -895,6 +899,238 @@ export default defineConfig({{
 </body>
 </html>
 """
+
+    def _generate_index_css(self) -> str:
+        """Generate global CSS with dynamic form-based styles (Spec section 46)."""
+        css = """:root {
+    --color-primary: #3b82f6;
+    --color-primary-dark: #2563eb;
+    --color-secondary: #10b981;
+    --color-text: #1f2937;
+    --color-text-muted: #6b7280;
+    --color-border: #e5e7eb;
+    --color-bg: #f3f4f6;
+    --color-white: #ffffff;
+    --radius-md: 8px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--color-text);
+    background: var(--color-bg);
+    line-height: 1.6;
+}
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+.navbar {
+    background: var(--color-white);
+    border-bottom: 1px solid var(--color-border);
+    padding: 0 2rem;
+    display: flex;
+    gap: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    height: 64px;
+    align-items: center;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.navbar a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.navbar a:hover {
+    color: var(--color-primary);
+}
+
+.content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.form-description {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+    font-style: italic;
+}
+
+.info-field {
+    display: flex;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+    align-items: baseline;
+}
+
+.info-label {
+    width: 180px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.info-value {
+    flex: 1;
+    color: var(--color-text);
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.form-group { margin-bottom: 1.5rem; }
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--color-white);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+    background-color: var(--color-bg);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    background: white;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.data-table th, .data-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+    background: #f8fafc;
+    font-weight: 700;
+    color: var(--color-text);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table tr:last-child td { border-bottom: none; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+"""
+
+        # Dynamic form-specific styles
+        for form in self.app.forms:
+            name = self._to_pascal(form.name.replace("frm", ""))
+            cls = name.lower()
+            # Generate a "unique" color for each form based on its name
+            color_hue = sum(ord(c) for c in name) % 360
+            css += f"""
+/* Dynamic styles for {name} */
+.{cls}-page, .{cls}-form {{
+    --form-accent: hsl({color_hue}, 65%, 40%);
+    --form-bg-light: #ffffff;
+    animation: fadeIn 0.4s ease-out;
+    background: var(--form-bg-light);
+    border-radius: var(--radius-md);
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+    border-top: 5px solid var(--form-accent);
+}}
+
+.{cls}-page h1, .{cls}-form h1 {{
+    color: var(--form-accent);
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 800;
+}}
+
+.{cls}-page .btn, .{cls}-form button[type="submit"] {{
+    background-color: var(--form-accent);
+}}
+
+.{cls}-page .data-table th {{
+    border-bottom: 2px solid var(--form-accent);
+}}
+"""
+        return css
 
     # Naming is delegated to the shared naming module (PHASE 5 / 18).
     # Import locally to avoid circular imports at module level.

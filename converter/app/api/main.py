@@ -331,7 +331,8 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         extract_log = await log_build("extraction", "run_extraction")
 
         extract_dir = job_dir / ".extract"
-        extraction = run_extraction(job.source_file, str(extract_dir))
+        # run_extraction is CPU/COM-bound and blocking; run in thread to keep event loop alive.
+        extraction = await asyncio.to_thread(run_extraction, job.source_file, str(extract_dir))
         await extraction_repo.create(job.id, extraction)
 
         job.tables_count = len(extraction.get("tables", []))
@@ -348,7 +349,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         await update_state(JobState.ANALYZING, "building_ir", 25.0, f"Building canonical Intermediate Representation (AIR) for {job.project_name}...")
         ir_log = await log_build("ir", "build_ir")
 
-        app_ir = build_ir(job.extraction_path)
+        app_ir = await asyncio.to_thread(build_ir, job.extraction_path)
         app_ir.application_name = job.project_name
         job.ir_path = str(job_dir / "application_ir.json")
 
@@ -363,8 +364,11 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         await update_state(JobState.DEPENDENCIES_DISCOVERED, "building_graph", 35.0, "Constructing dependency graph and analyzing object relationships...")
         graph_log = await log_build("graph", "build_dependency_graph")
 
-        graph = build_dependency_graph(app_ir)
+        graph = await asyncio.to_thread(build_dependency_graph, app_ir)
         job.dependencies_count = len(graph.nodes)
+
+        # New intermediate progress update
+        await update_state(JobState.DEPENDENCIES_DISCOVERED, "analyzing_cycles", 40.0, f"Analyzing {len(graph.nodes)} objects for circular dependencies and orphans...")
 
         # Build edges list from the internal adjacency dict
         edges_list = []
@@ -373,7 +377,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
                 edges_list.append({"from": from_id, "to": to_id, "type": "depends_on"})
 
         # find_cycles returns list[list[str]] (node IDs, not node objects)
-        cycles = graph.find_cycles()
+        cycles = await asyncio.to_thread(graph.find_cycles)
 
         # Find orphans: nodes with no dependencies and no dependents
         orphans = [
@@ -395,7 +399,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         await update_state(JobState.SUPPORTABILITY_ANALYZED, "analyzing_supportability", 48.0, "Analyzing conversion feasibility, complexity, and feature supportability...")
         support_log = await log_build("supportability", "analyze_supportability")
 
-        support_results = analyze_supportability(app_ir)
+        support_results = await asyncio.to_thread(analyze_supportability, app_ir)
         engine = SupportabilityEngine(app_ir)
         engine.results = support_results
         coverage = engine.calculate_coverage()
@@ -424,7 +428,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         db_dir.mkdir(exist_ok=True)
         app_ir._raw_data = extraction
         schema_path = db_dir / "schema.sql"
-        generate_schema(app_ir, schema_path)
+        await asyncio.to_thread(generate_schema, app_ir, schema_path)
         await update_build_log(db_log.id, "completed", f"Schema: {schema_path}")
         await db.commit()
 
@@ -433,16 +437,19 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         backend_log = await log_build("backend", "generate_spring_boot")
 
         backend_dir = job_dir / "backend"
-        spring_gen = generate_spring_boot(
+        spring_gen = await asyncio.to_thread(
+            generate_spring_boot,
             app_ir, backend_dir,
             base_package=job.base_package,
             app_name=job.project_name,
         )
         # Write generated backend files to disk
-        for file_path, content in spring_gen.items():
-            p = Path(file_path)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding="utf-8")
+        def write_backend():
+            for file_path, content in spring_gen.items():
+                p = Path(file_path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content, encoding="utf-8")
+        await asyncio.to_thread(write_backend)
         await update_build_log(backend_log.id, "completed", f"Generated {len(spring_gen)} backend files")
         await db.commit()
 
@@ -451,12 +458,14 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         frontend_log = await log_build("frontend", "generate_react")
 
         frontend_dir = job_dir / "frontend"
-        react_gen = generate_react(app_ir, frontend_dir)
+        react_gen = await asyncio.to_thread(generate_react, app_ir, frontend_dir)
         # Write generated frontend files to disk
-        for file_path, content in react_gen.items():
-            p = Path(file_path)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding="utf-8")
+        def write_frontend():
+            for file_path, content in react_gen.items():
+                p = Path(file_path)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(content, encoding="utf-8")
+        await asyncio.to_thread(write_frontend)
         await update_build_log(frontend_log.id, "completed", f"Generated {len(react_gen)} frontend files")
         await db.commit()
 
@@ -557,7 +566,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         }
 
         report_path = report_dir / "migration-report.json"
-        report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        report_path.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
 
         # Generate HTML report
         html_report = generate_html_report(report)
@@ -570,7 +579,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         build_log = await log_build("build", "validate_project")
 
         try:
-            validation_result = validate_project(str(job_dir))
+            validation_result = await asyncio.to_thread(validate_project, str(job_dir))
             await update_build_log(build_log.id, "completed", f"Build validation: {validation_result['status']}")
 
             build_success = validation_result["status"] == "success"
@@ -825,7 +834,7 @@ def generate_html_report(report: dict) -> str:
         </div>
 
         <h2>⚙️ Configuration</h2>
-        <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto;">{json.dumps(report.get('config', {}), indent=2)}</pre>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto;">{json.dumps(report.get('config', {}), indent=2, default=str)}</pre>
     </div>
 </body>
 </html>"""
