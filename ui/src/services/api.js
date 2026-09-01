@@ -3,7 +3,9 @@
  * Communicates with the FastAPI backend defined in converter/app/api/main.py.
  */
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : '/api';
 
 /**
  * Get supported technology versions from the backend.
@@ -181,7 +183,10 @@ export function downloadResult(jobId, projectName = 'ConvertedApplication') {
  */
 export function connectProgressWebSocket(jobId, onMessage) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/jobs/${jobId}`);
+    const backendHost = import.meta.env.VITE_API_URL
+        ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, '')
+        : window.location.host;
+    const ws = new WebSocket(`${protocol}//${backendHost}/ws/jobs/${jobId}`);
 
     ws.onmessage = (event) => {
         try {
