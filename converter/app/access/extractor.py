@@ -166,11 +166,14 @@ class AccessExtractor:
         pythoncom.CoInitialize()
         app = None
         try:
-            app = win32com.client.DispatchEx("Access.Application")
-            app.Visible = False
+            try:
+                app = win32com.client.DispatchEx("Access.Application")
+            except Exception:
+                app = win32com.client.Dispatch("Access.Application")
+            _safe(lambda: setattr(app, "Visible", False))
             app.OpenCurrentDatabase(self.db_path, False)
             payload = self._extract_all(app)
-            app.CloseCurrentDatabase()
+            _safe(app.CloseCurrentDatabase)
         finally:
             if app is not None:
                 _safe(app.Quit)
