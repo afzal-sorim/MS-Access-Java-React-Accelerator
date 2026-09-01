@@ -163,7 +163,11 @@ class AccessExtractor:
         import pythoncom
         import win32com.client
 
-        pythoncom.CoInitialize()
+        try:
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+        except Exception:
+            pythoncom.CoInitialize()
+
         app = None
         try:
             try:
@@ -178,7 +182,10 @@ class AccessExtractor:
             if app is not None:
                 _safe(app.Quit)
                 app = None
-            pythoncom.CoUninitialize()
+            try:
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
         payload["warnings"] = self.warnings
         payload["table_data"] = {
             name: rows for name, rows in self.data.items()
@@ -804,4 +811,27 @@ class AccessExtractor:
 
 def run_extraction(db_path: str, workdir: str | Path, **options) -> dict:
     """Entry point used by the pipeline. Returns the raw extraction payload."""
-    return AccessExtractor(db_path, Path(workdir), **options).run()
+    workdir_path = Path(workdir).resolve()
+    try:
+        return AccessExtractor(db_path, workdir_path, **options).run()
+    except Exception as exc:
+        # If running inside an asyncio thread pool raises COM marshaling / execution failure,
+        # run in an isolated Python process with its own main STA thread.
+        import subprocess
+        import sys
+        
+        script = f"""import sys
+from pathlib import Path
+from converter.app.access.extractor import AccessExtractor
+ext = AccessExtractor(r'{Path(db_path).resolve()}', Path(r'{workdir_path}'))
+ext.run()
+"""
+        res = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True
+        )
+        output_file = workdir_path / "extraction.json"
+        if res.returncode == 0 and output_file.exists():
+            return json.loads(output_file.read_text(encoding="utf-8"))
+        raise RuntimeError(f"Extraction failed: {res.stderr or exc}") from exc
