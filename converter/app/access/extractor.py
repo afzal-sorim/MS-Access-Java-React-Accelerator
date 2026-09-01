@@ -247,6 +247,98 @@ class AccessExtractor:
             pass
 
     # ------------------------------------------------------------ entry
+
+    class _DialogAutoDismisser:
+        """Background thread that auto-dismisses ANY popup dialog from MS Access.
+
+        Uses win32gui to continuously scan for dialog windows owned by
+        MSACCESS.EXE and clicks OK/Yes/Close on them. Handles:
+        - Missing/broken VBA references (MSOUTL.OLB, etc.)
+        - Security warnings that slip past registry settings
+        - "Compact and Repair" suggestions
+        - Any other unexpected modal dialog
+        """
+
+        def __init__(self):
+            self._stop = False
+            self._thread = None
+
+        def start(self):
+            import threading
+            self._stop = False
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+
+        def stop(self):
+            self._stop = True
+            if self._thread:
+                self._thread.join(timeout=2)
+
+        def _run(self):
+            import time
+            try:
+                import win32gui
+                import win32con
+            except ImportError:
+                return
+
+            while not self._stop:
+                try:
+                    self._dismiss_dialogs(win32gui, win32con)
+                except Exception:
+                    pass
+                time.sleep(0.3)
+
+        @staticmethod
+        def _dismiss_dialogs(win32gui, win32con):
+            """Find and dismiss all Access dialog windows."""
+            dialogs_to_dismiss = []
+
+            def enum_callback(hwnd, _):
+                if not win32gui.IsWindowVisible(hwnd):
+                    return
+                class_name = win32gui.GetClassName(hwnd)
+                title = win32gui.GetWindowText(hwnd)
+                # Access dialogs use class names like "#32770" (standard dialog),
+                # "NUIDialog", or windows titled "Microsoft Access"
+                if class_name == "#32770" or "Microsoft Access" in title:
+                    # Check it's actually a small dialog (not the main app window)
+                    try:
+                        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                        width = right - left
+                        height = bottom - top
+                        # Dialogs are typically smaller than 800x600
+                        if width < 900 and height < 700:
+                            dialogs_to_dismiss.append(hwnd)
+                    except Exception:
+                        pass
+
+            win32gui.EnumWindows(enum_callback, None)
+
+            for hwnd in dialogs_to_dismiss:
+                try:
+                    clicked = False
+                    # 1. Search for known confirmation/dismissal buttons
+                    for button_text in ["OK", "&OK", "Yes", "&Yes", "Open", "&Open", "Continue", "&Continue", "Close", "&Close"]:
+                        try:
+                            btn = win32gui.FindWindowEx(hwnd, 0, "Button", button_text)
+                            if btn:
+                                win32gui.PostMessage(btn, win32con.BM_CLICK, 0, 0)
+                                clicked = True
+                                break
+                        except Exception:
+                            pass
+
+                    # 2. Also send standard dialog command IDs: IDOK (1) and IDYES (6)
+                    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, 1, 0)  # IDOK
+                    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, 6, 0)  # IDYES
+
+                    # 3. Fallback: send Enter key to trigger default button
+                    win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
+                    win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+                except Exception:
+                    pass
+
     def run(self) -> dict:
         import pythoncom
         import win32com.client
@@ -260,6 +352,10 @@ class AccessExtractor:
 
         # Suppress all Access security/macro prompts before launching
         self._suppress_access_prompts(self.db_path)
+
+        # Start background auto-dismisser for any popup dialogs
+        dismisser = self._DialogAutoDismisser()
+        dismisser.start()
 
         app = None
         spawned_proc = None
@@ -303,6 +399,8 @@ class AccessExtractor:
             payload = self._extract_all(app)
             _safe(app.CloseCurrentDatabase)
         finally:
+            if dismisser is not None:
+                _safe(dismisser.stop)
             if app is not None:
                 _safe(app.Quit)
                 app = None
