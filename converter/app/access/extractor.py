@@ -289,6 +289,17 @@ class AccessExtractor:
                 if app is None or _safe(lambda: app.CurrentDb()) is None:
                     raise RuntimeError(f"Failed to attach to launched MS Access instance ({access_exe})")
 
+            # ---- Suppress ALL interactive prompts/dialogs after attaching ----
+            # 1. AutomationSecurity = 1 (msoAutomationSecurityLow) — run all macros silently
+            _safe(lambda: setattr(app, "AutomationSecurity", 1))
+            # 2. DoCmd.SetWarnings False — suppress action-query confirmations
+            #    ("You are about to append/delete/update N rows", "Do you want to save?", etc.)
+            _safe(lambda: app.DoCmd.SetWarnings(False))
+            # 3. DisplayAlerts = False — suppress all remaining alert/message boxes
+            _safe(lambda: setattr(app, "DisplayAlerts", False))
+            # 4. Visible = False — keep the window hidden to avoid user interaction
+            _safe(lambda: setattr(app, "Visible", False))
+
             payload = self._extract_all(app)
             _safe(app.CloseCurrentDatabase)
         finally:
