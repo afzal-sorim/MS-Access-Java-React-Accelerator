@@ -29,7 +29,6 @@ export default function Step2Analyze() {
     const { state, actions } = useWizard();
     const { selectedFile, localSource, analysisJobId, analysisProgress, analysisComplete, analysisResult, config } = state;
     const [isAnalyzing, setIsAnalyzing] = React.useState(false);
-    const [statusMessage, setStatusMessage] = React.useState('');
     const [ws, setWs] = React.useState(null);
     // Guards against duplicate job creation. In dev, React.StrictMode
     // mounts -> cleans up -> re-mounts every component once, which fires
@@ -83,11 +82,7 @@ export default function Step2Analyze() {
 
     // Handle WebSocket messages
     const handleWebSocketMessage = useCallback((message, activeJobId) => {
-        const { state: jobState, step, progress, result, error, statistics, message: backendMessage } = message;
-
-        if (backendMessage) {
-            setStatusMessage(backendMessage);
-        }
+        const { state: jobState, step, progress, result, error, statistics } = message;
 
         // Update analysis progress based on step
         if (step) {
@@ -246,7 +241,7 @@ export default function Step2Analyze() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
                         <span>
-                            {statusMessage || (isAnalyzing ? 'Analyzing Access application...' : 'Starting analysis...')}
+                            {isAnalyzing ? 'Analyzing Access application...' : 'Starting analysis...'}
                         </span>
                     </div>
                 </div>
