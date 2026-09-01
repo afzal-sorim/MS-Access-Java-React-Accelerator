@@ -819,17 +819,33 @@ def run_extraction(db_path: str, workdir: str | Path, **options) -> dict:
         # run in an isolated Python process with its own main STA thread.
         import subprocess
         import sys
-        
+        import os
+
+        # Resolve the project root: extractor.py is at converter/app/access/extractor.py
+        # so project root is 4 levels up from this file.
+        this_file = Path(__file__).resolve()
+        project_root = this_file.parent.parent.parent.parent  # -> MS-Access-Backend
+
+        db_path_resolved = str(Path(db_path).resolve())
+        workdir_resolved = str(workdir_path)
+
         script = f"""import sys
+sys.path.insert(0, r'{project_root}')
 from pathlib import Path
 from converter.app.access.extractor import AccessExtractor
-ext = AccessExtractor(r'{Path(db_path).resolve()}', Path(r'{workdir_path}'))
+ext = AccessExtractor(r'{db_path_resolved}', Path(r'{workdir_resolved}'))
 ext.run()
 """
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(project_root) + os.pathsep + env.get("PYTHONPATH", "")
+
         res = subprocess.run(
             [sys.executable, "-c", script],
             capture_output=True,
-            text=True
+            text=True,
+            cwd=str(project_root),
+            env=env,
+            timeout=300,
         )
         output_file = workdir_path / "extraction.json"
         if res.returncode == 0 and output_file.exists():
