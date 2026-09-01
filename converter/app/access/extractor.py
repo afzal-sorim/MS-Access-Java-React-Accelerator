@@ -158,10 +158,46 @@ class AccessExtractor:
             "macros": [], "vbaModules": [], "relationships": [],
         }
 
+    def _find_access_exe(self) -> Optional[str]:
+        """Locate MSACCESS.EXE from PATH, registry, or standard Office install directories."""
+        import shutil
+        import winreg
+
+        # 1. Check PATH
+        exe = shutil.which("msaccess.exe")
+        if exe and Path(exe).exists():
+            return exe
+
+        # 2. Check App Paths in Registry
+        for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            try:
+                with winreg.OpenKey(root, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\MSACCESS.EXE") as key:
+                    val, _ = winreg.QueryValueEx(key, "")
+                    if val and Path(val).exists():
+                        return val
+            except Exception:
+                pass
+
+        # 3. Common installation locations
+        known_paths = [
+            r"C:\Program Files\Microsoft Office\Office16\MSACCESS.EXE",
+            r"C:\Program Files\Microsoft Office\root\Office16\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Office16\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\root\Office16\MSACCESS.EXE",
+            r"C:\Program Files\Microsoft Office\Office15\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Office15\MSACCESS.EXE",
+        ]
+        for p in known_paths:
+            if Path(p).exists():
+                return p
+        return None
+
     # ------------------------------------------------------------ entry
     def run(self) -> dict:
         import pythoncom
         import win32com.client
+        import subprocess
+        import time
 
         try:
             pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
@@ -169,19 +205,42 @@ class AccessExtractor:
             pythoncom.CoInitialize()
 
         app = None
+        spawned_proc = None
         try:
+            # Primary strategy: Direct COM dispatch (works on full retail Access)
             try:
                 app = win32com.client.DispatchEx("Access.Application")
-            except Exception:
-                app = win32com.client.Dispatch("Access.Application")
-            _safe(lambda: setattr(app, "Visible", False))
-            app.OpenCurrentDatabase(self.db_path, False)
+                _safe(lambda: setattr(app, "Visible", False))
+                app.OpenCurrentDatabase(self.db_path, False)
+            except Exception as direct_err:
+                # Access Runtime fallback: Runtime cannot be started with an empty database.
+                # Launch msaccess.exe pointing directly to the file, then attach via GetObject.
+                access_exe = self._find_access_exe()
+                if not access_exe:
+                    raise RuntimeError(f"Could not locate MSACCESS.EXE and direct COM failed: {direct_err}")
+
+                spawned_proc = subprocess.Popen([access_exe, self.db_path])
+                # Poll for Access to register in the Running Object Table (up to 15 seconds)
+                for _ in range(30):
+                    time.sleep(0.5)
+                    try:
+                        app = win32com.client.GetObject(Class="Access.Application")
+                        if app and _safe(lambda: app.CurrentDb() is not None):
+                            break
+                    except Exception:
+                        continue
+                if app is None or _safe(lambda: app.CurrentDb()) is None:
+                    raise RuntimeError(f"Failed to attach to launched MS Access instance ({access_exe})")
+
             payload = self._extract_all(app)
             _safe(app.CloseCurrentDatabase)
         finally:
             if app is not None:
                 _safe(app.Quit)
                 app = None
+            if spawned_proc is not None:
+                _safe(spawned_proc.terminate)
+                _safe(spawned_proc.kill)
             try:
                 pythoncom.CoUninitialize()
             except Exception:
