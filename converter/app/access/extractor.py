@@ -192,6 +192,60 @@ class AccessExtractor:
                 return p
         return None
 
+    @staticmethod
+    def _suppress_access_prompts(db_path: str):
+        """Configure Windows Registry to suppress all Access security/macro prompts.
+
+        Sets:
+        - VBAWarnings = 1 (disable all macro warnings)
+        - AccessVBOM = 1 (trust access to VBA project object model)
+        - Adds the database's parent directory as a Trusted Location
+        """
+        import winreg
+
+        db_dir = str(Path(db_path).resolve().parent)
+
+        # Access 16.0 (2016/2019/2021/365) Trust Center settings
+        trust_key = r"SOFTWARE\Microsoft\Office\16.0\Access\Security"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trust_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "VBAWarnings", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "AccessVBOM", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Add the uploads directory as a Trusted Location
+        trusted_loc_key = trust_key + r"\Trusted Locations\ConverterUploads"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trusted_loc_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_SZ, db_dir)
+            winreg.SetValueEx(key, "AllowSubfolders", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Also trust the workdir / output directories
+        trusted_out_key = trust_key + r"\Trusted Locations\ConverterOutputs"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trusted_out_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_SZ, str(Path(db_dir).parent))
+            winreg.SetValueEx(key, "AllowSubfolders", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Disable "Protected View" for files from the internet
+        pv_key = r"SOFTWARE\Microsoft\Office\16.0\Access\Security\ProtectedView"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, pv_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "DisableInternetFilesInPV", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "DisableUnsafeLocationsInPV", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "DisableAttachementsInPV", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
     # ------------------------------------------------------------ entry
     def run(self) -> dict:
         import pythoncom
@@ -203,6 +257,9 @@ class AccessExtractor:
             pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
         except Exception:
             pythoncom.CoInitialize()
+
+        # Suppress all Access security/macro prompts before launching
+        self._suppress_access_prompts(self.db_path)
 
         app = None
         spawned_proc = None
@@ -219,7 +276,7 @@ class AccessExtractor:
                 if not access_exe:
                     raise RuntimeError(f"Could not locate MSACCESS.EXE and direct COM failed: {direct_err}")
 
-                spawned_proc = subprocess.Popen([access_exe, self.db_path])
+                spawned_proc = subprocess.Popen([access_exe, "/nostartup", self.db_path])
                 # Poll for Access to register in the Running Object Table (up to 15 seconds)
                 for _ in range(30):
                     time.sleep(0.5)
