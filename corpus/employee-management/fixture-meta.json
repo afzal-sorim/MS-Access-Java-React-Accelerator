@@ -1,0 +1,17 @@
+{
+  "db_path": "C:\\Users\\Afzal\\ZCodeProject\\corpus\\employee-management\\EmployeeManagement.accdb",
+  "capabilities": {
+    "tables": true,
+    "field_rules": true,
+    "relationships": true,
+    "data": true,
+    "queries": true,
+    "forms": true,
+    "report_groups": true,
+    "report": true
+  },
+  "warnings": [
+    "macro creation failed: (-2147352567, 'Exception occurred.', (0, None, \"The object 'AutoExec' isn't open.\", None, -1, -2146825799), None)",
+    "VBA modules skipped: 'Trust access to the VBA project object model' is disabled in the Access Trust Center (enabling it would otherwise hang on a hidden modal dialog)."
+  ]
+}

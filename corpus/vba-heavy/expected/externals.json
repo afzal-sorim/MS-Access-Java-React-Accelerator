@@ -1,0 +1,21 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "count": 2,
+  "dependencies": [
+    {
+      "kind": "DLL",
+      "target": "Win32 API declarations (first seen in modFileFunctions)",
+      "connected_table": null,
+      "support": "UNSUPPORTED",
+      "risk": "HIGH"
+    },
+    {
+      "kind": "OUTLOOK",
+      "target": "Outlook automation via VBA module modOutlook",
+      "connected_table": null,
+      "support": "UNSUPPORTED",
+      "risk": "HIGH"
+    }
+  ]
+}

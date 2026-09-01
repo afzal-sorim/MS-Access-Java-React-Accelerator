@@ -1,0 +1,38 @@
+{
+  "comment": "Verified 2026-08-18 against Maven Central and npm registry. The converter validates this matrix before generation; generated projects pin exact versions only.",
+  "generated": {
+    "backend": {
+      "framework": "spring-boot",
+      "springBootVersion": "4.1.0",
+      "java": { "min": 17, "recommended": 25, "tested": "25.0.3" },
+      "maven": { "min": "3.6.3", "tested": "3.9.16" },
+      "managedBy": "spring-boot-starter-parent BOM"
+    },
+    "frontend": {
+      "react": "19.2.8",
+      "reactDom": "19.2.8",
+      "reactRouterDom": "7.18.2",
+      "vite": "8.2.1",
+      "vitePluginReact": "6.0.5",
+      "node": { "lts": "24", "tested": "24.16.0", "engines": ">=24 <25" },
+      "npm": { "tested": "11.13.0" }
+    },
+    "database": {
+      "engine": "postgresql",
+      "major": "18",
+      "dockerImage": "postgres:18-alpine",
+      "jdbcDriver": "managed by Spring Boot BOM"
+    }
+  },
+  "converter": {
+    "python": "3.11.9",
+    "extraction": "MS Access COM automation (Access.Application) + DAO (DAO.DBEngine.120) + SaveAsText source export",
+    "accessVersionsTested": ["14.0 (Access 2010)"]
+  },
+  "policies": {
+    "noRangeVersions": "^ and ~ are forbidden in generated package.json",
+    "exactPinsOnly": true,
+    "reproducibleBuilds": "npm ci for frontend; mvn clean package for backend",
+    "upgradeRule": "minimum-change repair only; never global upgrades"
+  }
+}

@@ -1,0 +1,305 @@
+{
+  "schema_version": "1.0",
+  "comment": "Golden test corpus (spec \u00a752). Items with status DECLARED have no source application yet and are reported as coverage gaps, not as passes.",
+  "items": [
+    {
+      "name": "basic-crud",
+      "category": "basic-crud",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Minimal create/read/update/delete over a single table.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "AutoNumber",
+        "indexed fields",
+        "bound form"
+      ],
+      "tags": []
+    },
+    {
+      "name": "employee-hr",
+      "category": "employee-hr",
+      "status": "READY",
+      "source": "source.accdb",
+      "saved_text": null,
+      "description": "HR domain: employees, departments, leave with approval rules.",
+      "reason": "",
+      "covers": [
+        "composite FK",
+        "currency",
+        "date/time",
+        "validation rules",
+        "unique indexes"
+      ],
+      "tags": []
+    },
+    {
+      "name": "inventory",
+      "category": "inventory",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Stock items, movements and reorder logic.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "calculated fields",
+        "domain aggregate"
+      ],
+      "tags": []
+    },
+    {
+      "name": "sales",
+      "category": "sales",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Orders, order lines, customers, totals.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "nested query",
+        "calculated control"
+      ],
+      "tags": []
+    },
+    {
+      "name": "purchasing",
+      "category": "purchasing",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Purchase orders and supplier approval workflow.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "action query",
+        "status transitions"
+      ],
+      "tags": []
+    },
+    {
+      "name": "crm",
+      "category": "crm",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Contacts, activities and follow-up scheduling.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "lookup fields",
+        "combo row source"
+      ],
+      "tags": []
+    },
+    {
+      "name": "reporting",
+      "category": "reporting",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Report-centric app: grouping, totals, parameters.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "grouping",
+        "sorting",
+        "totals",
+        "page headers",
+        "footers"
+      ],
+      "tags": []
+    },
+    {
+      "name": "split-db",
+      "category": "split-db",
+      "status": "BLOCKED",
+      "source": null,
+      "saved_text": null,
+      "description": "Split front-end/back-end Access application.",
+      "reason": "requires a paired front-end/back-end .accdb set",
+      "covers": [
+        "Access backend",
+        "linked tables"
+      ],
+      "tags": []
+    },
+    {
+      "name": "sql-server-linked",
+      "category": "sql-server-linked",
+      "status": "BLOCKED",
+      "source": null,
+      "saved_text": null,
+      "description": "Tables linked to SQL Server over ODBC.",
+      "reason": "requires a reachable SQL Server instance and ODBC DSN",
+      "covers": [
+        "SQL Server",
+        "ODBC",
+        "pass-through"
+      ],
+      "tags": []
+    },
+    {
+      "name": "excel-linked",
+      "category": "excel-linked",
+      "status": "BLOCKED",
+      "source": null,
+      "saved_text": null,
+      "description": "Tables and imports linked to Excel workbooks.",
+      "reason": "requires linked .xlsx workbooks alongside the .accdb",
+      "covers": [
+        "Excel",
+        "CSV"
+      ],
+      "tags": []
+    },
+    {
+      "name": "vba-heavy",
+      "category": "vba-heavy",
+      "status": "READY",
+      "source": "source.accdb",
+      "saved_text": "saved-text",
+      "description": "Large real-world VBA surface across many modules.",
+      "reason": "",
+      "covers": [
+        "Recordset",
+        "DAO",
+        "ADODB",
+        "DoCmd",
+        "CurrentDb",
+        "Me",
+        "error handling",
+        "ByRef",
+        "loops",
+        "nested conditions",
+        "functions",
+        "Windows API",
+        "Outlook",
+        "dynamic SQL"
+      ],
+      "tags": []
+    },
+    {
+      "name": "macro-heavy",
+      "category": "macro-heavy",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Logic expressed mainly as Access macros.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "AutoExec",
+        "AutoKeys"
+      ],
+      "tags": []
+    },
+    {
+      "name": "subforms",
+      "category": "subforms",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Forms embedding one or more subforms.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "subform",
+        "nested subform"
+      ],
+      "tags": []
+    },
+    {
+      "name": "subreports",
+      "category": "subreports",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Reports embedding subreports.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "subreports"
+      ],
+      "tags": []
+    },
+    {
+      "name": "parameter-query",
+      "category": "parameter-query",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Queries driven by runtime parameters.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "parameter query"
+      ],
+      "tags": []
+    },
+    {
+      "name": "crosstab",
+      "category": "crosstab",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Crosstab (pivot) queries.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "crosstab"
+      ],
+      "tags": []
+    },
+    {
+      "name": "action-query",
+      "category": "action-query",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "INSERT/UPDATE/DELETE and make-table queries.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "action query",
+        "make-table"
+      ],
+      "tags": []
+    },
+    {
+      "name": "autoexec",
+      "category": "autoexec",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Startup automation via AutoExec.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "AutoExec",
+        "Startup/Application configuration"
+      ],
+      "tags": []
+    },
+    {
+      "name": "email-automation",
+      "category": "email-automation",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Outbound email through Outlook automation.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "Outlook",
+        "COM"
+      ],
+      "tags": []
+    },
+    {
+      "name": "complex-vba",
+      "category": "complex-vba",
+      "status": "DECLARED",
+      "source": null,
+      "saved_text": null,
+      "description": "Class modules, callbacks and deep indirection in VBA.",
+      "reason": "no source Access application available yet",
+      "covers": [
+        "Recordset",
+        "Forms!",
+        "Reports!",
+        "external APIs"
+      ],
+      "tags": []
+    }
+  ]
+}

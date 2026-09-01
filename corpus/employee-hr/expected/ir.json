@@ -1,0 +1,265 @@
+{
+  "_status": "CAPTURED_UNREVIEWED",
+  "_comment": "Captured from converter output; not yet human-reviewed. Verify against the spec, then set _status to REVIEWED.",
+  "tables": {
+    "Departments": {
+      "columns": [
+        {
+          "name": "DepartmentID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "DepartmentName",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Location",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "Employees": {
+      "columns": [
+        {
+          "name": "EmployeeID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "FirstName",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LastName",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Email",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "DepartmentID",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "HireDate",
+          "access_type": "Date/Time",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Salary",
+          "access_type": "Currency",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "IsActive",
+          "access_type": "Yes/No",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "LeaveTypes": {
+      "columns": [
+        {
+          "name": "LeaveTypeID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "TypeName",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "IsPaid",
+          "access_type": "Yes/No",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "Leaves": {
+      "columns": [
+        {
+          "name": "LeaveID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "EmployeeID",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LeaveTypeID",
+          "access_type": "Long Integer",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "StartDate",
+          "access_type": "Date/Time",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "EndDate",
+          "access_type": "Date/Time",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "LeaveDays",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Status",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Notes",
+          "access_type": "Long Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    },
+    "Users": {
+      "columns": [
+        {
+          "name": "UserID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": true,
+          "primary_key": false
+        },
+        {
+          "name": "Username",
+          "access_type": "Short Text",
+          "required": true,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "PasswordPlain",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "Role",
+          "access_type": "Short Text",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        },
+        {
+          "name": "EmployeeID",
+          "access_type": "Long Integer",
+          "required": false,
+          "auto_number": false,
+          "primary_key": false
+        }
+      ],
+      "is_linked": false
+    }
+  },
+  "queries": {
+    "qryActiveEmployees": {
+      "kind": "SELECT",
+      "references_tables": [
+        "Employees"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "qryApproveLeave": {
+      "kind": "UPDATE",
+      "references_tables": [],
+      "access_functions": [],
+      "parameter_count": 1
+    },
+    "qryEmployeeLeaveSummary": {
+      "kind": "PARAMETER",
+      "references_tables": [
+        "Departments",
+        "Leaves"
+      ],
+      "access_functions": [],
+      "parameter_count": 1
+    },
+    "qryEmployeeList": {
+      "kind": "SELECT",
+      "references_tables": [
+        "Departments",
+        "Employees"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    },
+    "qryPendingLeaves": {
+      "kind": "SELECT",
+      "references_tables": [
+        "Employees",
+        "LeaveTypes"
+      ],
+      "access_functions": [],
+      "parameter_count": 0
+    }
+  },
+  "business_rule_count": 0,
+  "vba_modules": {}
+}
