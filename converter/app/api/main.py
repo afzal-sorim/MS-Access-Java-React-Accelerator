@@ -64,13 +64,14 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from converter.app.database import (
-    init_database, close_database, get_session,
+    init_database, close_database, get_db_session,
     JobRepository, ExtractionRepository, IRRepository,
     DependencyGraphRepository, SupportabilityRepository,
     BuildLogRepository, LLMCacheRepository,
-    ExternalDependencyRepository,
-    JobModel, JobState, JobError, JobProgress, JobResult,
+    ExternalDependencyRepository, UserRepository,
+    JobModel, JobState, JobError, JobProgress, JobResult, UserModel
 )
+from converter.app.api.auth.router import router as auth_router, get_current_user
 from converter.app.jobs.models import MigrationJob as PydanticMigrationJob
 from converter.app.access.extractor import run_extraction
 from converter.app.access.local_source import (
@@ -198,11 +199,20 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Include auth router
+app.include_router(auth_router, prefix="/api")
 
 # Paths
 UPLOAD_DIR = Path("uploads")
@@ -213,9 +223,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------- Database dependency
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db():
     """Database session dependency."""
-    async with get_session() as session:
+    if _session_factory is None:
+        await init_database()
+    async with _session_factory() as session:
         yield session
 
 
@@ -855,6 +867,7 @@ async def root():
 async def _start_job(
     *,
     job_id: str,
+    user_id: str,
     source_path: Path,
     display_name: str,
     project_name: str,
@@ -864,15 +877,11 @@ async def _start_job(
     background_tasks: BackgroundTasks,
     db: AsyncSession,
 ) -> JobResponse:
-    """Persist a job for an already-staged source file and queue the pipeline.
-
-    Shared by both input modes: the upload endpoint saves a multipart file, the
-    local endpoint copies a local database, and from here on the two are
-    indistinguishable — the pipeline only ever reads job.source_file.
-    """
+    """Persist a job for an already-staged source file and queue the pipeline."""
     job_repo = JobRepository(db)
     job = JobModel(
         id=job_id,
+        user_id=user_id,
         source_file=str(source_path),
         source_file_size=source_path.stat().st_size,
         source_mode=source_mode,
@@ -904,7 +913,8 @@ async def create_job(
     file: UploadFile = File(...),
     project_name: str = "ConvertedApplication",
     base_package: str = "com.generated.app",
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Create a new conversion job from an uploaded Access file."""
     if not file.filename:
@@ -922,6 +932,7 @@ async def create_job(
 
     return await _start_job(
         job_id=job_id,
+        user_id=current_user.id,
         source_path=upload_path,
         display_name=file.filename,
         project_name=project_name,
@@ -983,15 +994,10 @@ async def local_access_validate(request: LocalPathRequest):
 async def create_local_job(
     request: LocalJobRequest,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
 ):
-    """Create a conversion job from a database on the backend machine.
-
-    The local file is copied into the job workdir first and the pipeline runs
-    against that copy: extraction opens forms in design view and drives the
-    VBA project, which writes to the database it opens. The user's own file
-    must never be the one handed to the extractor.
-    """
+    """Create a conversion job from a database on the backend machine."""
     try:
         info = resolve_local_source(request.path)
     except LocalSourceError as exc:
@@ -1003,8 +1009,6 @@ async def create_local_job(
     try:
         staged = await asyncio.to_thread(stage_local_source, info["path"], staging_dir)
     except OSError as exc:
-        # Surfaced synchronously so the user sees "disk full" / "denied" here
-        # rather than as an opaque background pipeline failure.
         raise HTTPException(
             status_code=500,
             detail=f"Could not copy the local database into the workspace: {exc}",
@@ -1017,6 +1021,7 @@ async def create_local_job(
 
     return await _start_job(
         job_id=job_id,
+        user_id=current_user.id,
         source_path=staged,
         display_name=info["name"],
         project_name=request.project_name,
@@ -1029,10 +1034,14 @@ async def create_local_job(
 
 
 @app.get("/api/jobs", response_model=list[JobResponse])
-async def list_jobs(limit: int = Query(50, le=100), db: AsyncSession = Depends(get_db)):
-    """List all jobs."""
+async def list_jobs(
+    limit: int = Query(50, le=100),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """List all jobs for the current user."""
     job_repo = JobRepository(db)
-    jobs = await job_repo.list_all(limit)
+    jobs = await job_repo.list_by_user(current_user.id, limit)
     return [
         JobResponse(
             id=job.id,
