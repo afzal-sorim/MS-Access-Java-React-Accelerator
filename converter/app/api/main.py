@@ -15,6 +15,7 @@ from collections.abc import AsyncGenerator
 import asyncio
 import json
 import logging
+import re
 import shutil
 import uuid
 from datetime import datetime
@@ -51,7 +52,7 @@ from typing import Any, Optional
 
 from fastapi import (
     FastAPI, File, UploadFile, HTTPException, BackgroundTasks,
-    WebSocket, WebSocketDisconnect, Depends, Query
+    WebSocket, WebSocketDisconnect, Depends, Query, Request
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -72,6 +73,7 @@ from converter.app.database import (
     JobModel, JobState, JobError, JobProgress, JobResult, UserModel
 )
 from converter.app.api.auth.router import router as auth_router, get_current_user
+from BRD.api.router import router as brd_router
 from converter.app.jobs.models import MigrationJob as PydanticMigrationJob
 from converter.app.access.extractor import run_extraction
 from converter.app.access.local_source import (
@@ -205,6 +207,7 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
     ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -213,6 +216,25 @@ app.add_middleware(
 
 # Include auth router
 app.include_router(auth_router, prefix="/api")
+
+# Include BRD router
+app.include_router(brd_router, prefix="/api")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Global unhandled exception on %s: %s", request.url.path, exc)
+    origin = request.headers.get("origin") or "*"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc) or "Internal Server Error"},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "*",
+        },
+    )
 
 # Paths
 UPLOAD_DIR = Path("uploads")
@@ -223,12 +245,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------- Database dependency
 
-async def get_db():
-    """Database session dependency."""
-    if _session_factory is None:
-        await init_database()
-    async with _session_factory() as session:
-        yield session
+get_db = get_db_session
 
 
 # ---------------------------------------------------------------- WebSocket manager
@@ -878,6 +895,12 @@ async def _start_job(
     db: AsyncSession,
 ) -> JobResponse:
     """Persist a job for an already-staged source file and queue the pipeline."""
+    if (not project_name or project_name == "ConvertedApplication") and display_name:
+        stem = Path(display_name).stem
+        sanitized_stem = re.sub(r"[^a-zA-Z0-9_\-]", "_", stem)
+        if sanitized_stem:
+            project_name = sanitized_stem
+
     job_repo = JobRepository(db)
     job = JobModel(
         id=job_id,

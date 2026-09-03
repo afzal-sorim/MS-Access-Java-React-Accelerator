@@ -13,6 +13,8 @@ export default defineConfig({
       '/api': {
         target: backendUrl,
         changeOrigin: true,
+        timeout: 120000,
+        proxyTimeout: 120000,
       },
       '/ws': {
         target: wsTarget,

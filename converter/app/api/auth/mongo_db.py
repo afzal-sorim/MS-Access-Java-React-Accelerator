@@ -108,51 +108,58 @@ class MongoUser:
 
 _client: Optional[AsyncIOMotorClient] = None
 _db: Optional[AsyncIOMotorDatabase] = None
+_mongo_available: Optional[bool] = None
 
 
-async def get_mongo_db() -> AsyncIOMotorDatabase:
-    """Return (and lazily create) the Motor database instance."""
-    global _client, _db
+async def get_mongo_db() -> Optional[AsyncIOMotorDatabase]:
+    """Return (and lazily create) the Motor database instance, or None if unavailable."""
+    global _client, _db, _mongo_available
     if _db is not None:
         return _db
+    if _mongo_available is False:
+        return None
 
     uri = os.environ.get("MONGODB_URI")
     db_name = os.environ.get("MONGODB_DATABASE", "access2java")
 
     if not uri:
-        raise RuntimeError(
-            "MONGODB_URI environment variable is not set. "
-            "Add it to converter/.env"
+        _mongo_available = False
+        return None
+
+    try:
+        logger.info("Connecting to MongoDB…")
+        _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=2000)
+        # Verify connectivity
+        await _client.admin.command("ping")
+        logger.info("MongoDB connection established.")
+        _db = _client[db_name]
+        await _ensure_indexes(_db)
+        _mongo_available = True
+        return _db
+    except Exception as e:
+        logger.warning(
+            "MongoDB Atlas connection failed (%s). Falling back to local SQLite user store.",
+            e,
         )
-
-    logger.info("Connecting to MongoDB…")
-    _client = AsyncIOMotorClient(uri, serverSelectionTimeoutMS=10_000)
-
-    # Verify connectivity
-    await _client.admin.command("ping")
-    logger.info("MongoDB connection established.")
-
-    _db = _client[db_name]
-
-    # Ensure indexes (idempotent)
-    await _ensure_indexes(_db)
-
-    return _db
+        _mongo_available = False
+        return None
 
 
 async def close_mongo() -> None:
     """Close the MongoDB connection."""
-    global _client, _db
+    global _client, _db, _mongo_available
     if _client:
         _client.close()
         _client = None
         _db = None
+        _mongo_available = None
         logger.info("MongoDB connection closed.")
 
 
 async def _ensure_indexes(db: AsyncIOMotorDatabase) -> None:
     """Create required indexes on first connect (idempotent)."""
     from pymongo import ASCENDING, IndexModel
+    from converter.app.mongo_repos import ensure_mongo_app_indexes
 
     users = db["users"]
     await users.create_indexes([
@@ -160,20 +167,18 @@ async def _ensure_indexes(db: AsyncIOMotorDatabase) -> None:
         IndexModel([("provider_user_id", ASCENDING)], sparse=True, name="ix_users_provider_id"),
         IndexModel([("auth_provider", ASCENDING)], name="ix_users_auth_provider"),
     ])
-    logger.debug("MongoDB indexes ensured on 'users' collection.")
+    await ensure_mongo_app_indexes(db)
+    logger.debug("MongoDB indexes ensured on 'users' and application collections.")
 
 
 # ---------------------------------------------------------------------------
-# Repository
+# Repositories
 # ---------------------------------------------------------------------------
 
 class MongoUserRepository:
     """
     Drop-in replacement for UserRepository (SQLAlchemy) that stores users
     in MongoDB.
-
-    The calling API surface matches UserRepository exactly so auth/router.py
-    can use this without modification.
     """
 
     def __init__(self, db: AsyncIOMotorDatabase):
@@ -219,14 +224,167 @@ class MongoUserRepository:
         return result.deleted_count > 0
 
 
+class SQLiteUserRepoAdapter:
+    """
+    Fallback repository for when MongoDB is unavailable (e.g. IP whitelist / network restriction).
+    Uses the local SQLite database.
+    """
+
+    async def create(self, user: MongoUser) -> MongoUser:
+        from converter.app.database import get_session, UserModel
+        async with get_session() as session:
+            db_user = UserModel(
+                id=user.id,
+                email=user.email,
+                name=user.name,
+                hashed_password=user.hashed_password,
+                auth_provider=user.auth_provider,
+                provider_user_id=user.provider_user_id,
+                profile_image=user.profile_image,
+                is_active=user.is_active,
+                is_verified=user.is_verified,
+            )
+            session.add(db_user)
+            await session.commit()
+            return user
+
+    async def get(self, user_id: str) -> Optional[MongoUser]:
+        from converter.app.database import get_session, UserModel
+        from sqlalchemy import select
+        async with get_session() as session:
+            res = await session.execute(select(UserModel).where(UserModel.id == user_id))
+            u = res.scalar_one_or_none()
+            if not u:
+                return None
+            return MongoUser(
+                id=u.id,
+                email=u.email,
+                name=u.name,
+                hashed_password=u.hashed_password,
+                auth_provider=u.auth_provider,
+                provider_user_id=u.provider_user_id,
+                profile_image=u.profile_image,
+                is_active=u.is_active,
+                is_verified=u.is_verified,
+                created_at=u.created_at,
+                updated_at=u.updated_at,
+            )
+
+    async def get_by_email(self, email: str) -> Optional[MongoUser]:
+        from converter.app.database import get_session, UserModel
+        from sqlalchemy import select
+        async with get_session() as session:
+            res = await session.execute(select(UserModel).where(UserModel.email == email))
+            u = res.scalar_one_or_none()
+            if not u:
+                return None
+            return MongoUser(
+                id=u.id,
+                email=u.email,
+                name=u.name,
+                hashed_password=u.hashed_password,
+                auth_provider=u.auth_provider,
+                provider_user_id=u.provider_user_id,
+                profile_image=u.profile_image,
+                is_active=u.is_active,
+                is_verified=u.is_verified,
+                created_at=u.created_at,
+                updated_at=u.updated_at,
+            )
+
+    async def get_by_provider(self, provider: str, provider_user_id: str) -> Optional[MongoUser]:
+        from converter.app.database import get_session, UserModel
+        from sqlalchemy import select
+        async with get_session() as session:
+            res = await session.execute(
+                select(UserModel).where(
+                    UserModel.auth_provider == provider,
+                    UserModel.provider_user_id == provider_user_id,
+                )
+            )
+            u = res.scalar_one_or_none()
+            if not u:
+                return None
+            return MongoUser(
+                id=u.id,
+                email=u.email,
+                name=u.name,
+                hashed_password=u.hashed_password,
+                auth_provider=u.auth_provider,
+                provider_user_id=u.provider_user_id,
+                profile_image=u.profile_image,
+                is_active=u.is_active,
+                is_verified=u.is_verified,
+                created_at=u.created_at,
+                updated_at=u.updated_at,
+            )
+
+    async def update(self, user: MongoUser) -> MongoUser:
+        from converter.app.database import get_session, UserModel
+        from sqlalchemy import select
+        async with get_session() as session:
+            res = await session.execute(select(UserModel).where(UserModel.id == user.id))
+            u = res.scalar_one_or_none()
+            if u:
+                u.email = user.email
+                u.name = user.name
+                u.hashed_password = user.hashed_password
+                u.auth_provider = user.auth_provider
+                u.provider_user_id = user.provider_user_id
+                u.profile_image = user.profile_image
+                u.is_active = user.is_active
+                u.is_verified = user.is_verified
+                u.updated_at = datetime.utcnow()
+                await session.commit()
+            return user
+
+    async def delete(self, user_id: str) -> bool:
+        from converter.app.database import get_session, UserModel
+        from sqlalchemy import delete
+        async with get_session() as session:
+            res = await session.execute(delete(UserModel).where(UserModel.id == user_id))
+            await session.commit()
+            return res.rowcount > 0
+
+
 # ---------------------------------------------------------------------------
-# FastAPI dependency (mirrors get_db_session pattern for the auth router)
+# FastAPI dependency
 # ---------------------------------------------------------------------------
 
-async def get_mongo_user_repo() -> MongoUserRepository:
+async def get_mongo_user_repo():
     """
-    FastAPI dependency that yields a MongoUserRepository.
-    Usage: repo = await get_mongo_user_repo()
+    FastAPI dependency yielding MongoUserRepository if MongoDB is reachable,
+    otherwise falling back to SQLiteUserRepoAdapter seamlessly.
     """
     db = await get_mongo_db()
-    return MongoUserRepository(db)
+    if db is not None:
+        return MongoUserRepository(db)
+    return SQLiteUserRepoAdapter()
+
+
+async def get_mongo_app_repos():
+    """Returns a dict of all MongoDB application repositories if MongoDB is reachable."""
+    db = await get_mongo_db()
+    if db is None:
+        return None
+    from converter.app.mongo_repos import (
+        MongoJobRepository,
+        MongoExtractionRepository,
+        MongoIRRepository,
+        MongoDependencyGraphRepository,
+        MongoSupportabilityRepository,
+        MongoBuildLogRepository,
+        MongoLLMCacheRepository,
+        MongoExternalDependencyRepository,
+    )
+    return {
+        "job_repo": MongoJobRepository(db),
+        "extraction_repo": MongoExtractionRepository(db),
+        "ir_repo": MongoIRRepository(db),
+        "dependency_graph_repo": MongoDependencyGraphRepository(db),
+        "supportability_repo": MongoSupportabilityRepository(db),
+        "build_log_repo": MongoBuildLogRepository(db),
+        "llm_cache_repo": MongoLLMCacheRepository(db),
+        "external_dep_repo": MongoExternalDependencyRepository(db),
+    }
+

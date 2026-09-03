@@ -216,3 +216,24 @@ export function connectProgressWebSocket(jobId, onMessage) {
 
     return ws;
 }
+
+// --- BRD Report Endpoints ---
+
+export async function generateBrdReport(jobId) {
+    const response = await authFetch('/brd/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: jobId }),
+    });
+    return response.json();
+}
+
+export function getBrdPreviewUrl(jobId) {
+    const token = getToken();
+    return `${API_BASE}/brd/${jobId}/preview${token ? `?token=${token}` : ''}`;
+}
+
+export function getBrdDownloadUrl(jobId) {
+    const token = getToken();
+    return `${API_BASE}/brd/${jobId}/download${token ? `?token=${token}` : ''}`;
+}

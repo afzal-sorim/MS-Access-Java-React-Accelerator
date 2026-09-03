@@ -348,11 +348,8 @@ async def init_database(database_url: Optional[str] = None) -> None:
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA journal_mode=WAL")
                 cursor.execute("PRAGMA busy_timeout=30000")
+                cursor.execute("PRAGMA synchronous=NORMAL")
                 cursor.close()
-
-            @event.listens_for(_engine.sync_engine, "begin")
-            def _do_begin(conn):
-                conn.exec_driver_sql("BEGIN IMMEDIATE")
 
         _session_factory = async_sessionmaker(
             _engine,
@@ -404,26 +401,33 @@ from contextlib import asynccontextmanager
 
 async def get_db_session():
     """FastAPI dependency for database sessions."""
+    global _session_factory
     if _session_factory is None:
         await init_database()
+    if _session_factory is None:
+        raise RuntimeError("Database session factory failed to initialize.")
     async with _session_factory() as session:
         yield session
 
 @asynccontextmanager
 async def get_session() -> AsyncSession:
     """Get a database session as async context manager (for manual use)."""
+    global _session_factory
     if _session_factory is None:
         await init_database()
+    if _session_factory is None:
+        raise RuntimeError("Database session factory failed to initialize.")
     async with _session_factory() as session:
         yield session
 
 
 async def close_database() -> None:
     """Close database connections."""
-    global _engine
+    global _engine, _session_factory
     if _engine:
         await _engine.dispose()
         _engine = None
+    _session_factory = None
 
 
 # Repository classes for data access
