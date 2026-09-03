@@ -144,3 +144,9 @@ $RECYCLE.BIN/
 ._*
 .Spotlight-V100
 .Trashes
+
+# ------------------------------------------------------------------------------
+# MS Access Corpus (PeopleManager) - Ignore everything except the .accdb database
+# ------------------------------------------------------------------------------
+corpus/PeopleManager/*
+!corpus/PeopleManager/*.accdb

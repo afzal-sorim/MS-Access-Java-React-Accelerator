@@ -90,6 +90,7 @@ from converter.app.generators.database.postgres import generate_schema
 from converter.app.generators.spring import generate_spring_boot
 from converter.app.generators.react import generate_react
 from converter.app.analyzers.business_rules import extract_business_rules
+from converter.app.analyzers.functionality_summarizer import summarize_functionalities
 from converter.app.build.validator import validate_project, BuildStatus as ValidatorBuildStatus
 from converter.app.build.pipeline import (
     BuildValidator as PipelineBuildValidator,
@@ -420,6 +421,29 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         await update_build_log(support_log.id, "completed", f"Analyzed {len(support_results)} objects")
         await db.commit()
 
+        # Step 4.5: Generate functionality summaries (LLM-enhanced business descriptions)
+        await update_state(JobState.SUPPORTABILITY_ANALYZED, "summarizing_functionalities", 53.0, "Generating business-logic functionality descriptions...")
+        func_log = await log_build("summarization", "summarize_functionalities")
+
+        support_dicts = [
+            {
+                "object": r.object,
+                "category": r.category,
+                "status": r.status.value,
+                "complexity": r.complexity,
+                "risk": r.risk,
+                "conversion": r.conversion,
+                "confidence": r.confidence,
+                "reason": r.reason,
+            }
+            for r in support_results
+        ]
+        functionality_summaries = await asyncio.to_thread(
+            summarize_functionalities, app_ir, support_dicts,
+        )
+        await update_build_log(func_log.id, "completed", f"Generated {len(functionality_summaries)} functionality summaries")
+        await db.commit()
+
         # Step 5: Generate database
         await update_state(JobState.GENERATING_DATABASE, "generating_database", 60.0, f"Generating PostgreSQL DDL schema and seed data SQL ({len(app_ir.tables)} tables)...")
         db_log = await log_build("database", "generate_schema")
@@ -548,6 +572,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
                 "notice": "Unbound forms were converted to informational layout scaffolds; Access VBA event handlers were not modernized into backend logic.",
             },
             "warnings": app_ir.warnings,
+            "functionality_summaries": functionality_summaries,
             "generated": {
                 "backend_files": len(spring_gen),
                 "frontend_files": len(react_gen),
