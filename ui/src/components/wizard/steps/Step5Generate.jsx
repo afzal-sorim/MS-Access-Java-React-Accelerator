@@ -3,9 +3,10 @@ import { useWizard } from '../../../context/WizardContext';
 import { createJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
+import Step4Review from './Step4Review';
 
 /**
- * Step 5: Generate Project
+ * Step 4: Modernization (combined Map & Review + Solution Explorer)
  */
 
 const GENERATION_STEPS = [
@@ -230,7 +231,9 @@ function ERDiagram({ schema }) {
 /**
  * Solution Summary Dashboard - Shown when no file is selected
  */
-function SolutionSummary({ files, result, onViewSchema }) {
+function SolutionSummary({ files, result, analysisProgress, onViewSchema }) {
+    const { state } = useWizard();
+    const { reviewData } = state;
     const counts = {
         java: 0,
         react: 0,
@@ -256,8 +259,25 @@ function SolutionSummary({ files, result, onViewSchema }) {
     if (files.frontend) countFiles(files.frontend);
     if (files.database) countFiles(files.database);
 
-    const coverage = result?.coverage?.overall || 0;
-    const statistics = result?.statistics || result?.migration?.statistics || {};
+    // Compute coverage from reviewData if result doesn't supply it
+    const allReviewObjects = Object.values(reviewData || {}).flat();
+    const reviewTotal = allReviewObjects.length;
+    const reviewSupported = allReviewObjects.filter(
+        o => o.status === 'SUPPORTED' || o.status === 'SUPPORTED_WITH_REVIEW' || o.status === 'SUPPORTED_WITH_TRANSFORMATION'
+    ).length;
+    const computedCoverage = reviewTotal > 0 ? Math.round((reviewSupported / reviewTotal) * 100) : 0;
+    const coverage = result?.coverage?.overall
+        || result?.coverage_percentage
+        || result?.coveragePercentage
+        || (reviewTotal > 0 ? computedCoverage : (counts.total > 0 ? 100 : 0));
+    const statistics = result?.statistics || result?.migration?.statistics || {
+        tables: analysisProgress?.tables?.count || 0,
+        queries: analysisProgress?.queries?.count || 0,
+        forms: analysisProgress?.forms?.count || 0,
+        reports: analysisProgress?.reports?.count || 0,
+        macros: analysisProgress?.macros?.count || 0,
+        vba_modules: analysisProgress?.vba?.count || 0,
+    };
     const migratedObjects = Object.entries({
         Tables: statistics.tables,
         Queries: statistics.queries,
@@ -412,9 +432,9 @@ function SolutionSummary({ files, result, onViewSchema }) {
 /**
  * File Explorer Component for generated project
  */
-function FileExplorer({ jobId }) {
+function FileExplorer({ jobId, generationComplete }) {
     const { state } = useWizard();
-    const { generationResult } = state;
+    const { generationResult, analysisProgress } = state;
     const [files, setFiles] = useState({});
         const [expanded, setExpanded] = useState({ frontend: true, backend: true, database: false });
     const [selectedFile, setSelectedFile] = useState(null);
@@ -426,8 +446,38 @@ function FileExplorer({ jobId }) {
     const [viewMode, setViewMode] = useState('welcome'); // welcome, code, schema
 
     useEffect(() => {
-        if (jobId) loadFiles();
-    }, [jobId]);
+        if (!jobId) return undefined;
+
+        let cancelled = false;
+        let retryTimer;
+
+        const loadUntilAvailable = async () => {
+            setLoadingFiles(true);
+            try {
+                const data = await listJobFiles(jobId);
+                if (cancelled) return;
+                setFiles(data);
+                if (!generationComplete) {
+                    retryTimer = window.setTimeout(loadUntilAvailable, 1000);
+                }
+            } catch (err) {
+                if (!cancelled) {
+                    console.error('Failed to load files:', err);
+                    if (!generationComplete) {
+                        retryTimer = window.setTimeout(loadUntilAvailable, 1000);
+                    }
+                }
+            } finally {
+                if (!cancelled) setLoadingFiles(false);
+            }
+        };
+
+        loadUntilAvailable();
+        return () => {
+            cancelled = true;
+            window.clearTimeout(retryTimer);
+        };
+    }, [jobId, generationComplete]);
 
     const loadFiles = async () => {
         setLoadingFiles(true);
@@ -609,7 +659,7 @@ function FileExplorer({ jobId }) {
             {/* Content Area */}
             <div style={{ overflowY: 'auto', background: viewMode === 'code' ? '#1e293b' : '#fff', position: 'relative', height: '100%' }}>
                 {viewMode === 'welcome' && (
-                    <SolutionSummary files={files} result={generationResult} onViewSchema={() => { setViewMode('schema'); loadSchema(); setSelectedFile(null); }} />
+                    <SolutionSummary files={files} result={generationResult} analysisProgress={analysisProgress} onViewSchema={() => { setViewMode('schema'); loadSchema(); setSelectedFile(null); }} />
                 )}
 
                 {viewMode === 'code' && selectedFile && (
@@ -696,6 +746,7 @@ export default function Step5Generate() {
     const { state, actions } = useWizard();
     const { selectedFile, localSource, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
     const [isGenerating, setIsGenerating] = useState(false);
+    const [activeTab, setActiveTab] = useState('review');
     const wsRef = useRef(null);
     const startedRef = useRef(false);
 
@@ -896,152 +947,180 @@ export default function Step5Generate() {
 
     return (
         <div>
-            <div className="card-header">
-                <h2 className="card-title">Generate Project</h2>
+            <div className="card-header" style={{ marginBottom: '0' }}>
                 <p className="card-subtitle">
-                    Building the complete Spring Boot + React + PostgreSQL application with validation.
+                    {activeTab === 'review' 
+                        ? 'Review your Access database objects and how they map to the new architecture.' 
+                        : 'Track generation progress and explore your modernized solution files.'}
                 </p>
             </div>
 
-            {/* Overall Progress */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 500 }}>Overall Progress</span>
-                    <span>{Math.round(overallProgress)}%</span>
-                </div>
-                <div className="progress-bar">
-                    <div
-                        className="progress-bar-fill"
-                        style={{ width: `${overallProgress}%` }}
-                    />
-                </div>
-                {generationProgress.currentStep && generationProgress.currentStep !== 'initializing' && generationProgress.currentStep !== 'completed' && (
-                    <p className="form-hint" style={{ marginTop: '0.5rem', textAlign: 'right' }}>
-                        Current: <strong>{GENERATION_STEPS.find(s => s.key === generationProgress.currentStep)?.label || generationProgress.currentStep}</strong>
-                    </p>
-                )}
-                {generationProgress.currentStep === 'initializing' && (
-                    <p className="form-hint" style={{ marginTop: '0.5rem', textAlign: 'right' }}>
-                        Current: <strong>initializing</strong>
-                    </p>
-                )}
-            </div>
-
-            {/* Live Log */}
-            {generationProgress.details && generationProgress.details.length > 0 && (
-                <div style={{ marginTop: '1.5rem' }}>
-                    <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.75rem', color: 'var(--color-text-muted)' }}>
-                        Build Log
-                    </h3>
-                    <div style={{
-                        background: '#1e1e1e',
-                        color: '#d4d4d4',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        maxHeight: '300px',
-                        overflowY: 'auto',
-                        fontFamily: 'monospace',
-                        fontSize: '0.75rem',
-                        lineHeight: 1.5,
-                    }}>
-                        {generationProgress.details.slice(-50).map((detail, i) => (
-                            <div key={i} style={{ borderBottom: '1px solid #333', padding: '0.25rem 0' }}>
-                                <span style={{ color: '#888' }}>{new Date(detail.timestamp).toLocaleTimeString()}</span>
-                                <span style={{ color: '#9cdcfe', margin: '0 0.5rem' }}>[ {detail.step} ]</span>
-                                <span>{detail.message}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {!generationComplete && (
-                <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                        <span>
-                            {isGenerating ? 'Generating project...' : 'Starting generation...'}
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            {generationComplete && generationResult && (
-                <>
-                    <style>
-                        {`
-                        @keyframes toastSlideIn {
-                            0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
-                            100% { transform: translateY(0) scale(1); opacity: 1; }
-                        }
-                        `}
-                    </style>
-                    <div style={{
-                        position: 'fixed',
-                        top: '2rem',
-                        right: '2rem',
-                        zIndex: 9999,
-                        width: '450px',
-                        padding: '1.25rem 1.5rem',
-                        background: '#fff',
-                        borderRadius: '12px',
-                        boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
-                        border: '1px solid #bbf7d0',
-                        borderLeft: '4px solid #22c55e',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '1.25rem',
-                        animation: 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
-                        <div style={{ 
-                            background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
-                            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
-                        }}>
-                            ✔️
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
-                            <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
-                                The project was successfully generated and saved to: <br/>
-                                <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
-                                    {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
-                                </span>
-                            </div>
-                            {generationResult.filesGenerated && (
-                                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
-                                    <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* File Explorer - Shown when generation is complete */}
-            {generationComplete && (generationJobId || analysisJobId) && (
-                <FileExplorer jobId={generationJobId || analysisJobId} />
-            )}
-
-            {generationComplete && generationResult && (
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+            {/* ── Toggle Tab Bar ── */}
+            <div style={{
+                display: 'flex',
+                gap: '0',
+                marginBottom: '1.5rem',
+                background: '#f1f5f9',
+                borderRadius: '12px',
+                padding: '4px',
+                border: '1px solid #e2e8f0',
+            }}>
+                {[
+                    { key: 'review', label: 'Map & Review Objects', icon: '📋' },
+                    { key: 'explorer', label: 'Solution Explorer', icon: '🏗️' },
+                ].map(tab => (
                     <button
-                        className="btn btn-primary"
-                        onClick={() => downloadResult(generationJobId, config.project_name)}
-                    >
-                        Download Project ZIP
-                    </button>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                            // Navigate to summary step
-                            actions.setStep(6);
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.7rem 1.25rem',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            transition: 'all 0.2s ease',
+                            background: activeTab === tab.key
+                                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                                : 'transparent',
+                            color: activeTab === tab.key ? '#fff' : '#64748b',
+                            boxShadow: activeTab === tab.key
+                                ? '0 4px 12px rgba(79, 70, 229, 0.3)'
+                                : 'none',
                         }}
                     >
-                        View Summary →
+                        <span style={{ fontSize: '1rem' }}>{tab.icon}</span>
+                        <span>{tab.label}</span>
+                        {tab.key === 'explorer' && !generationComplete && (
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#f59e0b',
+                                animation: 'pulse 1.5s ease-in-out infinite',
+                                marginLeft: '0.25rem',
+                            }} />
+                        )}
+                        {tab.key === 'explorer' && generationComplete && (
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#10b981',
+                                marginLeft: '0.25rem',
+                            }} />
+                        )}
                     </button>
+                ))}
+            </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
+                }
+            `}</style>
+
+            {/* ── Tab Content ── */}
+            {activeTab === 'review' && (
+                <Step4Review />
+            )}
+
+            {activeTab === 'explorer' && (
+                <div>
+                   
+
+                    {/* Solution Explorer */}
+                    {(generationJobId || analysisJobId) && (
+                        <FileExplorer jobId={generationJobId || analysisJobId} generationComplete={generationComplete} />
+                    )}
+
+                    {!generationComplete && (
+                        <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                                <span>
+                                    {isGenerating ? 'Generating project...' : 'Starting generation...'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {generationComplete && generationResult && (
+                        <>
+                            <style>
+                                {`
+                                @keyframes toastSlideIn {
+                                    0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
+                                    100% { transform: translateY(0) scale(1); opacity: 1; }
+                                }
+                                `}
+                            </style>
+                            <div style={{
+                                position: 'fixed',
+                                top: '2rem',
+                                right: '2rem',
+                                zIndex: 9999,
+                                width: '450px',
+                                padding: '1.25rem 1.5rem',
+                                background: '#fff',
+                                borderRadius: '12px',
+                                boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
+                                border: '1px solid #bbf7d0',
+                                borderLeft: '4px solid #22c55e',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: '1.25rem',
+                                animation: 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                                overflow: 'hidden'
+                            }}>
+                                <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
+                                <div style={{ 
+                                    background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
+                                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
+                                }}>
+                                    ✔️
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
+                                    <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
+                                        The project was successfully generated and saved to: <br/>
+                                        <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
+                                            {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
+                                        </span>
+                                    </div>
+                                    {generationResult.filesGenerated && (
+                                        <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
+                                            <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+
+
+                    {generationComplete && generationResult && (
+                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => downloadResult(generationJobId, config.project_name)}
+                            >
+                                Download Project ZIP
+                            </button>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => {
+                                    actions.setStep(5);
+                                }}
+                            >
+                                View Summary →
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

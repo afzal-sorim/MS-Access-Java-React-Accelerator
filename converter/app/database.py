@@ -320,12 +320,9 @@ async def init_database(database_url: Optional[str] = None) -> None:
             def _set_sqlite_pragma(dbapi_connection, connection_record):
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute("PRAGMA synchronous=NORMAL")
                 cursor.execute("PRAGMA busy_timeout=30000")
                 cursor.close()
-
-            @event.listens_for(_engine.sync_engine, "begin")
-            def _do_begin(conn):
-                conn.exec_driver_sql("BEGIN IMMEDIATE")
 
         _session_factory = async_sessionmaker(
             _engine,

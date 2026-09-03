@@ -159,7 +159,7 @@ function wizardReducer(state, action) {
             return {
                 ...state,
                 history: [...state.history, state.currentStep],
-                currentStep: Math.min(state.currentStep + 1, 6),
+                currentStep: Math.min(state.currentStep + 1, 5),
             };
 
         case ActionTypes.PREV_STEP:

@@ -8,9 +8,8 @@ export const WIZARD_STEPS = [
     { id: 1, key: 'select', label: 'Connect', icon: '📁' },
     { id: 2, key: 'analyze', label: 'Discovery', icon: '🔍' },
     { id: 3, key: 'configure', label: 'Strategy', icon: '⚙️' },
-    { id: 4, key: 'review', label: 'Migration', icon: '📋' },
-    { id: 5, key: 'generate', label: 'Modernization', icon: '🏗️' },
-    { id: 6, key: 'summary', label: 'Result', icon: '✅' },
+    { id: 4, key: 'modernize', label: 'Modernization', icon: '🏗️' },
+    { id: 5, key: 'summary', label: 'Result', icon: '✅' },
 ];
 
 // Object status states (spec section 48)

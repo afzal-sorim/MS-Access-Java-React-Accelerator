@@ -4,7 +4,6 @@ import { WIZARD_STEPS } from '../../utils/constants';
 import Step1SelectApplication from './steps/Step1SelectApplication';
 import Step2Analyze from './steps/Step2Analyze';
 import Step3Configure from './steps/Step3Configure';
-import Step4Review from './steps/Step4Review';
 import Step5Generate from './steps/Step5Generate';
 import Step6Summary from './steps/Step6Summary';
 
@@ -23,21 +22,14 @@ const STEP_ICONS = [
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>,
-    /* 4 – Clipboard */
-    <svg key="4" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        <line x1="9" y1="12" x2="15" y2="12"/>
-        <line x1="9" y1="16" x2="15" y2="16"/>
-    </svg>,
-    /* 5 – Sparkle/wand */
-    <svg key="5" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    /* 4 – Sparkle/wand (Modernization) */
+    <svg key="4" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3L13.5 8.5L19 10L13.5 11.5L12 17L10.5 11.5L5 10L10.5 8.5Z"/>
         <path d="M5 3L5.8 5.2L8 6L5.8 6.8L5 9L4.2 6.8L2 6L4.2 5.2Z"/>
         <path d="M19 14L19.8 16.2L22 17L19.8 17.8L19 20L18.2 17.8L16 17L18.2 16.2Z"/>
     </svg>,
-    /* 6 – Check */
-    <svg key="6" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    /* 5 – Check (Result) */
+    <svg key="5" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="20 6 9 17 4 12"/>
     </svg>,
 ];
@@ -61,9 +53,8 @@ export default function WizardContainer() {
             case 1: return <Step1SelectApplication />;
             case 2: return <Step2Analyze />;
             case 3: return <Step3Configure />;
-            case 4: return <Step4Review />;
-            case 5: return <Step5Generate />;
-            case 6: return <Step6Summary />;
+            case 4: return <Step5Generate />;
+            case 5: return <Step6Summary />;
             default: return <Step1SelectApplication />;
         }
     };
@@ -73,8 +64,7 @@ export default function WizardContainer() {
             case 1: return !!state.selectedFile || !!state.localSource;
             case 2: return state.analysisComplete;
             case 3: return true;
-            case 4: return true;
-            case 5: return state.generationComplete;
+            case 4: return state.generationComplete;
             default: return false;
         }
     };
@@ -163,7 +153,7 @@ export default function WizardContainer() {
 
             {/* ── Bottom navigation: only Next button, right-aligned ── */}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                {currentStep < 6 && (
+                {currentStep < 5 && (
                     <button
                         onClick={handleNext}
                         disabled={!canProceed()}
@@ -195,7 +185,7 @@ export default function WizardContainer() {
                     </button>
                 )}
 
-                {currentStep === 6 && (
+                {currentStep === 5 && (
                     <button
                         onClick={actions.resetWizard}
                         style={{

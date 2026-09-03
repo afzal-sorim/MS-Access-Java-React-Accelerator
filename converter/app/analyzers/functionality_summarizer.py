@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass, field, asdict
 from typing import Any, Optional
 
@@ -364,7 +365,7 @@ def _llm_batch_summarize(
 def summarize_functionalities(
     app_ir,
     support_results: list[dict],
-    use_llm: bool = True,
+    use_llm: bool | None = None,
     max_batch_size: int = 15,
 ) -> list[dict]:
     """Generate business-logic functionality summaries.
@@ -379,6 +380,11 @@ def summarize_functionalities(
     Returns:
         List of FunctionalitySummary dicts
     """
+    if use_llm is None:
+        use_llm = os.environ.get("ENABLE_LLM_SUMMARIZATION", "false").lower() in (
+            "1", "true", "yes", "on"
+        )
+
     # Step 1: Build deterministic summaries for all objects
     summaries: list[FunctionalitySummary] = []
     for sr in support_results:

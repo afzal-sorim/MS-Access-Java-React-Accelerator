@@ -276,7 +276,7 @@ export default function Step4Review() {
             reports: supportability.filter(s => s.category === 'REPORT').map((s, i) => ({
                 id: `report-${i}`, name: s.object, recordCount: '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
-            modules: supportability.filter(s => s.category === 'VBA_MODULE' || s.category === 'VBA_FUNCTION' || s.category === 'VBA_SUB').map((s, i) => ({
+            modules: supportability.filter(s => s.category === 'VBA' || s.category === 'VBA_MODULE' || s.category === 'VBA_FUNCTION' || s.category === 'VBA_SUB').map((s, i) => ({
                 id: `module-${i}`, name: s.object, recordCount: '—', target: 'Spring Service / Utility', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             macros: supportability.filter(s => s.category === 'MACRO').map((s, i) => ({
