@@ -84,120 +84,67 @@ export default function WizardContainer() {
     return (
         <div className="wizard-container fade-in wizard-card-entrance">
 
-            {/* ── Stepper Progress Bar Card ── */}
-            <div className="card-3d-lift" style={{
-                background: '#fff',
-                borderRadius: 20,
-                boxShadow: '0 4px 16px rgba(55,48,163,0.09)',
-                border: '1px solid #C7D2FE',
-                padding: '0.75rem 2rem 0 2rem',
+            {/* ── Modern Stepper Navigation ── */}
+            <div style={{
+                background: '#ffffff',
+                borderRadius: '12px',
+                border: '1px solid #e2e8f0',
+                padding: '1.25rem 2rem 0.5rem',
+                marginBottom: '1.5rem',
+                boxShadow: 'none',
+                position: 'relative'
             }}>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                }} role="navigation" aria-label="Wizard steps">
+                <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
+                    {/* Background Progress Line */}
+                    <div style={{
+                        position: 'absolute', top: '42px', left: '60px', right: '60px',
+                        height: '2px', background: '#e2e8f0', zIndex: 0
+                    }} />
+                    {/* Active Progress Line */}
+                    <div style={{
+                        position: 'absolute', top: '42px', left: '60px',
+                        width: `calc((100% - 120px) * ${(currentStep - 1) / (WIZARD_STEPS.length - 1)})`,
+                        height: '2px', background: '#e9d5ff', zIndex: 1,
+                        transition: 'width 0.4s ease'
+                    }} />
+
                     {WIZARD_STEPS.map((step, index) => {
                         const stepNumber = index + 1;
                         const isActive = stepNumber === currentStep;
                         const isCompleted = stepNumber < currentStep;
-                        const isFuture = stepNumber > currentStep;
-
+                        
                         return (
-                            <React.Fragment key={step.key}>
-                                {/* ── Step item ── */}
-                                <div
-                                    onClick={() => !isFuture && actions.setStep(stepNumber)}
-                                    role="button"
-                                    aria-current={isActive ? 'step' : undefined}
-                                    style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        cursor: isFuture ? 'default' : 'pointer',
-                                        flex: 1,
-                                        paddingBottom: 0,
-                                        position: 'relative',
-                                        minWidth: 0,
-                                    }}
-                                >
-                                    {/* Step number above circle */}
-                                    <span style={{
-                                        fontSize: '0.72rem',
-                                        fontWeight: 700,
-                                        color: isActive ? '#3730A3' : '#9CA3AF',
-                                        marginBottom: '0.45rem',
-                                        letterSpacing: '0.03em',
-                                    }}>
-                                        {stepNumber}
-                                    </span>
-
-                                    {/* Icon circle */}
-                                    <div style={{
-                                        width: 42,
-                                        height: 42,
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        background: isActive
-                                            ? 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)'
-                                            : isCompleted
-                                                ? 'linear-gradient(135deg, #9B5CF6 0%, #D46BE0 100%)'
-                                                : '#F8FAFC',
-                                        border: isActive || isCompleted ? 'none' : '1.5px solid #C7D2FE',
-                                        boxShadow: isActive ? '0 4px 18px rgba(55,48,163,0.32)' : 'none',
-                                        transition: 'all 0.25s ease',
-                                        opacity: isCompleted ? 0.75 : 1,
-                                        color: isActive || isCompleted ? '#fff' : '#3730A3',
-                                        flexShrink: 0,
-                                        marginBottom: '0.55rem',
-                                    }}>
-                                        {isCompleted ? <CheckIcon /> : STEP_ICONS[index]}
-                                    </div>
-
-                                    {/* Label */}
-                                    <span style={{
-                                        fontSize: '0.78rem',
-                                        fontWeight: isActive ? 700 : 500,
-                                        color: isActive ? '#15133A' : '#9CA3AF',
-                                        textAlign: 'center',
-                                        lineHeight: 1.3,
-                                        whiteSpace: 'pre-line',
-                                        paddingBottom: '1rem',
-                                    }}>
-                                        {step.label.replace(' ', '\n')}
-                                    </span>
-
-                                    {/* Active underline */}
-                                    {isActive && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            width: '100%',
-                                            height: 3,
-                                            background: 'linear-gradient(90deg, #3730A3, #4F46E5)',
-                                            borderRadius: '3px 3px 0 0',
-                                        }} />
-                                    )}
+                            <div key={step.key} 
+                                 onClick={() => (isCompleted || isActive) && actions.setStep(stepNumber)}
+                                 style={{
+                                     position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                     cursor: isCompleted || isActive ? 'pointer' : 'default', width: '120px'
+                                 }}>
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, color: isActive ? '#4f46e5' : '#94a3b8', marginBottom: '0.4rem' }}>
+                                    {stepNumber}
+                                </span>
+                                <div style={{
+                                    width: '38px', height: '38px', borderRadius: '50%',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    background: isActive ? '#4f46e5' : (isCompleted ? '#d8b4fe' : '#fff'),
+                                    border: isActive ? 'none' : (isCompleted ? 'none' : '1px solid #c7d2fe'),
+                                    color: isActive ? '#fff' : (isCompleted ? '#fff' : '#4f46e5'),
+                                    boxShadow: isActive ? '0 4px 12px rgba(79, 70, 229, 0.4)' : 'none',
+                                    transition: 'all 0.3s ease',
+                                    marginBottom: '0.75rem'
+                                }}>
+                                    {isCompleted ? <CheckIcon /> : STEP_ICONS[index]}
                                 </div>
-
-                                {/* Connector line between steps */}
-                                {index < WIZARD_STEPS.length - 1 && (
-                                    <div style={{
-                                        flex: 1,
-                                        height: 1.5,
-                                        background: isCompleted ? 'linear-gradient(90deg, #9B5CF6, #D46BE0)' : '#C7D2FE',
-                                        marginTop: 33, /* align to center of icon circle (num height ~22px + 0.45rem + half of 42px) */
-                                        marginLeft: 2,
-                                        marginRight: 2,
-                                        flexShrink: 0,
-                                        transition: 'background 0.25s ease',
-                                    }} />
-                                )}
-                            </React.Fragment>
+                                <div style={{
+                                    fontSize: '0.75rem', fontWeight: isActive ? 700 : 500,
+                                    color: isActive ? '#1e293b' : '#64748b',
+                                    textAlign: 'center',
+                                    paddingBottom: '0.75rem',
+                                    borderBottom: isActive ? '3px solid #4f46e5' : '3px solid transparent'
+                                }}>
+                                    {step.label}
+                                </div>
+                            </div>
                         );
                     })}
                 </div>

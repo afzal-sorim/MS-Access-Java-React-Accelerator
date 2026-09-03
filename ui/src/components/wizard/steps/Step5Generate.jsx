@@ -1,22 +1,17 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, connectProgressWebSocket, downloadResult, getJob } from '../../../services/api';
+import { createJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 
 /**
  * Step 5: Generate Project
- * Per spec section 47:
- * - Show real-time progress of:
- *   Generating backend, Generating frontend, Generating DB
- *   Resolving dependencies, Building backend, Building frontend
- *   Running tests, Repairing errors, Running behavioral tests
  */
 
 const GENERATION_STEPS = [
-    { key: 'database', label: 'Generating Database', icon: '🗄️', description: 'Creating PostgreSQL schema, migrations, and seed data' },
-    { key: 'backend', label: 'Generating Backend', icon: '☕', description: 'Creating Spring Boot entities, repositories, services, controllers' },
     { key: 'frontend', label: 'Generating Frontend', icon: '⚛️', description: 'Creating React pages, components, API clients, routing' },
+    { key: 'backend', label: 'Generating Backend', icon: '☕', description: 'Creating Spring Boot entities, repositories, services, controllers' },
+    { key: 'database', label: 'Generating Database', icon: '🗄️', description: 'Creating PostgreSQL schema, migrations, and seed data' },
     { key: 'dependencies', label: 'Resolving Dependencies', icon: '📦', description: 'Resolving Maven and npm dependency versions, checking convergence' },
     { key: 'build_backend', label: 'Building Backend', icon: '🔨', description: 'Running mvn clean package, dependency convergence check' },
     { key: 'build_frontend', label: 'Building Frontend', icon: '📦', description: 'Running npm ci, npm run build' },
@@ -27,32 +22,15 @@ const GENERATION_STEPS = [
 
 const STEP_ORDER = GENERATION_STEPS.map(s => s.key);
 
-const STATUS_ICONS = {
-    pending: '⏳',
-    in_progress: '🔄',
-    completed: '✅',
-    error: '❌',
-    skipped: '⏭️',
-};
-
-/**
- * Map backend step names and job states to frontend step keys.
- * The backend pipeline sends step names like "generating_database",
- * "generating_backend", etc. and job states like "GENERATING_DATABASE".
- * We need to map these to our STEP_ORDER keys.
- */
 const BACKEND_STEP_MAP = {
-    // Pipeline broadcast step names
     'generating_database': 'database',
     'generating_backend': 'backend',
     'generating_frontend': 'frontend',
-    'generating_reports': 'frontend',  // report generation is part of the frontend phase
+    'generating_reports': 'frontend',
     'resolving_dependencies': 'dependencies',
     'validating_build': 'build_backend',
     'self_healing_repair': 'repair',
     'completed': 'behavioral',
-
-    // Job state values (sent by WebSocket polling)
     'GENERATING_DATABASE': 'database',
     'GENERATING_BACKEND': 'backend',
     'GENERATING_FRONTEND': 'frontend',
@@ -64,11 +42,6 @@ const BACKEND_STEP_MAP = {
     'COMPLETED': 'behavioral',
 };
 
-/**
- * Ordered list of backend states that correspond to generation.
- * Used to figure out which frontend steps are "completed" based on
- * the current backend state.
- */
 const BACKEND_STATE_ORDER = [
     'GENERATING_DATABASE',
     'GENERATING_BACKEND',
@@ -83,7 +56,6 @@ const BACKEND_STATE_ORDER = [
 function getCompletedFrontendSteps(backendState) {
     const stateIndex = BACKEND_STATE_ORDER.indexOf(backendState);
     if (stateIndex <= 0) return [];
-
     const completed = [];
     for (let i = 0; i < stateIndex; i++) {
         const frontendKey = BACKEND_STEP_MAP[BACKEND_STATE_ORDER[i]];
@@ -92,6 +64,632 @@ function getCompletedFrontendSteps(backendState) {
         }
     }
     return completed;
+}
+
+/**
+ * ER Diagram Component
+ */
+function ERDiagram({ schema }) {
+    if (!schema || !schema.tables) return null;
+
+    const normalizeName = (name) => String(name || '').replace(/[\[\]`"]+/g, '').trim().toLowerCase();
+    const columnCount = Math.max(...schema.tables.map(table => table.columns?.length || 0), 1);
+    const rowHeight = Math.max(185, 86 + columnCount * 36);
+    const columnsPerRow = 3;
+    const diagramRows = Math.ceil(schema.tables.length / columnsPerRow);
+    const tablePositions = new Map(schema.tables.map((table, index) => [normalizeName(table.name), {
+        index,
+        column: index % columnsPerRow,
+        row: Math.floor(index / columnsPerRow),
+        height: 42 + (table.columns?.length || 0) * 36,
+    }]));
+
+    return (
+        <div style={{ background: '#f8fafc', minHeight: '100%', position: 'relative' }}>
+            {/* Header */}
+            <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#fff' }}>🗄️</div>
+                    <div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>Database Entity-Relationship Diagram</div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{schema.tables.length} tables · {schema.relationships?.length || 0} relationships</div>
+                    </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔑 PK = Primary Key</span>
+                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔗 FK = Foreign Key</span>
+                </div>
+            </div>
+
+            {/* Animation Style */}
+            <style>
+                {`
+                @keyframes flowAnimation {
+                    from { stroke-dashoffset: 6; }
+                    to { stroke-dashoffset: 0; }
+                }
+                `}
+            </style>
+
+            {/* Diagram Canvas */}
+            <div style={{ padding: '1.5rem 2rem', position: 'relative', minHeight: `${diagramRows * rowHeight}px`, overflow: 'auto' }}>
+                <svg
+                    aria-label="Table relationships"
+                    viewBox={`0 0 100 ${diagramRows * rowHeight}`}
+                    preserveAspectRatio="none"
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: `${diagramRows * rowHeight}px`, pointerEvents: 'none', overflow: 'visible' }}
+                >
+                    <defs>
+                        <marker id="erd-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+                        </marker>
+                    </defs>
+                    {(schema.relationships || []).map((rel, index) => {
+                        const child = tablePositions.get(normalizeName(rel.child_table));
+                        const parent = tablePositions.get(normalizeName(rel.parent_table));
+                        if (!child || !parent) return null;
+                        const childColumn = rel.child_columns?.join(', ') || 'FK';
+                        const parentColumn = rel.parent_columns?.join(', ') || 'PK';
+                        const childX = child.column * 33.33;
+                        const parentX = parent.column * 33.33;
+                        const childY = child.row * rowHeight;
+                        const parentY = parent.row * rowHeight;
+                        const isHorizontal = child.row === parent.row;
+                        const childOnRight = child.column > parent.column;
+                        const startX = isHorizontal ? childX + (childOnRight ? 0 : 31) : childX + 15.5;
+                        const endX = isHorizontal ? parentX + (childOnRight ? 31 : 0) : parentX + 15.5;
+                        const startY = isHorizontal
+                            ? childY + Math.min(child.height, parent.height) / 2
+                            : childY + (child.row < parent.row ? child.height : 0);
+                        const endY = isHorizontal
+                            ? parentY + Math.min(child.height, parent.height) / 2
+                            : parentY + (child.row < parent.row ? 0 : parent.height);
+                        const middleX = (startX + endX) / 2;
+                        const middleY = (startY + endY) / 2;
+                        
+                        const lineProps = {
+                            stroke: "#0ea5e9",
+                            strokeWidth: "0.4",
+                            strokeDasharray: "2 1",
+                            markerEnd: "url(#erd-arrow)",
+                            style: { animation: 'flowAnimation 1s linear infinite' }
+                        };
+                        
+                        return (
+                            <g key={`${rel.child_table}-${rel.parent_table}-${index}`}>
+                                {isHorizontal ? (
+                                    <line x1={startX} y1={startY} x2={endX} y2={endY} {...lineProps} />
+                                ) : (
+                                    <path d={`M ${startX} ${startY} C ${startX} ${middleY}, ${endX} ${middleY}, ${endX} ${endY}`} fill="none" {...lineProps} />
+                                )}
+                                <text x={isHorizontal ? middleX : middleX + 2} y={middleY - 2} textAnchor="middle" fill="#0284c7" fontSize="2" fontWeight="600">
+                                    {childColumn} → {parentColumn}
+                                </text>
+                            </g>
+                        );
+                    })}
+                </svg>
+                {schema.tables.map(table => (
+                    <div key={table.name} style={{
+                        position: 'absolute',
+                        left: `${(schema.tables.indexOf(table) % columnsPerRow) * 33.33}%`,
+                        top: `${Math.floor(schema.tables.indexOf(table) / columnsPerRow) * rowHeight}px`,
+                        width: '31%',
+                        background: '#fff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)'
+                    }}>
+                        {/* Table header */}
+                        <div style={{
+                            background: 'linear-gradient(90deg, #f0f9ff, #e0f2fe)',
+                            color: '#0f172a',
+                            padding: '0.65rem 0.85rem',
+                            fontWeight: 700,
+                            fontSize: '0.8rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid #bae6fd'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span style={{ fontSize: '0.75rem' }}>▦</span>
+                                <span>{table.name}</span>
+                            </div>
+                            <span style={{ opacity: 0.8, fontSize: '0.65rem', background: '#bae6fd', color: '#0369a1', padding: '2px 6px', borderRadius: '10px' }}>TABLE</span>
+                        </div>
+                        {/* Columns */}
+                        <div style={{ padding: '0.3rem 0' }}>
+                            {table.columns.map((col, ci) => (
+                                <div key={col.name} style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '0.35rem 0.85rem',
+                                    fontSize: '0.72rem',
+                                    borderBottom: ci < table.columns.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                    background: col.pk ? '#fffbeb' : 'transparent'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        {col.pk && <span style={{ background: '#f59e0b', color: '#fff', fontSize: '0.55rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px' }}>PK</span>}
+                                        {col.fk && !col.pk && <span style={{ background: '#6366f1', color: '#fff', fontSize: '0.55rem', fontWeight: 900, padding: '1px 4px', borderRadius: '3px' }}>FK</span>}
+                                        <span style={{ fontWeight: col.pk ? 700 : 500, color: col.pk ? '#b45309' : '#334155' }}>{col.name}</span>
+                                    </div>
+                                    <span style={{ color: '#64748b', fontSize: '0.65rem', fontFamily: 'monospace' }}>{col.type}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/**
+ * Solution Summary Dashboard - Shown when no file is selected
+ */
+function SolutionSummary({ files, result, onViewSchema }) {
+    const counts = {
+        java: 0,
+        react: 0,
+        sql: 0,
+        total: 0
+    };
+
+    const countFiles = (nodes) => {
+        if (!nodes) return;
+        nodes.forEach(node => {
+            if (node.type === 'file') {
+                counts.total++;
+                if (node.name.toLowerCase().endsWith('.java')) counts.java++;
+                if (node.name.toLowerCase().endsWith('.jsx') || node.name.toLowerCase().endsWith('.js') || node.name.toLowerCase().endsWith('.css')) counts.react++;
+                if (node.name.toLowerCase().endsWith('.sql')) counts.sql++;
+            } else if (node.children) {
+                countFiles(node.children);
+            }
+        });
+    };
+
+    if (files.backend) countFiles(files.backend);
+    if (files.frontend) countFiles(files.frontend);
+    if (files.database) countFiles(files.database);
+
+    const coverage = result?.coverage?.overall || 0;
+    const statistics = result?.statistics || result?.migration?.statistics || {};
+    const migratedObjects = Object.entries({
+        Tables: statistics.tables,
+        Queries: statistics.queries,
+        Forms: statistics.forms,
+        Reports: statistics.reports,
+        Macros: statistics.macros,
+        'Vba Modules': statistics.vba_modules,
+    }).filter(([, value]) => typeof value === 'number');
+    const totalObjects = migratedObjects.reduce((total, [, value]) => total + value, 0);
+    const generatedFiles = result?.files_generated || result?.filesGenerated || counts.total;
+    const unitTests = result?.unit_tests_count ?? result?.unitTestsCount ?? 0;
+    const dependencies = result?.dependency_count ?? result?.dependencyCount ?? statistics.dependencies ?? 0;
+    const repairErrors = result?.repair_errors ?? result?.repairErrors ?? 0;
+    const chartItems = migratedObjects.filter(([, value]) => value > 0);
+    const chartMaximum = Math.max(...chartItems.map(([, value]) => value), 1);
+
+    const circumference = 2 * Math.PI * 15.9155;
+    const strokeDash = (coverage / 100) * circumference;
+
+    return (
+        <div style={{ padding: '2rem', background: '#fff', height: '100%', overflowY: 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', height: '100%' }}>
+
+                {/* ── LEFT: Solution Components ── */}
+                <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {onViewSchema && (
+                        <button
+                            onClick={onViewSchema}
+                            style={{
+                                width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                padding: '0.75rem 1rem',
+                                background: '#fff',
+                                color: '#4338ca',
+                                border: '1.5px solid #c7d2fe',
+                                borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '0.82rem',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <span style={{ fontSize: '1.1rem' }}>📊</span>
+                            <span>ER Diagram</span>
+                            <span style={{
+                                marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700,
+                                background: '#eef2ff',
+                                color: '#4338ca',
+                                padding: '2px 8px', borderRadius: '20px'
+                            }}>DB Schema</span>
+                        </button>
+                    )}
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Solution Components
+                    </div>
+
+                    {/* Component rows */}
+                    {[
+                        { icon: '☕', label: 'Java (Spring Boot)', value: `${counts.java} files`, color: '#f59e0b', bg: '#fef3c7' },
+                        { icon: '⚛️', label: 'React (Frontend)', value: `${counts.react} files`, color: '#3b82f6', bg: '#dbeafe' },
+                        { icon: '🗄️', label: 'Database (SQL)', value: `${counts.sql} objects`, color: '#8b5cf6', bg: '#ede9fe' },
+                    ].map(item => (
+                        <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ width: '34px', height: '34px', borderRadius: '8px', background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>
+                                    {item.icon}
+                                </div>
+                                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#334155' }}>{item.label}</span>
+                            </div>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: item.color, background: item.bg, padding: '2px 10px', borderRadius: '20px' }}>{item.value}</span>
+                        </div>
+                    ))}
+
+                    {/* Divider row */}
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Migrated Access objects</span>
+                            <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 12px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 700 }}>{totalObjects || counts.total}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Generated project files</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>{generatedFiles}</span>
+                        </div>
+                    </div>
+
+                    {/* Stats mini-grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem' }}>
+                        {[
+                            { label: 'Unit tests', value: unitTests, color: '#4338ca', bg: '#eef2ff' },
+                            { label: 'Dependencies', value: dependencies, color: '#0f766e', bg: '#ccfbf1' },
+                            { label: 'Repair errors', value: repairErrors, color: '#be123c', bg: '#ffe4e6' },
+                        ].map(({ label, value, color, bg }) => (
+                            <div key={label} style={{ padding: '0.75rem 0.5rem', background: bg, borderRadius: '8px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 800, color }}>{value}</div>
+                                <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>{label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* ── RIGHT: Conversion Gauge ── */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 60%, #f8fafc 100%)',
+                    borderRadius: '16px', padding: '2rem', color: '#1e293b',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+                    border: '1px solid #e2e8f0'
+                }}>
+                    {/* Radial gauge */}
+                    <div style={{ position: 'relative', width: '120px', height: '120px', marginBottom: '1.25rem' }}>
+                        <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e2e8f0" strokeWidth="3.5" />
+                            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#0ea5e9" strokeWidth="3.5"
+                                strokeDasharray={`${strokeDash} ${circumference}`}
+                                strokeLinecap="round"
+                                style={{ transition: 'stroke-dasharray 1s ease' }}
+                            />
+                        </svg>
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 900, lineHeight: 1, color: '#0f172a' }}>{Math.round(coverage)}%</div>
+                        </div>
+                    </div>
+
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: '#0f172a' }}>Automated Conversion</h4>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.3rem', marginBottom: 0 }}>Successfully translated Access objects</p>
+
+                    {/* Migration breakdown bars */}
+                    {chartItems.length > 0 && (
+                        <div style={{ width: '100%', marginTop: '1.5rem', textAlign: 'left', background: '#fff', borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                Migration breakdown
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
+                                {chartItems.map(([category, value]) => (
+                                    <div key={category} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 28px', alignItems: 'center', gap: '0.6rem', fontSize: '0.7rem' }}>
+                                        <span style={{ fontWeight: 500, color: '#334155' }}>{category}</span>
+                                        <div style={{ height: '5px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                            <div style={{
+                                                width: `${(value / chartMaximum) * 100}%`, height: '100%',
+                                                background: '#0ea5e9', borderRadius: '3px',
+                                                transition: 'width 0.8s ease'
+                                            }} />
+                                        </div>
+                                        <span style={{ textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * File Explorer Component for generated project
+ */
+function FileExplorer({ jobId }) {
+    const { state } = useWizard();
+    const { generationResult } = state;
+    const [files, setFiles] = useState({});
+        const [expanded, setExpanded] = useState({ frontend: true, backend: true, database: false });
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [fileContent, setFileContent] = useState(null);
+    const [schemaData, setSchemaData] = useState(null);
+    const [loadingFiles, setLoadingFiles] = useState(false);
+    const [loadingContent, setLoadingContent] = useState(false);
+    const [loadingSchema, setLoadingSchema] = useState(false);
+    const [viewMode, setViewMode] = useState('welcome'); // welcome, code, schema
+
+    useEffect(() => {
+        if (jobId) loadFiles();
+    }, [jobId]);
+
+    const loadFiles = async () => {
+        setLoadingFiles(true);
+        try {
+            const data = await listJobFiles(jobId);
+            setFiles(data);
+        } catch (err) {
+            console.error('Failed to load files:', err);
+        } finally {
+            setLoadingFiles(false);
+        }
+    };
+
+    const loadSchema = async () => {
+        if (schemaData) return;
+        setLoadingSchema(true);
+        try {
+            const data = await getJobDbSchema(jobId);
+            setSchemaData(data);
+        } catch (err) {
+            console.error('Failed to load DB schema:', err);
+        } finally {
+            setLoadingSchema(false);
+        }
+    };
+
+    const handleFileClick = async (file) => {
+        setSelectedFile(file);
+        setViewMode('code');
+        setLoadingContent(true);
+        try {
+            const data = await getFileContent(jobId, file.path);
+            setFileContent(data.content);
+        } catch (err) {
+            console.error('Failed to load file content:', err);
+            setFileContent('// Error loading file content.');
+        } finally {
+            setLoadingContent(false);
+        }
+    };
+
+    const toggleExpand = (cat) => {
+        setExpanded(prev => ({ ...prev, [cat]: !prev[cat] }));
+    };
+
+    const renderTree = (nodes, level = 0) => {
+        return nodes.map(node => (
+            <div key={node.path} style={{ marginLeft: `${level * 16 + 12}px` }}>
+                {node.type === 'directory' ? (
+                    <div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            padding: '0.3rem 0',
+                            fontSize: '0.85rem',
+                            color: '#475569'
+                        }}>
+                            <span style={{ fontSize: '0.9rem' }}>📁</span>
+                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{node.name}</span>
+                        </div>
+                        {renderTree(node.children, level + 1)}
+                    </div>
+                ) : (
+                    <div
+                        onClick={() => handleFileClick(node)}
+                        style={{
+                            cursor: 'pointer',
+                            padding: '0.35rem 0.75rem',
+                            fontSize: '0.8125rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            background: selectedFile?.path === node.path ? '#eef2ff' : 'transparent',
+                            color: selectedFile?.path === node.path ? '#4338ca' : '#64748b',
+                            borderRadius: '6px',
+                            borderLeft: selectedFile?.path === node.path ? '3px solid #4338ca' : '3px solid transparent',
+                            marginBottom: '2px',
+                            transition: 'all 0.15s ease',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        <span style={{ opacity: 0.8, fontSize: '0.9rem' }}>📄</span>
+                        {node.name}
+                    </div>
+                )}
+            </div>
+        ));
+    };
+
+    return (
+        <div style={{
+            display: 'grid',
+                    gridTemplateColumns: 'minmax(280px, 320px) minmax(0, 1fr)',
+            gap: '0',
+            marginTop: '1.5rem',
+            height: '650px',
+            border: '1px solid var(--color-border)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: '#fff',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+        }}>
+            {/* Sidebar */}
+            <div style={{
+                borderRight: '1px solid var(--color-border)',
+                overflowY: 'auto',
+                overflowX: 'auto',
+                padding: '1.5rem',
+                background: '#f8fafc',
+                height: '100%'
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        Solution Explorer
+                    </h3>
+                    <button
+                        onClick={loadFiles}
+                        style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', padding: '4px 8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                        title="Refresh"
+                    >🔄</button>
+                </div>
+
+
+
+                {loadingFiles ? (
+                    <div style={{ textAlign: 'center', padding: '3rem 0', color: '#64748b' }}>
+                        <div className="spinner" style={{ width: '20px', height: '20px', margin: '0 auto 1rem' }} />
+                        <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>Indexing solution...</span>
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {['frontend', 'backend', 'database'].map(cat => (
+                            <div key={cat} style={{ marginBottom: '0.25rem' }}>
+                                <div
+                                    onClick={() => toggleExpand(cat)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        background: expanded[cat] ? '#fff' : '#f1f5f9',
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '10px',
+                                        fontSize: '0.9rem',
+                                        border: expanded[cat] ? '1px solid #4338ca' : '1px solid transparent',
+                                        color: expanded[cat] ? '#4338ca' : '#475569',
+                                        textTransform: 'capitalize',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: expanded[cat] ? '0 4px 6px -1px rgba(67, 56, 202, 0.1)' : 'none',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    <span style={{
+                                        fontSize: '0.6rem',
+                                        width: '14px',
+                                        transition: 'transform 0.2s',
+                                        transform: expanded[cat] ? 'rotate(90deg)' : 'rotate(0)',
+                                        color: expanded[cat] ? '#4338ca' : '#94a3b8'
+                                    }}>▶</span>
+                                    <span style={{ fontSize: '1.2rem' }}>{cat === 'frontend' ? '⚛️' : cat === 'backend' ? '☕' : '🗄️'}</span>
+                                    <span style={{ flex: 1 }}>{cat}</span>
+
+                                </div>
+                                {expanded[cat] && (
+                                    <div style={{ marginTop: '0.75rem', animation: 'slideDown 0.3s ease-out' }}>
+                                        {files[cat] ? renderTree(files[cat]) : (
+                                            <div style={{ fontSize: '0.75rem', padding: '0.5rem 2rem', color: '#94a3b8', fontStyle: 'italic' }}>Empty directory.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Content Area */}
+            <div style={{ overflowY: 'auto', background: viewMode === 'code' ? '#1e293b' : '#fff', position: 'relative', height: '100%' }}>
+                {viewMode === 'welcome' && (
+                    <SolutionSummary files={files} result={generationResult} onViewSchema={() => { setViewMode('schema'); loadSchema(); setSelectedFile(null); }} />
+                )}
+
+                {viewMode === 'code' && selectedFile && (
+                    <>
+                        <div style={{
+                            background: '#0f172a',
+                            padding: '1rem 2rem',
+                            borderBottom: '1px solid #334155',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 10
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <span style={{ color: '#94a3b8', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>Path:</span>
+                                <code style={{ color: '#38bdf8', fontSize: '0.875rem', fontWeight: 600 }}>{selectedFile.path}</code>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', background: '#1e293b', padding: '4px 10px', borderRadius: '6px', border: '1px solid #334155' }}>
+                                    {(selectedFile.size / 1024).toFixed(1)} KB
+                                </span>
+                                <button
+                                    onClick={() => setViewMode('welcome')}
+                                    style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1rem' }}
+                                >✕</button>
+                            </div>
+                        </div>
+
+                        {loadingContent ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '80%', color: '#94a3b8' }}>
+                                <div className="spinner" style={{ marginBottom: '1rem' }} />
+                                <span>Reading file content...</span>
+                            </div>
+                        ) : (
+                            <div style={{ padding: '2rem' }}>
+                                <pre style={{
+                                    margin: 0,
+                                    fontSize: '0.875rem',
+                                    lineHeight: 1.7,
+                                    color: '#f8fafc',
+                                    whiteSpace: 'pre-wrap',
+                                    fontFamily: '"Fira Code", "JetBrains Mono", monospace',
+                                    tabSize: 4
+                                }}>
+                                    {fileContent}
+                                </pre>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {viewMode === 'schema' && (
+                    <div style={{ height: '100%', position: 'relative' }}>
+                        <button
+                            onClick={() => setViewMode('welcome')}
+                            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 100, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}
+                        >✕</button>
+                        {loadingSchema ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b' }}>
+                                <div className="spinner" style={{ marginBottom: '1rem' }} />
+                                <span>Building Schema Model...</span>
+                            </div>
+                        ) : (
+                            <ERDiagram schema={schemaData} />
+                        )}
+                    </div>
+                )}
+            </div>
+
+
+            <style>{`
+                @keyframes slideDown {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
+        </div>
+    );
 }
 
 export default function Step5Generate() {
@@ -292,14 +890,6 @@ export default function Step5Generate() {
         }
     }, [selectedFile, localSource, analysisJobId, generationJobId, isGenerating, startGeneration]);
 
-    // Build step status map
-    const getStepStatus = (stepKey) => {
-        if (generationProgress.completedSteps?.includes(stepKey)) return 'completed';
-        if (generationProgress.failedSteps?.includes(stepKey)) return 'error';
-        if (generationProgress.currentStep === stepKey) return 'in_progress';
-        return 'pending';
-    };
-
     const completedCount = generationProgress.completedSteps?.length || 0;
     const totalSteps = GENERATION_STEPS.length;
     const overallProgress = generationProgress.percentage || (completedCount / totalSteps) * 100;
@@ -335,45 +925,6 @@ export default function Step5Generate() {
                         Current: <strong>initializing</strong>
                     </p>
                 )}
-            </div>
-
-            {/* Generation Steps */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {GENERATION_STEPS.map((step) => {
-                    const status = getStepStatus(step.key);
-
-                    return (
-                        <div
-                            key={step.key}
-                            className="card"
-                            style={{
-                                padding: '1rem',
-                                borderLeft: `4px solid ${
-                                    status === 'completed' ? 'var(--color-success)' :
-                                    status === 'in_progress' ? 'var(--color-primary)' :
-                                    status === 'error' ? 'var(--color-danger)' :
-                                    'var(--color-border)'
-                                }`,
-                                background: status === 'in_progress' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                transition: 'all 0.3s ease',
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '1.5rem' }}>{STATUS_ICONS[status]}</span>
-                                <span style={{ fontSize: '1.5rem' }}>{step.icon}</span>
-                                <div style={{ flex: 1, minWidth: 200 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{step.label}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{step.description}</div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
-                                        {status.replace('_', ' ')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
             </div>
 
             {/* Live Log */}
@@ -416,17 +967,62 @@ export default function Step5Generate() {
             )}
 
             {generationComplete && generationResult && (
-                <div className="alert alert-success" style={{ marginTop: '1.5rem' }}>
-                    <strong>Generation Complete!</strong>
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                        Project generated at: <code>{generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}</code>
-                    </div>
-                    {generationResult.filesGenerated && (
-                        <div style={{ marginTop: '0.25rem', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                            Generated {formatNumber(generationResult.filesGenerated)} files
+                <>
+                    <style>
+                        {`
+                        @keyframes toastSlideIn {
+                            0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
+                            100% { transform: translateY(0) scale(1); opacity: 1; }
+                        }
+                        `}
+                    </style>
+                    <div style={{
+                        position: 'fixed',
+                        top: '2rem',
+                        right: '2rem',
+                        zIndex: 9999,
+                        width: '450px',
+                        padding: '1.25rem 1.5rem',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
+                        border: '1px solid #bbf7d0',
+                        borderLeft: '4px solid #22c55e',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '1.25rem',
+                        animation: 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
+                        <div style={{ 
+                            background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
+                            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
+                        }}>
+                            ✔️
                         </div>
-                    )}
-                </div>
+                        <div style={{ flex: 1 }}>
+                            <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
+                            <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
+                                The project was successfully generated and saved to: <br/>
+                                <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
+                                    {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
+                                </span>
+                            </div>
+                            {generationResult.filesGenerated && (
+                                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
+                                    <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* File Explorer - Shown when generation is complete */}
+            {generationComplete && (generationJobId || analysisJobId) && (
+                <FileExplorer jobId={generationJobId || analysisJobId} />
             )}
 
             {generationComplete && generationResult && (

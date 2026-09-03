@@ -54,7 +54,11 @@ class JobResult(BaseModel):
     """Result of a completed job."""
     output_path: Optional[str] = None
     coverage: dict[str, float] = Field(default_factory=dict)
+    statistics: dict[str, int] = Field(default_factory=dict)
     files_generated: int = 0
+    unit_tests_count: int = 0
+    dependency_count: int = 0
+    repair_errors: int = 0
     build_success: bool = False
     test_success: bool = False
     warnings: list[str] = Field(default_factory=list)

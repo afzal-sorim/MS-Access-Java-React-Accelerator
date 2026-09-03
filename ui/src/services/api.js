@@ -174,6 +174,39 @@ export function downloadResult(jobId, projectName = 'ConvertedApplication') {
 }
 
 /**
+ * List all generated files for a job.
+ */
+export async function listJobFiles(jobId) {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/files`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch job files');
+    }
+    return response.json();
+}
+
+/**
+ * Get content of a specific generated file.
+ */
+export async function getFileContent(jobId, path) {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/file-content?path=${encodeURIComponent(path)}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch file content');
+    }
+    return response.json();
+}
+
+/**
+ * Get database schema for ER diagram.
+ */
+export async function getJobDbSchema(jobId) {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/db-schema`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch DB schema');
+    }
+    return response.json();
+}
+
+/**
  * Connect to WebSocket for real-time job progress.
  * Corresponds to WS /ws/jobs/{job_id}
  *
