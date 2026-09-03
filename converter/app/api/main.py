@@ -182,7 +182,7 @@ class JobResponse(BaseModel):
     source_origin: Optional[str] = None
     result: Optional[JobResult] = None
     error: Optional[dict] = None
-    statistics: dict[str, int] = {}
+    statistics: dict[str, Any] = {}
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -198,7 +198,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "*"
+    ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1065,6 +1072,21 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    extract_path = getattr(job, "extraction_path", None)
+    candidate_paths = [
+        extract_path,
+        str(Path("converter/outputs") / job_id / ".extract" / "extraction.json"),
+        str(Path(job.output_path or "") / ".extract" / "extraction.json") if job.output_path else None,
+    ]
+    extraction = {}
+    for cp in candidate_paths:
+        if cp and Path(cp).exists():
+            try:
+                extraction = json.loads(Path(cp).read_text(encoding="utf-8"))
+                break
+            except Exception:
+                pass
+
     return JobResponse(
         id=job.id,
         state=job.state,
@@ -1076,14 +1098,66 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
         result=JobResult(**job.result) if job.result else None,
         error=job.error,
         statistics={
-            "tables": job.tables_count,
-            "queries": job.queries_count,
-            "forms": job.forms_count,
-            "reports": job.reports_count,
-            "macros": job.macros_count,
-            "vba_modules": job.vba_modules_count,
+            "tables": job.tables_count if job.tables_count is not None else len(extraction.get("tables", [])),
+            "queries": job.queries_count if job.queries_count is not None else len(extraction.get("queries", [])),
+            "forms": job.forms_count if job.forms_count is not None else len(extraction.get("forms", [])),
+            "reports": job.reports_count if job.reports_count is not None else len(extraction.get("reports", [])),
+            "macros": job.macros_count if job.macros_count is not None else len(extraction.get("macros", [])),
+            "vba_modules": job.vba_modules_count if job.vba_modules_count is not None else len(extraction.get("modules", [])),
+            "table_names": [t.get("name") if isinstance(t, dict) else t for t in extraction.get("tables", [])],
+            "query_names": [q.get("name") if isinstance(q, dict) else q for q in extraction.get("queries", [])],
+            "form_names": [f.get("name") if isinstance(f, dict) else f for f in extraction.get("forms", [])],
+            "report_names": [r.get("name") if isinstance(r, dict) else r for r in extraction.get("reports", [])],
+            "macro_names": [m.get("name") if isinstance(m, dict) else m for m in extraction.get("macros", [])],
+            "module_names": [m.get("name") if isinstance(m, dict) else m for m in extraction.get("modules", [])],
+            "dependencies": getattr(job, "dependencies_count", 0) or 0,
         },
     )
+
+
+@app.get("/api/jobs/{job_id}/discovery")
+async def get_job_discovery(job_id: str, db: AsyncSession = Depends(get_db)):
+    """Get full real extracted discovery objects for any database."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    extraction = {}
+    extract_path = getattr(job, "extraction_path", None)
+    
+    candidate_paths = [
+        extract_path,
+        str(Path("converter/outputs") / job_id / ".extract" / "extraction.json"),
+        str(Path(job.output_path or "") / ".extract" / "extraction.json") if job.output_path else None,
+    ]
+    for cp in candidate_paths:
+        if cp and Path(cp).exists():
+            try:
+                extraction = json.loads(Path(cp).read_text(encoding="utf-8"))
+                break
+            except Exception:
+                pass
+
+    return {
+        "job_id": job.id,
+        "tables": extraction.get("tables", []),
+        "queries": extraction.get("queries", []),
+        "forms": extraction.get("forms", []),
+        "reports": extraction.get("reports", []),
+        "macros": extraction.get("macros", []),
+        "modules": extraction.get("modules", []),
+        "relationships": extraction.get("relationships", []),
+        "statistics": {
+            "tables": job.tables_count if job.tables_count is not None else len(extraction.get("tables", [])),
+            "queries": job.queries_count if job.queries_count is not None else len(extraction.get("queries", [])),
+            "forms": job.forms_count if job.forms_count is not None else len(extraction.get("forms", [])),
+            "reports": job.reports_count if job.reports_count is not None else len(extraction.get("reports", [])),
+            "macros": job.macros_count if job.macros_count is not None else len(extraction.get("macros", [])),
+            "vba_modules": job.vba_modules_count if job.vba_modules_count is not None else len(extraction.get("modules", [])),
+            "dependencies": getattr(job, "dependencies_count", 0) or 0,
+        }
+    }
 
 
 @app.websocket("/ws/jobs/{job_id}")

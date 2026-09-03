@@ -12,13 +12,12 @@ export default function WizardApp() {
     return (
         <WizardProvider>
             <div className="app-container">
-                {/* ── AccessMigra Top Header ── */}
-                <header className="app-header">
+                {/* ── Top Header with Access2Java Logo on Left ── */}
+                <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', background: '#ffffff', minHeight: '64px', padding: '0.65rem 2rem' }}>
                     {/* Left: Logo */}
                     <div className="app-logo">
                         <Access2JavaLogo size="sm" />
                     </div>
-
 
                     {/* Right: User profile card */}
                     <div className="app-user-card">

@@ -133,10 +133,23 @@ export async function createLocalJob(path, config) {
 /**
  * Get job details by ID.
  * Corresponds to GET /api/jobs/{job_id}
- */export async function getJob(jobId) {
+ */
+export async function getJob(jobId) {
     const response = await fetch(`${API_BASE}/jobs/${jobId}`);
     if (!response.ok) {
         throw new Error('Failed to fetch job');
+    }
+    return response.json();
+}
+
+/**
+ * Get full real extracted discovery objects (tables, queries, forms, reports, macros, modules)
+ * Corresponds to GET /api/jobs/{job_id}/discovery
+ */
+export async function getJobDiscovery(jobId) {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/discovery`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch discovery objects');
     }
     return response.json();
 }
