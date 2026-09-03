@@ -577,9 +577,14 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         # Step 9: Build validation
         await update_state(JobState.BUILDING, "validating_build", 95.0, "Validating Maven and React build artifacts...")
         build_log = await log_build("build", "validate_project")
+        repair_errors = 0
 
         try:
             validation_result = await asyncio.to_thread(validate_project, str(job_dir))
+            repair_errors = sum(
+                len(phase.get("errors", []))
+                for phase in validation_result.get("results", {}).values()
+            )
             await update_build_log(build_log.id, "completed", f"Build validation: {validation_result['status']}")
 
             build_success = validation_result["status"] == "success"
@@ -601,7 +606,21 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         job_result = JobResult(
             output_path=str(job_dir),
             coverage=coverage,
+            statistics={
+                "tables": job.tables_count,
+                "queries": job.queries_count,
+                "forms": job.forms_count,
+                "reports": job.reports_count,
+                "macros": job.macros_count,
+                "vba_modules": job.vba_modules_count,
+            },
             files_generated=total_files,
+            unit_tests_count=sum(
+                1 for path in [*spring_gen.keys(), *react_gen.keys()]
+                if "test" in Path(path).name.lower()
+            ),
+            dependency_count=job.dependencies_count or 0,
+            repair_errors=repair_errors,
             build_success=build_success,
             test_success=False,
             warnings=app_ir.warnings,
@@ -1134,6 +1153,117 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
                 await websocket.close()
             except Exception:
                 pass
+
+
+@app.get("/api/jobs/{job_id}/files")
+async def list_job_files(job_id: str, db: AsyncSession = Depends(get_db)):
+    """List all generated files for a job, grouped by category."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job or not job.output_path:
+        raise HTTPException(status_code=404, detail="Job or output not found")
+
+    output_dir = Path(job.output_path)
+
+    def get_file_tree(root_path: Path, current_path: Path):
+        tree = []
+        try:
+            for item in sorted(current_path.iterdir()):
+                # Skip hidden files and certain directories
+                if item.name.startswith('.') or item.name in ('node_modules', 'target', 'bin', 'obj', '__pycache__'):
+                    continue
+
+                relative_path = str(item.relative_to(root_path)).replace('\\', '/')
+                if item.is_dir():
+                    tree.append({
+                        "name": item.name,
+                        "path": relative_path,
+                        "type": "directory",
+                        "children": get_file_tree(root_path, item)
+                    })
+                else:
+                    tree.append({
+                        "name": item.name,
+                        "path": relative_path,
+                        "type": "file",
+                        "size": item.stat().st_size
+                    })
+        except Exception:
+            pass
+        return tree
+
+    # Organize by the requested categories: Frontend, Backend, Database
+    categories = {}
+    if (output_dir / "frontend").exists():
+        categories["frontend"] = get_file_tree(output_dir, output_dir / "frontend")
+    if (output_dir / "backend").exists():
+        categories["backend"] = get_file_tree(output_dir, output_dir / "backend")
+    if (output_dir / "database").exists():
+        categories["database"] = get_file_tree(output_dir, output_dir / "database")
+
+    return categories
+
+
+@app.get("/api/jobs/{job_id}/file-content")
+async def get_file_content(job_id: str, path: str, db: AsyncSession = Depends(get_db)):
+    """Get the content of a generated file."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job or not job.output_path:
+        raise HTTPException(status_code=404, detail="Job or output not found")
+
+    # Security check: ensure path is within output_path
+    output_dir = Path(job.output_path).resolve()
+    target_path = (output_dir / path).resolve()
+
+    if not str(target_path).startswith(str(output_dir)):
+         raise HTTPException(status_code=403, detail="Access denied")
+
+    if not target_path.exists() or not target_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        content = target_path.read_text(encoding="utf-8")
+        return {"content": content, "path": path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+
+@app.get("/api/jobs/{job_id}/db-schema")
+async def get_job_db_schema(job_id: str, db: AsyncSession = Depends(get_db)):
+    """Get database schema (tables and relationships) for ER diagram."""
+    ir_repo = IRRepository(db)
+    ir_data = await ir_repo.get(job_id)
+    if not ir_data:
+        raise HTTPException(status_code=404, detail="IR data not found for job")
+
+    data = ir_data.data
+    tables = []
+    for t in data.get("tables", []):
+        tables.append({
+            "name": t.get("name"),
+            "columns": [
+                {
+                    "name": c.get("name"),
+                    "type": c.get("sql_type") or c.get("access_type"),
+                    "pk": c.get("primary_key", False),
+                    "fk": c.get("is_lookup", False)
+                }
+                for c in t.get("columns", [])
+            ]
+        })
+
+    relationships = []
+    for r in data.get("relationships", []):
+        relationships.append({
+            "name": r.get("name"),
+            "parent_table": r.get("parent_table"),
+            "child_table": r.get("child_table"),
+            "parent_columns": r.get("parent_columns"),
+            "child_columns": r.get("child_columns")
+        })
+
+    return {"tables": tables, "relationships": relationships}
 
 
 @app.get("/api/jobs/{job_id}/download")

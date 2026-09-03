@@ -5,12 +5,12 @@
 
 // Wizard steps (spec section 47)
 export const WIZARD_STEPS = [
-    { id: 1, key: 'select', label: 'Select Application', icon: '📁' },
-    { id: 2, key: 'analyze', label: 'Analyze', icon: '🔍' },
-    { id: 3, key: 'configure', label: 'Configure', icon: '⚙️' },
-    { id: 4, key: 'review', label: 'Map & Review', icon: '📋' },
-    { id: 5, key: 'generate', label: 'Generate', icon: '🏗️' },
-    { id: 6, key: 'summary', label: 'Summary', icon: '✅' },
+    { id: 1, key: 'select', label: 'Connect', icon: '📁' },
+    { id: 2, key: 'analyze', label: 'Discovery', icon: '🔍' },
+    { id: 3, key: 'configure', label: 'Strategy', icon: '⚙️' },
+    { id: 4, key: 'review', label: 'Migration', icon: '📋' },
+    { id: 5, key: 'generate', label: 'Modernization', icon: '🏗️' },
+    { id: 6, key: 'summary', label: 'Result', icon: '✅' },
 ];
 
 // Object status states (spec section 48)

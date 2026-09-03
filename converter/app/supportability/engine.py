@@ -227,7 +227,10 @@ class SupportabilityEngine:
                 risk="LOW",
                 conversion="JPA_ENTITY",
                 confidence=confidence,
-                reason="Standard table structure",
+                reason=(
+                    f"{len(table.columns)} columns with a directly supported schema; "
+                    "converted to a PostgreSQL-backed JPA entity"
+                ),
             )
 
         has_unsupported = any("unsupported" in i for i in issues)
@@ -322,7 +325,11 @@ class SupportabilityEngine:
             risk="LOW",
             conversion=conversion,
             confidence=confidence,
-            reason="; ".join(issues) if issues else "Standard query",
+            reason=(
+                "; ".join(issues)
+                if issues
+                else f"{kind_name} query uses supported SQL constructs; converted to {conversion}"
+            ),
         )
 
     # ---------------------------------------------------------------- forms
@@ -398,7 +405,15 @@ class SupportabilityEngine:
             risk="LOW" if complexity == "LOW" else "MEDIUM",
             conversion="REACT_PAGE",
             confidence=confidence,
-            reason="; ".join(issues) if issues else "Standard form",
+            reason=(
+                "; ".join(issues)
+                if issues
+                else (
+                    f"Bound to {form.record_source}; controls and events map to a React page"
+                    if form.record_source
+                    else "Unbound form converted to a React layout scaffold; no record source was found"
+                )
+            ),
         )
 
     # ---------------------------------------------------------------- reports
@@ -443,7 +458,15 @@ class SupportabilityEngine:
             risk="LOW",
             conversion="REPORT_ENDPOINT",
             confidence=confidence,
-            reason="; ".join(issues) if issues else "Standard report",
+            reason=(
+                "; ".join(issues)
+                if issues
+                else (
+                    f"Record source {report.record_source} is available; converted to a report endpoint"
+                    if report.record_source
+                    else "Report structure converted, but no record source was found"
+                )
+            ),
         )
 
     # ---------------------------------------------------------------- macros
@@ -496,7 +519,11 @@ class SupportabilityEngine:
             risk="LOW" if not issues else "MEDIUM",
             conversion="SERVICE_METHOD",
             confidence=confidence,
-            reason="; ".join(issues) if issues else "Standard macro",
+            reason=(
+                "; ".join(issues)
+                if issues
+                else f"{len(macro.actions)} supported action(s) mapped to a service workflow"
+            ),
         )
 
     # ---------------------------------------------------------------- VBA
