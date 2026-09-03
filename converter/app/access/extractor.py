@@ -168,6 +168,12 @@ class AccessExtractor:
         try:
             app = win32com.client.DispatchEx("Access.Application")
             app.Visible = False
+            # 1 = msoAutomationSecurityLow: programmatically enables all content/macros
+            # and suppresses security alert dialogs in the headless COM automation session.
+            try:
+                app.AutomationSecurity = 1
+            except Exception:
+                pass
             app.OpenCurrentDatabase(self.db_path, False)
             payload = self._extract_all(app)
             app.CloseCurrentDatabase()

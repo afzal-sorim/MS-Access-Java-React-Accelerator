@@ -9,13 +9,13 @@ import { formatNumber } from '../../../utils/helpers';
  * - table scan, query scan, form scan, report scan, VBA scan, macro scan, dependency scan
  */
 const ANALYSIS_ITEMS = [
-    { key: 'tables', label: 'Table Scan', icon: '🗃️', description: 'Extracting tables, columns, indexes, relationships' },
-    { key: 'queries', label: 'Query Scan', icon: '🔍', description: 'Analyzing SELECT, INSERT, UPDATE, DELETE, parameter, crosstab queries' },
-    { key: 'forms', label: 'Form Scan', icon: '📋', description: 'Extracting forms, controls, events, subforms, validation rules' },
-    { key: 'reports', label: 'Report Scan', icon: '📊', description: 'Analyzing reports, sections, grouping, sorting, subreports' },
-    { key: 'vba', label: 'VBA Scan', icon: '💻', description: 'Parsing modules, functions, subs, event procedures, business rules' },
-    { key: 'macros', label: 'Macro Scan', icon: '⚡', description: 'Extracting macro actions, conditions, nested structures' },
-    { key: 'dependencies', label: 'Dependency Scan', icon: '🔗', description: 'Discovering linked tables, external databases, COM references' },
+    { key: 'tables', label: 'Table Scan', icon: '🗃️', description: 'Extracting tables, columns, indexes, relationships', target: 'PostgreSQL tables and JPA entities' },
+    { key: 'queries', label: 'Query Scan', icon: '🔍', description: 'Analyzing SELECT, INSERT, UPDATE, DELETE, parameter, crosstab queries', target: 'JPA repositories and service methods' },
+    { key: 'forms', label: 'Form Scan', icon: '📋', description: 'Extracting forms, controls, events, subforms, validation rules', target: 'React pages and form components' },
+    { key: 'reports', label: 'Report Scan', icon: '📊', description: 'Analyzing reports, sections, grouping, sorting, subreports', target: 'Report endpoints and PDF output' },
+    { key: 'vba', label: 'VBA Scan', icon: '💻', description: 'Parsing modules, functions, subs, event procedures, business rules', target: 'Spring service methods and business rules' },
+    { key: 'macros', label: 'Macro Scan', icon: '⚡', description: 'Extracting macro actions, conditions, nested structures', target: 'Application workflows and navigation' },
+    { key: 'dependencies', label: 'Dependency Scan', icon: '🔗', description: 'Discovering linked tables, external databases, COM references', target: 'Migration adapters and integration configuration' },
 ];
 
 const STATUS_ICONS = {
@@ -262,6 +262,9 @@ export default function Step2Analyze() {
                                 <div style={{ flex: 1, minWidth: 200 }}>
                                     <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{item.label}</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.description}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '0.25rem' }}>
+                                        Migration target: {item.target}
+                                    </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
                                     <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-primary)' }}>
