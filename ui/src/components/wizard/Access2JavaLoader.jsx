@@ -48,18 +48,23 @@ export default function Access2JavaLoader({
     elapsedSecondsRef.current = elapsedSeconds;
   }, [elapsedSeconds]);
 
-  // When loader completes or unmounts, accurately pass the exact elapsed loader time to the discovery page
+  const onDurationRecordedRef = useRef(onDurationRecorded);
+  useEffect(() => {
+    onDurationRecordedRef.current = onDurationRecorded;
+  }, [onDurationRecorded]);
+
+  // When loader unmounts, accurately pass elapsed loader time once
   useEffect(() => {
     return () => {
-      if (typeof onDurationRecorded === 'function' && elapsedSecondsRef.current > 0) {
+      if (typeof onDurationRecordedRef.current === 'function' && elapsedSecondsRef.current > 0) {
         const secs = elapsedSecondsRef.current;
         const h = String(Math.floor(secs / 3600)).padStart(2, '0');
         const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
         const s = String(secs % 60).padStart(2, '0');
-        onDurationRecorded(`${h}:${m}:${s}`);
+        onDurationRecordedRef.current(`${h}:${m}:${s}`);
       }
     };
-  }, [onDurationRecorded]);
+  }, []);
 
   useEffect(() => {
     const startTime = Date.now();

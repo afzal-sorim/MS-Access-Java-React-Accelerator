@@ -39,6 +39,7 @@ export default function Step2Analyze() {
     const [parsedData, setParsedData] = useState(null);
 
     const startedRef = useRef(false);
+    const hasFetchedDiscoveryRef = useRef(false);
     const [ws, setWs] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(true);
     const [analysisError, setAnalysisError] = useState(null);
@@ -249,7 +250,8 @@ export default function Step2Analyze() {
             }
         };
 
-        if (state.analysisJobId && !analysisResult?.tables) {
+        if (state.analysisJobId && !hasFetchedDiscoveryRef.current && !analysisResult?.tables) {
+            hasFetchedDiscoveryRef.current = true;
             getJobDiscovery(state.analysisJobId).then(discovery => {
                 if (discovery) {
                     actions.setAnalysisResult(discovery);
@@ -388,12 +390,6 @@ export default function Step2Analyze() {
                     fileSize={getFileSize()}
                     scannedData={effectiveProgress}
                     isComplete={state.analysisComplete}
-                    onDurationRecorded={(recordedDuration) => {
-                        setDynamicTimeDisplay(recordedDuration);
-                        if (typeof actions.setAnalysisDuration === 'function') {
-                            actions.setAnalysisDuration(recordedDuration);
-                        }
-                    }}
                 />
             </div>
         );
