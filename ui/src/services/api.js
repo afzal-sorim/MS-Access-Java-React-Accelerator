@@ -1,6 +1,6 @@
 /**
  * API service layer for the MS Access Converter Wizard.
- * Communicates with the FastAPI backend defined in converter/app/api/main.py.
+ * Communicates with the FastAPI backend.
  */
 
 const API_BASE = import.meta.env.VITE_API_URL
@@ -8,114 +8,161 @@ const API_BASE = import.meta.env.VITE_API_URL
     : '/api';
 
 /**
- * Get supported technology versions from the backend.
- * Corresponds to GET /api/versions
+ * Helper to get the current token from localStorage.
  */
-export async function getVersions() {
-    const response = await fetch(`${API_BASE}/versions`);
+function getToken() {
+    return localStorage.getItem('token');
+}
+
+/**
+ * Enhanced fetch with authentication headers and error handling.
+ */
+async function authFetch(endpoint, options = {}) {
+    console.log(`Calling API: ${API_BASE}${endpoint}`);
+    const token = getToken();
+    const headers = {
+        ...options.headers,
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers,
+    });
+
+    if (response.status === 401) {
+        // Handle unauthorized (e.g., token expired)
+        localStorage.removeItem('token');
+        if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+        }
+    }
+
     if (!response.ok) {
-        throw new Error('Failed to fetch supported versions');
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || 'API request failed');
+    }
+
+    return response;
+}
+
+// --- Auth Endpoints ---
+
+export async function login(email, password) {
+    const formData = new FormData();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Login failed' }));
+        throw new Error(errorData.detail || 'Login failed');
+    }
+
+    return response.json();
+}
+
+export async function signup(email, password, name) {
+    const response = await fetch(`${API_BASE}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Signup failed' }));
+        throw new Error(errorData.detail || 'Signup failed');
+    }
+
+    return response.json();
+}
+
+export async function getMe() {
+    const response = await authFetch('/auth/me');
+    return response.json();
+}
+
+export async function socialCallback(provider, code) {
+    const redirectUri = `${window.location.origin}/auth/callback`;
+    const response = await fetch(`${API_BASE}/auth/${provider}/callback?code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `Failed to complete ${provider} authentication` }));
+        throw new Error(errorData.detail || `Failed to complete ${provider} authentication`);
     }
     return response.json();
 }
 
-/**
- * Create a new conversion job by uploading an Access file.
- * Corresponds to POST /api/jobs
- *
- * @param {File} file - The .accdb or .mdb file
- * @param {object} config - ConversionConfig { project_name, base_package, ... }
- * @returns {Promise<object>} JobResponse
- */
+export async function forgotPassword(email) {
+    const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    return response.json();
+}
+
+export async function resetPassword(token, new_password) {
+    const response = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, new_password }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Reset failed' }));
+        throw new Error(errorData.detail || 'Reset failed');
+    }
+    return response.json();
+}
+
+// --- Job Endpoints ---
+
+export async function getVersions() {
+    const response = await authFetch('/versions');
+    return response.json();
+}
+
 export async function createJob(file, config) {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('project_name', config.project_name || 'ConvertedApplication');
     formData.append('base_package', config.base_package || 'com.generated.app');
 
-    const response = await fetch(`${API_BASE}/jobs`, {
+    const response = await authFetch(`/jobs?project_name=${encodeURIComponent(config.project_name)}&base_package=${encodeURIComponent(config.base_package)}`, {
         method: 'POST',
         body: formData,
     });
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(error.detail || 'Failed to create conversion job');
-    }
-
     return response.json();
 }
 
-/**
- * Read a JSON error body and throw it as an Error.
- * The backend reports failures as { detail: "..." } (FastAPI HTTPException).
- */
-async function throwApiError(response, fallback) {
-    const error = await response.json().catch(() => ({ detail: fallback }));
-    throw new Error(error.detail || fallback);
-}
-
-/**
- * Check whether the backend can extract directly from local MS Access.
- * Corresponds to GET /api/local-access/capability
- *
- * Returns { available, access_version, access_running, reason, ... }.
- * `available: false` is a normal answer (no Access installed / not Windows),
- * not an error - the reason explains why the direct mode is unavailable.
- */
 export async function getLocalAccessCapability() {
-    const response = await fetch(`${API_BASE}/local-access/capability`);
-    if (!response.ok) {
-        await throwApiError(response, 'Failed to check local MS Access availability');
-    }
+    const response = await authFetch('/local-access/capability');
     return response.json();
 }
 
-/**
- * List Access databases discoverable on the backend machine.
- * Corresponds to GET /api/local-access/sources
- *
- * Returns { open: [...], recent: [...], errors: [...] }.
- */
 export async function listLocalAccessSources() {
-    const response = await fetch(`${API_BASE}/local-access/sources`);
-    if (!response.ok) {
-        await throwApiError(response, 'Failed to discover local Access databases');
-    }
+    const response = await authFetch('/local-access/sources');
     return response.json();
 }
 
-/**
- * Validate a local path and get its database metadata.
- * Corresponds to POST /api/local-access/validate
- *
- * @param {string} path - Absolute path on the backend machine
- */
 export async function validateLocalPath(path) {
-    const response = await fetch(`${API_BASE}/local-access/validate`, {
+    const response = await authFetch('/local-access/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path }),
     });
-    if (!response.ok) {
-        await throwApiError(response, 'That path is not a usable Access database');
-    }
     return response.json();
 }
 
-/**
- * Create a conversion job from a database already on the backend machine.
- * Corresponds to POST /api/jobs/local
- *
- * The backend copies the file before extraction, so the user's original
- * database is never opened by the extractor.
- *
- * @param {string} path - Absolute path on the backend machine
- * @param {object} config - ConversionConfig { project_name, base_package, ... }
- * @returns {Promise<object>} JobResponse - same shape as createJob()
- */
 export async function createLocalJob(path, config) {
-    const response = await fetch(`${API_BASE}/jobs/local`, {
+    const response = await authFetch('/jobs/local', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -124,53 +171,28 @@ export async function createLocalJob(path, config) {
             base_package: config.base_package || 'com.generated.app',
         }),
     });
-    if (!response.ok) {
-        await throwApiError(response, 'Failed to create conversion job');
-    }
     return response.json();
 }
 
-/**
- * Get job details by ID.
- * Corresponds to GET /api/jobs/{job_id}
- */export async function getJob(jobId) {
-    const response = await fetch(`${API_BASE}/jobs/${jobId}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch job');
-    }
+export async function getJob(jobId) {
+    const response = await authFetch(`/jobs/${jobId}`);
     return response.json();
 }
 
-/**
- * List all jobs.
- * Corresponds to GET /api/jobs
- */
 export async function listJobs(limit = 50) {
-    const response = await fetch(`${API_BASE}/jobs?limit=${limit}`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
-    }
+    const response = await authFetch(`/jobs?limit=${limit}`);
     return response.json();
 }
 
-/**
- * Get the migration report for a completed job.
- * Corresponds to GET /api/jobs/{job_id}/report
- */
 export async function getReport(jobId) {
-    const response = await fetch(`${API_BASE}/jobs/${jobId}/report`);
-    if (!response.ok) {
-        throw new Error('Failed to fetch report');
-    }
+    const response = await authFetch(`/jobs/${jobId}/report`);
     return response.json();
 }
 
-/**
- * Download the generated project as a ZIP file.
- * Corresponds to GET /api/jobs/{job_id}/download
- */
 export function downloadResult(jobId, projectName = 'ConvertedApplication') {
-    window.open(`${API_BASE}/jobs/${jobId}/download`, '_blank');
+    const token = getToken();
+    const url = `${API_BASE}/jobs/${jobId}/download${token ? `?token=${token}` : ''}`;
+    window.open(url, '_blank');
 }
 
 /**
@@ -219,7 +241,10 @@ export function connectProgressWebSocket(jobId, onMessage) {
     const backendHost = import.meta.env.VITE_API_URL
         ? import.meta.env.VITE_API_URL.replace(/^https?:\/\//, '')
         : window.location.host;
-    const ws = new WebSocket(`${protocol}//${backendHost}/ws/jobs/${jobId}`);
+
+    const token = getToken();
+    const wsUrl = `${protocol}//${backendHost}/ws/jobs/${jobId}${token ? `?token=${token}` : ''}`;
+    const ws = new WebSocket(wsUrl);
 
     ws.onmessage = (event) => {
         try {
@@ -231,4 +256,25 @@ export function connectProgressWebSocket(jobId, onMessage) {
     };
 
     return ws;
+}
+
+// --- BRD Report Endpoints ---
+
+export async function generateBrdReport(jobId) {
+    const response = await authFetch('/brd/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: jobId }),
+    });
+    return response.json();
+}
+
+export function getBrdPreviewUrl(jobId) {
+    const token = getToken();
+    return `${API_BASE}/brd/${jobId}/preview${token ? `?token=${token}` : ''}`;
+}
+
+export function getBrdDownloadUrl(jobId) {
+    const token = getToken();
+    return `${API_BASE}/brd/${jobId}/download${token ? `?token=${token}` : ''}`;
 }

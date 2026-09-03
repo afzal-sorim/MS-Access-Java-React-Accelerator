@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BRDDataSchema",
+  "type": "object",
+  "properties": {
+    "doc_purpose_description": { "type": "string" },
+    "app_purpose_description": { "type": "string" },
+    "app_modernization_context": { "type": "string" },
+    "detailed_purpose": { "type": "string" },
+    "objectives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "desc": { "type": "string" }
+        },
+        "required": ["title", "desc"]
+      }
+    },
+    "in_scope": { "type": "array", "items": { "type": "string" } },
+    "out_scope": { "type": "array", "items": { "type": "string" } },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "overview": { "type": "string" },
+          "features": { "type": "array", "items": { "type": "string" } },
+          "value": { "type": "string" },
+          "processes": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["name", "overview", "features", "value"]
+      }
+    },
+    "architecture_intro": { "type": "string" },
+    "business_flow_overview": { "type": "string" },
+    "use_cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "actor": { "type": "string" },
+          "priority": { "type": "string" },
+          "precondition": { "type": "string" },
+          "postcondition": { "type": "string" },
+          "steps": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["title", "actor", "priority", "steps"]
+      }
+    },
+    "technical_risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "type": "string" },
+          "desc": { "type": "string" },
+          "mitigation": { "type": "string" }
+        },
+        "required": ["title", "severity", "desc", "mitigation"]
+      }
+    },
+    "operational_challenges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "type": "string" },
+          "desc": { "type": "string" },
+          "mitigation": { "type": "string" }
+        },
+        "required": ["title", "severity", "desc", "mitigation"]
+      }
+    },
+    "security_concerns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "type": "string" },
+          "desc": { "type": "string" },
+          "mitigation": { "type": "string" }
+        },
+        "required": ["title", "severity", "desc", "mitigation"]
+      }
+    },
+    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+    "known_limitations": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": [
+    "doc_purpose_description",
+    "app_purpose_description",
+    "detailed_purpose",
+    "objectives",
+    "in_scope",
+    "out_scope"
+  ]
+}

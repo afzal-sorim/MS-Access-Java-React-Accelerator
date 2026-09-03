@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, createLocalJob, connectProgressWebSocket, getVersions, getJob } from '../../../services/api';
+import { createJob, createLocalJob, connectProgressWebSocket, getVersions, getJob, generateBrdReport, getBrdPreviewUrl, getBrdDownloadUrl } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 
@@ -37,6 +37,48 @@ export default function Step2Analyze() {
     // second write could hit SQLite's "database is locked" error and fail
     // outright - leaving the wizard stuck at 0% with no visible job.
     const startedRef = React.useRef(false);
+
+    // BRD Report state
+    const [brdLoading, setBrdLoading] = React.useState(false);
+    const [brdGenerated, setBrdGenerated] = React.useState(false);
+    const [brdError, setBrdError] = React.useState(null);
+
+    const handleGenerateBrd = async () => {
+        if (!analysisJobId) {
+            setBrdError('Please upload or select a project before generating the BRD.');
+            return;
+        }
+
+        setBrdLoading(true);
+        setBrdError(null);
+
+        try {
+            await generateBrdReport(analysisJobId);
+            setBrdGenerated(true);
+        } catch (err) {
+            console.error('BRD generation error:', err);
+            setBrdError(err.message || 'Unable to generate the BRD. Please try again.');
+        } finally {
+            setBrdLoading(false);
+        }
+    };
+
+    const handleViewBrd = () => {
+        if (!analysisJobId) return;
+        const previewUrl = getBrdPreviewUrl(analysisJobId);
+        window.open(previewUrl, '_blank');
+    };
+
+    const handleDownloadBrd = () => {
+        if (!analysisJobId) return;
+        const downloadUrl = getBrdDownloadUrl(analysisJobId);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', 'BRD.html');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     // Fetch available versions on mount
     useEffect(() => {
@@ -258,6 +300,155 @@ export default function Step2Analyze() {
                         {formatNumber(analysisProgress.forms.count)} forms, {formatNumber(analysisProgress.reports.count)} reports,
                         {formatNumber(analysisProgress.macros.count)} macros, {formatNumber(analysisProgress.vba.count)} VBA modules.
                     </div>
+                </div>
+            )}
+
+            {/* ── BRD Report Action Bar ── */}
+            <div style={{
+                marginTop: '1.5rem',
+                padding: '1.1rem 1.4rem',
+                borderRadius: 14,
+                background: '#F8FAFC',
+                border: '1.5px solid #C7D2FE',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem'
+            }}>
+                <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1E1B4B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '1.1rem' }}>📄</span>
+                        Business Requirements Document (BRD)
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '0.2rem' }}>
+                        Generate a comprehensive HTML technical report from the analyzed source database.
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {!brdGenerated ? (
+                        <button
+                            type="button"
+                            onClick={handleGenerateBrd}
+                            disabled={brdLoading}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                padding: '0.65rem 1.4rem',
+                                borderRadius: 10,
+                                background: brdLoading
+                                    ? '#E0E7FF'
+                                    : 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
+                                color: brdLoading ? '#3730A3' : '#fff',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                border: 'none',
+                                boxShadow: brdLoading ? 'none' : '0 4px 14px rgba(55,48,163,0.25)',
+                                cursor: brdLoading ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            {brdLoading ? (
+                                <>
+                                    <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+                                    Generating BRD...
+                                </>
+                            ) : (
+                                <>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                        <polyline points="10 9 9 9 8 9"/>
+                                    </svg>
+                                    BRD Report
+                                </>
+                            )}
+                        </button>
+                    ) : (
+                        <>
+                            <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                color: '#059669',
+                                fontWeight: 700,
+                                fontSize: '0.875rem',
+                                marginRight: '0.5rem'
+                            }}>
+                                BRD Generated ✓
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={handleViewBrd}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    padding: '0.6rem 1.25rem',
+                                    borderRadius: 10,
+                                    background: '#EEF2FF',
+                                    color: '#3730A3',
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    border: '1.5px solid #C7D2FE',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                }}
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                View BRD
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleDownloadBrd}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.45rem',
+                                    padding: '0.6rem 1.25rem',
+                                    borderRadius: 10,
+                                    background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    border: 'none',
+                                    boxShadow: '0 4px 14px rgba(55,48,163,0.25)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                }}
+                            >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Download BRD
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* Error display if BRD generation failed */}
+            {brdError && (
+                <div className="alert alert-danger" style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{brdError}</span>
+                    <button
+                        type="button"
+                        onClick={() => setBrdError(null)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}
+                    >
+                        ×
+                    </button>
                 </div>
             )}
         </div>
