@@ -24,11 +24,10 @@ export default function Access2JavaLogo({ size = 'md', compact = false }) {
 
   // The Access icon SVG is 96 wide × 90 tall (natural viewBox)
   // Cylinders extend from x=40 to x=96, overlapping the red square (x=0–62)
-  const iconW = c.h * (96 / 90);
+  const iconW = c.h;
 
-  // Java cup SVG is 80 wide × 100 tall
-  const cupH  = c.h * 1.1;
-  const cupW  = cupH * (80 / 100);
+  const cupH  = c.h;
+  const cupW  = cupH;
 
   return (
     <div style={{

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.39.0",
+    "quick-erd": "^4.37.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2",

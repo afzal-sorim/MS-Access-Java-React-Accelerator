@@ -59,6 +59,7 @@ class JobModel(Base):
     __tablename__ = "migration_jobs"
 
     id = Column(KeyColumn, primary_key=True, default=lambda: str(uuid4()))
+    user_id = Column(KeyColumn, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     state = Column(String(50), nullable=False, default=JobState.CREATED.value)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -117,11 +118,13 @@ class JobModel(Base):
     supportability_results = relationship("SupportabilityResultModel", back_populates="job", cascade="all, delete-orphan")
     build_logs = relationship("BuildLogModel", back_populates="job", cascade="all, delete-orphan")
     llm_cache_entries = relationship("LLMCacheModel", back_populates="job", cascade="all, delete-orphan")
+    user = relationship("UserModel", back_populates="jobs")
 
     # Indexes
     __table_args__ = (
         Index("ix_job_state", "state"),
         Index("ix_job_created_at", "created_at"),
+        Index("ix_job_user_id", "user_id"),
     )
 
     def transition_to(self, new_state: "JobState") -> None:
@@ -270,6 +273,30 @@ class ExternalDependencyModel(Base):
     )
 
 
+class UserModel(Base):
+    """SQLAlchemy model for users."""
+    __tablename__ = "users"
+
+    id = Column(KeyColumn, primary_key=True, default=lambda: str(uuid4()))
+    email = Column(String(255), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)
+    auth_provider = Column(String(50), nullable=False, default="LOCAL")  # LOCAL, GOOGLE, GITHUB, SSO
+    provider_user_id = Column(String(255), nullable=True)
+    profile_image = Column(String(500), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    jobs = relationship("JobModel", back_populates="user")
+
+    __table_args__ = (
+        Index("ix_user_email", "email"),
+    )
+
+
 # Database engine and session management
 _engine: Optional[AsyncEngine] = None
 _session_factory: Optional[async_sessionmaker[AsyncSession]] = None
@@ -321,11 +348,8 @@ async def init_database(database_url: Optional[str] = None) -> None:
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA journal_mode=WAL")
                 cursor.execute("PRAGMA busy_timeout=30000")
+                cursor.execute("PRAGMA synchronous=NORMAL")
                 cursor.close()
-
-            @event.listens_for(_engine.sync_engine, "begin")
-            def _do_begin(conn):
-                conn.exec_driver_sql("BEGIN IMMEDIATE")
 
         _session_factory = async_sessionmaker(
             _engine,
@@ -347,6 +371,7 @@ async def init_database(database_url: Optional[str] = None) -> None:
 _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("migration_jobs", "source_mode", "VARCHAR(20)"),
     ("migration_jobs", "source_origin", "VARCHAR(500)"),
+    ("migration_jobs", "user_id", "VARCHAR(36)"),
 ]
 
 
@@ -374,21 +399,35 @@ def _apply_additive_migrations(connection) -> None:
 from contextlib import asynccontextmanager
 
 
-@asynccontextmanager
-async def get_session() -> AsyncSession:
-    """Get a database session as async context manager."""
+async def get_db_session():
+    """FastAPI dependency for database sessions."""
+    global _session_factory
     if _session_factory is None:
         await init_database()
+    if _session_factory is None:
+        raise RuntimeError("Database session factory failed to initialize.")
+    async with _session_factory() as session:
+        yield session
+
+@asynccontextmanager
+async def get_session() -> AsyncSession:
+    """Get a database session as async context manager (for manual use)."""
+    global _session_factory
+    if _session_factory is None:
+        await init_database()
+    if _session_factory is None:
+        raise RuntimeError("Database session factory failed to initialize.")
     async with _session_factory() as session:
         yield session
 
 
 async def close_database() -> None:
     """Close database connections."""
-    global _engine
+    global _engine, _session_factory
     if _engine:
         await _engine.dispose()
         _engine = None
+    _session_factory = None
 
 
 # Repository classes for data access
@@ -453,6 +492,51 @@ class JobRepository:
             .limit(limit)
         )
         return list(result.scalars().all())
+
+    async def list_by_user(self, user_id: str, limit: int = 50, offset: int = 0) -> List[JobModel]:
+        result = await self.session.execute(
+            select(JobModel)
+            .where(JobModel.user_id == user_id)
+            .order_by(JobModel.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return list(result.scalars().all())
+
+
+class UserRepository:
+    """Repository for user operations."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def create(self, user: UserModel) -> UserModel:
+        self.session.add(user)
+        await self.session.flush()
+        return user
+
+    async def get(self, user_id: str) -> Optional[UserModel]:
+        result = await self.session.execute(
+            select(UserModel).where(UserModel.id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_email(self, email: str) -> Optional[UserModel]:
+        result = await self.session.execute(
+            select(UserModel).where(UserModel.email == email)
+        )
+        return result.scalar_one_or_none()
+
+    async def update(self, user: UserModel) -> UserModel:
+        user.updated_at = datetime.utcnow()
+        await self.session.flush()
+        return user
+
+    async def delete(self, user_id: str) -> bool:
+        result = await self.session.execute(
+            delete(UserModel).where(UserModel.id == user_id)
+        )
+        return result.rowcount > 0
 
 
 class ExtractionRepository:

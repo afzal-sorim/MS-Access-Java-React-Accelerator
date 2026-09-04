@@ -15,6 +15,7 @@ from collections.abc import AsyncGenerator
 import asyncio
 import json
 import logging
+import re
 import shutil
 import uuid
 from datetime import datetime
@@ -51,7 +52,7 @@ from typing import Any, Optional
 
 from fastapi import (
     FastAPI, File, UploadFile, HTTPException, BackgroundTasks,
-    WebSocket, WebSocketDisconnect, Depends, Query
+    WebSocket, WebSocketDisconnect, Depends, Query, Request
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -64,13 +65,15 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from converter.app.database import (
-    init_database, close_database, get_session,
+    init_database, close_database, get_db_session,
     JobRepository, ExtractionRepository, IRRepository,
     DependencyGraphRepository, SupportabilityRepository,
     BuildLogRepository, LLMCacheRepository,
-    ExternalDependencyRepository,
-    JobModel, JobState, JobError, JobProgress, JobResult,
+    ExternalDependencyRepository, UserRepository,
+    JobModel, JobState, JobError, JobProgress, JobResult, UserModel
 )
+from converter.app.api.auth.router import router as auth_router, get_current_user
+from BRD.api.router import router as brd_router
 from converter.app.jobs.models import MigrationJob as PydanticMigrationJob
 from converter.app.access.extractor import run_extraction
 from converter.app.access.local_source import (
@@ -90,6 +93,7 @@ from converter.app.generators.database.postgres import generate_schema
 from converter.app.generators.spring import generate_spring_boot
 from converter.app.generators.react import generate_react
 from converter.app.analyzers.business_rules import extract_business_rules
+from converter.app.analyzers.functionality_summarizer import summarize_functionalities
 from converter.app.build.validator import validate_project, BuildStatus as ValidatorBuildStatus
 from converter.app.build.pipeline import (
     BuildValidator as PipelineBuildValidator,
@@ -200,16 +204,38 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
         "http://localhost:5173",
+        "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-        "*"
     ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Include auth router
+app.include_router(auth_router, prefix="/api")
+
+# Include BRD router
+app.include_router(brd_router, prefix="/api")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Global unhandled exception on %s: %s", request.url.path, exc)
+    origin = request.headers.get("origin") or "*"
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc) or "Internal Server Error"},
+        headers={
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "*",
+        },
+    )
 
 # Paths
 UPLOAD_DIR = Path("uploads")
@@ -220,10 +246,7 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ---------------------------------------------------------------- Database dependency
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Database session dependency."""
-    async with get_session() as session:
-        yield session
+get_db = get_db_session
 
 
 # ---------------------------------------------------------------- WebSocket manager
@@ -427,6 +450,29 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         await update_build_log(support_log.id, "completed", f"Analyzed {len(support_results)} objects")
         await db.commit()
 
+        # Step 4.5: Generate functionality summaries (LLM-enhanced business descriptions)
+        await update_state(JobState.SUPPORTABILITY_ANALYZED, "summarizing_functionalities", 53.0, "Generating business-logic functionality descriptions...")
+        func_log = await log_build("summarization", "summarize_functionalities")
+
+        support_dicts = [
+            {
+                "object": r.object,
+                "category": r.category,
+                "status": r.status.value,
+                "complexity": r.complexity,
+                "risk": r.risk,
+                "conversion": r.conversion,
+                "confidence": r.confidence,
+                "reason": r.reason,
+            }
+            for r in support_results
+        ]
+        functionality_summaries = await asyncio.to_thread(
+            summarize_functionalities, app_ir, support_dicts,
+        )
+        await update_build_log(func_log.id, "completed", f"Generated {len(functionality_summaries)} functionality summaries")
+        await db.commit()
+
         # Step 5: Generate database
         await update_state(JobState.GENERATING_DATABASE, "generating_database", 60.0, f"Generating PostgreSQL DDL schema and seed data SQL ({len(app_ir.tables)} tables)...")
         db_log = await log_build("database", "generate_schema")
@@ -555,6 +601,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
                 "notice": "Unbound forms were converted to informational layout scaffolds; Access VBA event handlers were not modernized into backend logic.",
             },
             "warnings": app_ir.warnings,
+            "functionality_summaries": functionality_summaries,
             "generated": {
                 "backend_files": len(spring_gen),
                 "frontend_files": len(react_gen),
@@ -584,9 +631,14 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         # Step 9: Build validation
         await update_state(JobState.BUILDING, "validating_build", 95.0, "Validating Maven and React build artifacts...")
         build_log = await log_build("build", "validate_project")
+        repair_errors = 0
 
         try:
             validation_result = await asyncio.to_thread(validate_project, str(job_dir))
+            repair_errors = sum(
+                len(phase.get("errors", []))
+                for phase in validation_result.get("results", {}).values()
+            )
             await update_build_log(build_log.id, "completed", f"Build validation: {validation_result['status']}")
 
             build_success = validation_result["status"] == "success"
@@ -608,7 +660,21 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         job_result = JobResult(
             output_path=str(job_dir),
             coverage=coverage,
+            statistics={
+                "tables": job.tables_count,
+                "queries": job.queries_count,
+                "forms": job.forms_count,
+                "reports": job.reports_count,
+                "macros": job.macros_count,
+                "vba_modules": job.vba_modules_count,
+            },
             files_generated=total_files,
+            unit_tests_count=sum(
+                1 for path in [*spring_gen.keys(), *react_gen.keys()]
+                if "test" in Path(path).name.lower()
+            ),
+            dependency_count=job.dependencies_count or 0,
+            repair_errors=repair_errors,
             build_success=build_success,
             test_success=False,
             warnings=app_ir.warnings,
@@ -862,6 +928,7 @@ async def root():
 async def _start_job(
     *,
     job_id: str,
+    user_id: str,
     source_path: Path,
     display_name: str,
     project_name: str,
@@ -871,15 +938,17 @@ async def _start_job(
     background_tasks: BackgroundTasks,
     db: AsyncSession,
 ) -> JobResponse:
-    """Persist a job for an already-staged source file and queue the pipeline.
+    """Persist a job for an already-staged source file and queue the pipeline."""
+    if (not project_name or project_name == "ConvertedApplication") and display_name:
+        stem = Path(display_name).stem
+        sanitized_stem = re.sub(r"[^a-zA-Z0-9_\-]", "_", stem)
+        if sanitized_stem:
+            project_name = sanitized_stem
 
-    Shared by both input modes: the upload endpoint saves a multipart file, the
-    local endpoint copies a local database, and from here on the two are
-    indistinguishable — the pipeline only ever reads job.source_file.
-    """
     job_repo = JobRepository(db)
     job = JobModel(
         id=job_id,
+        user_id=user_id,
         source_file=str(source_path),
         source_file_size=source_path.stat().st_size,
         source_mode=source_mode,
@@ -911,7 +980,8 @@ async def create_job(
     file: UploadFile = File(...),
     project_name: str = "ConvertedApplication",
     base_package: str = "com.generated.app",
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
 ):
     """Create a new conversion job from an uploaded Access file."""
     if not file.filename:
@@ -929,6 +999,7 @@ async def create_job(
 
     return await _start_job(
         job_id=job_id,
+        user_id=current_user.id,
         source_path=upload_path,
         display_name=file.filename,
         project_name=project_name,
@@ -990,15 +1061,10 @@ async def local_access_validate(request: LocalPathRequest):
 async def create_local_job(
     request: LocalJobRequest,
     background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
 ):
-    """Create a conversion job from a database on the backend machine.
-
-    The local file is copied into the job workdir first and the pipeline runs
-    against that copy: extraction opens forms in design view and drives the
-    VBA project, which writes to the database it opens. The user's own file
-    must never be the one handed to the extractor.
-    """
+    """Create a conversion job from a database on the backend machine."""
     try:
         info = resolve_local_source(request.path)
     except LocalSourceError as exc:
@@ -1010,8 +1076,6 @@ async def create_local_job(
     try:
         staged = await asyncio.to_thread(stage_local_source, info["path"], staging_dir)
     except OSError as exc:
-        # Surfaced synchronously so the user sees "disk full" / "denied" here
-        # rather than as an opaque background pipeline failure.
         raise HTTPException(
             status_code=500,
             detail=f"Could not copy the local database into the workspace: {exc}",
@@ -1024,6 +1088,7 @@ async def create_local_job(
 
     return await _start_job(
         job_id=job_id,
+        user_id=current_user.id,
         source_path=staged,
         display_name=info["name"],
         project_name=request.project_name,
@@ -1036,10 +1101,14 @@ async def create_local_job(
 
 
 @app.get("/api/jobs", response_model=list[JobResponse])
-async def list_jobs(limit: int = Query(50, le=100), db: AsyncSession = Depends(get_db)):
-    """List all jobs."""
+async def list_jobs(
+    limit: int = Query(50, le=100),
+    db: AsyncSession = Depends(get_db_session),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """List all jobs for the current user."""
     job_repo = JobRepository(db)
-    jobs = await job_repo.list_all(limit)
+    jobs = await job_repo.list_by_user(current_user.id, limit)
     return [
         JobResponse(
             id=job.id,
@@ -1208,6 +1277,117 @@ async def websocket_progress(websocket: WebSocket, job_id: str):
                 await websocket.close()
             except Exception:
                 pass
+
+
+@app.get("/api/jobs/{job_id}/files")
+async def list_job_files(job_id: str, db: AsyncSession = Depends(get_db)):
+    """List all generated files for a job, grouped by category."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job or not job.output_path:
+        raise HTTPException(status_code=404, detail="Job or output not found")
+
+    output_dir = Path(job.output_path)
+
+    def get_file_tree(root_path: Path, current_path: Path):
+        tree = []
+        try:
+            for item in sorted(current_path.iterdir()):
+                # Skip hidden files and certain directories
+                if item.name.startswith('.') or item.name in ('node_modules', 'target', 'bin', 'obj', '__pycache__'):
+                    continue
+
+                relative_path = str(item.relative_to(root_path)).replace('\\', '/')
+                if item.is_dir():
+                    tree.append({
+                        "name": item.name,
+                        "path": relative_path,
+                        "type": "directory",
+                        "children": get_file_tree(root_path, item)
+                    })
+                else:
+                    tree.append({
+                        "name": item.name,
+                        "path": relative_path,
+                        "type": "file",
+                        "size": item.stat().st_size
+                    })
+        except Exception:
+            pass
+        return tree
+
+    # Organize by the requested categories: Frontend, Backend, Database
+    categories = {}
+    if (output_dir / "frontend").exists():
+        categories["frontend"] = get_file_tree(output_dir, output_dir / "frontend")
+    if (output_dir / "backend").exists():
+        categories["backend"] = get_file_tree(output_dir, output_dir / "backend")
+    if (output_dir / "database").exists():
+        categories["database"] = get_file_tree(output_dir, output_dir / "database")
+
+    return categories
+
+
+@app.get("/api/jobs/{job_id}/file-content")
+async def get_file_content(job_id: str, path: str, db: AsyncSession = Depends(get_db)):
+    """Get the content of a generated file."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job or not job.output_path:
+        raise HTTPException(status_code=404, detail="Job or output not found")
+
+    # Security check: ensure path is within output_path
+    output_dir = Path(job.output_path).resolve()
+    target_path = (output_dir / path).resolve()
+
+    if not str(target_path).startswith(str(output_dir)):
+         raise HTTPException(status_code=403, detail="Access denied")
+
+    if not target_path.exists() or not target_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        content = target_path.read_text(encoding="utf-8")
+        return {"content": content, "path": path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+
+@app.get("/api/jobs/{job_id}/db-schema")
+async def get_job_db_schema(job_id: str, db: AsyncSession = Depends(get_db)):
+    """Get database schema (tables and relationships) for ER diagram."""
+    ir_repo = IRRepository(db)
+    ir_data = await ir_repo.get(job_id)
+    if not ir_data:
+        raise HTTPException(status_code=404, detail="IR data not found for job")
+
+    data = ir_data.data
+    tables = []
+    for t in data.get("tables", []):
+        tables.append({
+            "name": t.get("name"),
+            "columns": [
+                {
+                    "name": c.get("name"),
+                    "type": c.get("sql_type") or c.get("access_type"),
+                    "pk": c.get("primary_key", False),
+                    "fk": c.get("is_lookup", False)
+                }
+                for c in t.get("columns", [])
+            ]
+        })
+
+    relationships = []
+    for r in data.get("relationships", []):
+        relationships.append({
+            "name": r.get("name"),
+            "parent_table": r.get("parent_table"),
+            "child_table": r.get("child_table"),
+            "parent_columns": r.get("parent_columns"),
+            "child_columns": r.get("child_columns")
+        })
+
+    return {"tables": tables, "relationships": relationships}
 
 
 @app.get("/api/jobs/{job_id}/download")

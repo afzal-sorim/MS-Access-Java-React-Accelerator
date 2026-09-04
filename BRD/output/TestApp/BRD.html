@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestApp — Technical Document</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+@page {
+  size: A4;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --ink: #1a1a1a;
+  --paper: #ffffff;
+  --cream: #f5f5f4;
+  --border: #d0d0d0;
+  --muted: #555555;
+  --page-w: 794px; /* A4 width in pixels at 96dpi */
+  --bg: #d4d4d4;
+  --brand-dark: #1a1a2e;
+  --brand-mid: #2d2d4e;
+  --risk-hi: #c0392b;
+  --risk-med: #e67e22;
+  --risk-lo: #888888;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html {
+  width: 100%;
+}
+body {
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   PAGE SHELL
+═══════════════════════════════════════════════ */
+.doc-wrapper { 
+  width: 100%;
+  margin: 0 auto; 
+  padding: 56px 0 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page {
+  background: var(--paper);
+  margin: 0 auto 28px auto;
+  box-shadow: 0 6px 40px rgba(0,0,0,.17), 0 1px 4px rgba(0,0,0,.07);
+  position: relative;
+  overflow: hidden;
+  width: var(--page-w);
+  max-width: calc(100% - 40px);
+  min-height: auto;
+  box-sizing: border-box;
+  page-break-after: always;
+  border-radius: 12px;
+}
+.page-inner { 
+  padding: 50px 60px; 
+  min-height: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pg-num {
+  position: absolute; bottom: 20px; right: 32px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: #bbb; letter-spacing: .1em;
+}
+.pg-watermark {
+  position: absolute; bottom: 20px; left: 32px;
+  font-size: 9px; color: #ccc; letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   DISCLAIMER PAGE  (PDF first-page style)
+═══════════════════════════════════════════════ */
+.disclaimer-page .page-inner { min-height: auto; padding: 52px 70px 50px; }
+
+.org-logo-bar {
+  display: flex; align-items: center; gap: 13px;
+  margin-bottom: 30px; padding-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+}
+.org-logo-circle {
+  width: 42px; height: 42px;
+  border: 2px solid var(--ink); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 19px; color: var(--ink);
+}
+.org-logo-name {
+  font-family: 'Syne', sans-serif; font-size: 13px;
+  font-weight: 700; letter-spacing: .06em; color: var(--ink);
+}
+
+.disclaimer-block {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #333;
+  border-left: 3px solid var(--ink);
+  padding-left: 22px;
+  margin-bottom: 34px;
+}
+
+.disclaimer-doc-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 24px; line-height: 1.3;
+  color: var(--ink); margin-bottom: 28px;
+}
+
+.update-table, .static-table {
+  width: 100%; border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px; margin-bottom: 16px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.update-table th, .static-table th {
+  background: var(--ink); color: #fff;
+  padding: 12px 18px; text-align: left;
+  font-family: 'Syne', sans-serif; font-size: 10px;
+  letter-spacing: .15em; text-transform: uppercase; font-weight: 700;
+  border-top-left-radius: 0;
+}
+.update-table td, .static-table td {
+  padding: 12px 18px; border-bottom: 1px solid var(--border); vertical-align: top;
+}
+.update-table tr:nth-child(even) td,
+.static-table tr:nth-child(even) td { background: var(--cream); }
+.static-table td:first-child { font-weight: 700; }
+.static-table tfoot td {
+  background: var(--ink); color: #fff; font-weight: 800; padding: 12px 18px;
+}
+
+.section-label {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--muted); margin: 38px 0 18px;
+  border-left: 4px solid var(--ink);
+  padding-left: 12px;
+}
+
+/* ═══════════════════════════════════════════════
+   COVER PAGE
+═══════════════════════════════════════════════ */
+.cover-page .page-inner {
+  display: flex; flex-direction: column;
+  justify-content: space-between; padding: 0; min-height: 860px;
+}
+
+/* dark gradient header band */
+.cover-header {
+  background:white;
+  position: relative; overflow: hidden;
+  min-height: auto;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.cover-header::before {
+  content: ''; position: absolute; top: -70px; right: -70px;
+  width: 320px; height: 320px;
+  border: 1px solid rgba(255,255,255,.05); border-radius: 50%;
+}
+.cover-header::after {
+  content: ''; position: absolute; bottom: -80px; left: 28%;
+  width: 220px; height: 220px;
+  border: 1px solid rgba(255,255,255,.04); border-radius: 50%;
+}
+
+.cover-logo-bar {
+  padding: 20px 52px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,.09);
+  position: relative; z-index: 2;
+}
+.cover-logo-circle {
+  width: 36px; height: 36px;
+  border: 1.5px solid rgba(255,255,255,.5); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif; font-size: 16px; color: #fff;
+}
+.cover-logo-name {
+  font-family: 'Syne', sans-serif; font-size: 11px;
+  font-weight: 600; letter-spacing: .1em;
+  color: rgba(19, 18, 18, 0.65); text-transform: uppercase;
+}
+
+.cover-title-block {
+  padding: 18px 52px 22px; position: relative; z-index: 2;
+}
+.cover-doc-type {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: .28em; text-transform: uppercase;
+  color: rgba(100,100,100,.6); margin-bottom: 8px;
+}
+.cover-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 44px; line-height: 1.1; color: #0a0a0a; margin-bottom: 4px;
+  word-break: break-word;
+}
+.cover-subtitle {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px; color: rgba(60,60,60,.55); font-style: italic;
+}
+
+/* meta body */
+.cover-body {
+  padding: 28px 52px; flex: 1;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-content: start;
+}
+.cover-meta-group h4 {
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 11px;
+  border-bottom: 1px solid var(--border); padding-bottom: 6px;
+}
+.cover-meta-row {
+  display: flex; justify-content: space-between;
+  font-size: 11.5px; padding: 5px 0; border-bottom: 1px solid var(--cream);
+}
+.cover-meta-row span:first-child { color: var(--muted); }
+.cover-meta-row span:last-child { font-weight: 500; }
+
+.cover-stack {
+  grid-column: 1 / -1;
+  padding: 16px 0 8px; border-top: 1.5px solid var(--border);
+}
+.cover-stack h4 {
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .2em; text-transform: uppercase;
+  color: var(--ink); margin-bottom: 12px;
+}
+.tech-pills {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px;
+}
+.tech-pill {
+  background: #f5f5f0; color: var(--ink);
+  font-size: 10px; padding: 6px 12px; letter-spacing: .03em;
+  font-family: 'DM Mono', monospace;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.cover-footer {
+  background: var(--cream); border-top: 2px solid var(--border);
+  padding: 18px 52px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; color: var(--muted); letter-spacing: .05em;
+}
+.cover-footer .confidential {
+  background: var(--ink); color: #fff;
+  padding: 4px 12px; font-size: 9px; letter-spacing: .15em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   TABLE OF CONTENTS
+═══════════════════════════════════════════════ */
+.toc-page-title {
+  font-family: 'DM Serif Display', serif; font-size: 30px; margin-bottom: 7px;
+}
+.toc-page-subtitle {
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted);
+  letter-spacing: .08em; margin-bottom: 26px;
+  padding-bottom: 14px; border-bottom: 2px solid var(--ink);
+}
+.toc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.toc-table thead tr { background: var(--ink); color: #fff; }
+.toc-table thead th {
+  padding: 10px 14px; text-align: left;
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .15em; text-transform: uppercase; font-weight: 600;
+}
+.toc-table thead th:last-child { text-align: center; width: 60px; }
+.toc-table tbody tr { border-bottom: 1px solid var(--cream); }
+.toc-table tbody tr:nth-child(even) { background: var(--cream); }
+.toc-table tbody tr:hover { background: #eee; }
+.toc-table td { padding: 10px 14px; vertical-align: middle; }
+.toc-table td:first-child {
+  font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink);
+  letter-spacing: .1em; text-transform: uppercase; font-weight: 500; width: 120px;
+}
+.toc-table td:nth-child(2) { font-family: 'Syne', sans-serif; font-weight: 600; }
+.toc-table td:nth-child(2) a { color: var(--ink); text-decoration: none; }
+.toc-table td:nth-child(2) a:hover { text-decoration: underline; }
+.toc-table td:last-child {
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  color: var(--muted); text-align: center; width: 60px;
+}
+
+/* ═══════════════════════════════════════════════
+   CHAPTER HEADERS
+═══════════════════════════════════════════════ */
+.ch-header {
+  padding-bottom: 22px; margin-bottom: 48px;
+  display: flex; justify-content: space-between; align-items: flex-end;
+  border-radius: 0 0 8px 8px;
+}
+.ch-header-left .ch-num {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  letter-spacing: .2em; color: var(--ink); text-transform: uppercase;
+  margin-bottom: 7px; font-weight: 800;
+}
+.ch-header-left .ch-title {
+  font-family: 'DM Serif Display', serif; font-size: 34px; line-height: 1.1;
+}
+.ch-subtitle {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  color: var(--muted); max-width: 300px; text-align: right; line-height: 1.55;
+}
+
+/* ═══════════════════════════════════════════════
+   TYPOGRAPHY
+═══════════════════════════════════════════════ */
+h2 {
+  font-family: 'Syne', sans-serif; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink);
+  margin: 30px 0 12px; padding-bottom: 5px; border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-family: 'DM Serif Display', serif; font-size: 16px; margin: 20px 0 9px;
+}
+h4.sub {
+  font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 14px 0 7px;
+}
+p { color: #333; margin-bottom: 11px; font-size: 12.5px; line-height: 1.74; }
+
+/* ═══════════════════════════════════════════════
+   DATA TABLES  (brd-table)
+═══════════════════════════════════════════════ */
+.brd-table {
+  width: 100%; border-collapse: collapse;
+  margin: 16px 0 26px; font-size: 11.5px; table-layout: fixed;
+}
+.brd-table thead tr { background: var(--ink); color: #fff; }
+.brd-table thead th {
+  padding: 10px 14px; text-align: left;
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .15em; text-transform: uppercase; font-weight: 600;
+}
+.brd-table tbody tr:nth-child(even) { background: var(--cream); }
+.brd-table tbody tr:hover { background: #eee; }
+.brd-table td {
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  vertical-align: top; line-height: 1.55;
+  overflow-wrap: break-word; word-break: break-word;
+}
+.brd-table td:first-child { font-weight: 500; color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   CALLOUTS
+═══════════════════════════════════════════════ */
+.callout {
+  padding: 14px 18px; margin: 14px 0;
+  font-size: 12px; line-height: 1.65;
+  border-left: 4px solid var(--ink); background: var(--cream);
+}
+.callout.warn  { border-color: #c0392b; background: #fdf7f6; }
+.callout.info  { border-color: #2471a3; background: #f4f8fc; }
+.callout.gold  { border-color: #b8960c; background: #fdfbf3; }
+.callout strong {
+  font-family: 'Syne', sans-serif; font-size: 9px; letter-spacing: .15em;
+  text-transform: uppercase; display: block; margin-bottom: 5px;
+}
+
+/* ═══════════════════════════════════════════════
+   SCOPE GRID
+═══════════════════════════════════════════════ */
+.scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 14px 0 22px; }
+.scope-box { padding: 14px 18px; background: var(--cream); }
+.scope-box.in-scope  { border-top: 3px solid var(--ink); }
+.scope-box.out-scope { border-top: 3px solid #888; }
+.scope-box h4 {
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .18em; text-transform: uppercase; margin-bottom: 10px; font-weight: 700;
+}
+.scope-box.in-scope  h4 { color: var(--ink); }
+.scope-box.out-scope h4 { color: #666; }
+.scope-item { display: flex; gap: 8px; margin-bottom: 7px; font-size: 11.5px; line-height: 1.45; }
+.scope-mark { flex-shrink: 0; font-weight: 700; }
+.scope-box.in-scope  .scope-mark { color: var(--ink); }
+.scope-box.out-scope .scope-mark { color: #888; }
+
+/* ═══════════════════════════════════════════════
+   MODULE CARDS
+═══════════════════════════════════════════════ */
+.module-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 13px; margin: 14px 0 22px; }
+.module-card { border: 1px solid var(--border); padding: 14px 16px; background: #fff; }
+.module-card h4 {
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: .05em; color: var(--ink); margin-bottom: 5px;
+}
+.module-card p { font-size: 11px; color: var(--muted); margin: 0; }
+.module-tag {
+  display: inline-block; background: var(--cream);
+  font-size: 9px; padding: 2px 8px; margin-top: 7px;
+  color: var(--muted); letter-spacing: .05em; border: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   ARCHITECTURE DIAGRAM
+═══════════════════════════════════════════════ */
+.full-arch {
+  margin: 20px 0; padding: 26px 18px 20px; background: #fff;
+  border: 1px solid var(--border); border-top: 4px solid var(--ink);
+}
+.full-arch-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  text-align: center; margin-bottom: 18px; color: var(--ink);
+}
+.arch-section {
+  margin-bottom: 5px; padding: 11px 15px;
+  border: 1px solid var(--border); position: relative;
+}
+.arch-section-label {
+  font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .15em; text-transform: uppercase;
+  margin-bottom: 7px; display: flex; align-items: center; gap: 8px;
+}
+.arch-row { display: flex; flex-wrap: gap; gap: 7px; }
+.arch-card {
+  padding: 6px 13px; font-size: 11px; font-family: 'DM Mono', monospace;
+  border: 1px solid var(--border); background: #fff; border-radius: 3px; white-space: nowrap;
+}
+
+/* layer colour themes */
+.arch-section.s-actor   { background: #f9f9f9; }
+.arch-section.s-actor   .arch-section-label { color: var(--ink); }
+.arch-section.s-actor   .arch-card { background: #f0f0f0; border-color: #bbb; }
+
+.arch-section.s-ui      { background: #f5f5f5; }
+.arch-section.s-ui      .arch-card { background: #eee; border-color: #ccc; }
+
+.arch-section.s-biz     { background: #fafafa; }
+.arch-section.s-biz     .arch-card { background: #f5f5f5; border-color: #ccc; }
+
+.arch-section.s-data-access { background: #f1f1f1; }
+.arch-section.s-data-access .arch-card { background: #eee; border-color: #bbb; }
+
+.arch-section.s-data    { background: var(--ink); }
+.arch-section.s-data    .arch-section-label { color: #ccc; }
+.arch-section.s-data    .arch-card { background: #222; border-color: #444; color: #ddd; }
+
+.arch-section.s-ext     { background: #f0f0f0; border-style: dashed; }
+.arch-section.s-ext     .arch-section-label { color: #555; }
+.arch-section.s-ext     .arch-card { background: #e8e8e8; border-color: #aaa; }
+
+.arch-section.s-deploy  { background: #f8f8f8; }
+.arch-section.s-deploy  .arch-card { background: #f0f0f0; border-color: #bbb; }
+
+.arch-connector {
+  text-align: center; font-size: 13px; color: var(--ink);
+  padding: 3px 0; letter-spacing: 3px;
+}
+.arch-fig-caption {
+  text-align: center; margin-top: 13px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: .08em; text-transform: uppercase;
+}
+.arch-legend {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+  justify-content: center;
+}
+.arch-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; font-family: 'DM Mono', monospace; color: var(--muted);
+}
+.arch-legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
+   FLOWCHART (Activity / Process Flow)
+═══════════════════════════════════════════════ */
+.flowchart {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 24px auto; padding: 32px 20px 26px;
+  background: #fff; border: 1.5px solid #d0d0d0; border-radius: 6px;
+  width: 480px; max-width: 100%;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  page-break-inside: avoid;
+}
+.flowchart-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 22px; text-align: center; width: 100%;
+}
+
+.fc-node {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 10.5px;
+  text-align: center; line-height: 1.5;
+  min-height: 38px; padding: 9px 18px;
+  box-sizing: border-box;
+  width: 400px;
+}
+
+.fc-node.fc-start {
+  background: var(--ink); color: #fff; border-radius: 24px;
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  width: 200px; padding: 10px 36px;
+}
+
+.fc-node.fc-end {
+  background: #6b3a2a; color: #fff; border-radius: 24px;
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  width: 200px; padding: 10px 36px;
+}
+
+.fc-node.fc-step {
+  background: #f8f7f4; border: 2px solid var(--ink); border-radius: 8px;
+  color: var(--ink);
+  width: 400px;
+  padding: 11px 20px;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.fc-node.fc-decision {
+  background: #fff; border: 2px solid var(--ink);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  padding: 24px 56px; font-size: 10px; width: 260px;
+}
+
+.fc-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ink); color: #fff;
+  font-size: 9px; font-weight: 700;
+  width: 22px; height: 22px; border-radius: 50%;
+  margin-right: 10px; flex-shrink: 0;
+  font-family: 'DM Mono', monospace;
+}
+
+.fc-arrow {
+  display: flex; flex-direction: column; align-items: center;
+  height: 26px; justify-content: center;
+}
+.fc-arrow::before {
+  content: ''; display: block; width: 2px; height: 14px; background: var(--ink);
+}
+.fc-arrow::after {
+  content: ''; display: block; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-top: 7px solid var(--ink); margin-top: -1px;
+}
+.fc-arrow-label {
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted);
+  margin: 2px 0; letter-spacing: .05em;
+}
+
+/* ═══════════════════════════════════════════════
+   DATABASE / ER SCHEMA
+═══════════════════════════════════════════════ */
+.er-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px; margin: 18px 0;
+}
+.er-table { border: 1px solid var(--border); overflow: hidden; }
+.er-table-head {
+  padding: 8px 12px; font-family: 'Syne', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+}
+.er-table-head.dark  { background: var(--ink);  color: #fff; }
+.er-table-head.mid   { background: #444444;      color: #fff; }
+.er-table-head.light { background: #777777;      color: #fff; }
+.er-table-head.ref   { background: #2d5986;      color: #fff; }
+
+.er-field {
+  padding: 5px 12px; font-size: 10.5px;
+  border-bottom: 1px solid var(--cream);
+  display: flex; justify-content: space-between; align-items: center; gap: 6px;
+}
+.er-field:last-child { border-bottom: none; }
+.er-field .fname { flex: 1; font-family: 'DM Mono', monospace; }
+.er-field .ftype { color: var(--muted); font-size: 9.5px; white-space: nowrap; flex-shrink: 0; }
+.er-field .pk { font-weight: 700; color: var(--ink); }
+.er-field .fk { font-style: italic; color: #555; }
+
+.badge-pk {
+  display: inline-block; font-size: 8px; padding: 1px 5px;
+  background: var(--ink); color: #fff; font-weight: 700;
+  letter-spacing: .04em; font-family: 'DM Mono', monospace;
+  margin-right: 3px; vertical-align: middle;
+}
+.badge-fk {
+  display: inline-block; font-size: 8px; padding: 1px 5px;
+  background: #666; color: #fff; font-weight: 700;
+  letter-spacing: .04em; font-family: 'DM Mono', monospace;
+  margin-right: 3px; vertical-align: middle;
+}
+.er-fig-caption {
+  text-align: center; margin-top: 12px;
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--muted); letter-spacing: .08em; text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════
+   SEQUENCE DIAGRAMS
+═══════════════════════════════════════════════ */
+.seq-diagram { margin: 18px 0; border: 1px solid var(--border); overflow: hidden; }
+.seq-actors { display: flex; background: var(--ink); color: #fff; }
+.seq-actor {
+  flex: 1; text-align: center; padding: 9px 7px;
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  letter-spacing: .1em; text-transform: uppercase;
+  border-right: 1px solid rgba(255,255,255,.12);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.seq-actor:last-child { border-right: none; }
+.seq-row {
+  display: flex; border-bottom: 1px solid var(--border);
+  font-size: 10.5px; align-items: stretch;
+}
+.seq-row:last-child { border-bottom: none; }
+.seq-row:nth-child(even) { background: var(--cream); }
+.seq-cell {
+  flex: 1; padding: 7px 9px;
+  border-right: 1px dashed var(--border);
+  min-height: 34px; display: flex; align-items: center;
+}
+.seq-cell:last-child { border-right: none; }
+.seq-msg {
+  background: var(--ink); color: #fff;
+  font-size: 9.5px; padding: 2px 8px; white-space: nowrap;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'DM Mono', monospace;
+}
+.seq-msg.ret { background: #555; }
+.seq-msg.ext { background: #333; border: 1px dashed #777; }
+
+/* ═══════════════════════════════════════════════
+   BUSINESS RULES
+═══════════════════════════════════════════════ */
+.biz-rule {
+  margin: 12px 0; padding: 14px 18px;
+  background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--ink);
+}
+.biz-rule-id {
+  font-family: 'DM Mono', monospace; font-size: 10px;
+  color: var(--ink); letter-spacing: .1em; font-weight: 700; margin-bottom: 3px;
+}
+.biz-rule-title {
+  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; margin-bottom: 5px;
+}
+.biz-rule-desc { font-size: 11.5px; color: #444; line-height: 1.62; }
+.biz-rule-impact { margin-top: 7px; font-size: 10px; color: var(--muted); }
+.biz-rule-impact strong { color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   APPLICATION FLOW / USER JOURNEY
+═══════════════════════════════════════════════ */
+.app-flow {
+  margin: 22px 0; padding: 24px 20px 20px;
+  background: #fff; border: 1.5px solid #d0d0d0; border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  page-break-inside: avoid;
+}
+.app-flow-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink); text-align: center; margin-bottom: 20px;
+}
+.app-flow-track {
+  display: flex; align-items: flex-start;
+  justify-content: center; flex-wrap: nowrap; gap: 0;
+  overflow-x: auto;
+}
+.app-screen {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 100px; max-width: 130px; flex-shrink: 0;
+}
+.app-screen-icon {
+  width: 52px; height: 52px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 8px;
+  border: 2px solid var(--ink); background: #f8f7f4; color: var(--ink);
+}
+.app-screen-icon.s-db  { background: var(--ink); color: #fff; }
+.app-screen-icon.s-err { border-color: #888; color: #888; }
+.app-screen-name {
+  font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; text-align: center; line-height: 1.3;
+  max-width: 110px; word-wrap: break-word;
+}
+.app-screen-desc { font-size: 9px; color: var(--muted); text-align: center; margin-top: 3px; line-height: 1.3; max-width: 110px; }
+.app-flow-arrow {
+  display: flex; align-items: center; padding: 0 4px;
+  margin-top: 16px; position: relative; flex-shrink: 0;
+}
+.app-flow-arrow::before { content: ''; display: block; width: 24px; height: 2px; background: var(--ink); }
+.app-flow-arrow::after {
+  content: ''; display: block; width: 0; height: 0;
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--ink);
+}
+
+/* ═══════════════════════════════════════════════
+   USE CASES
+═══════════════════════════════════════════════ */
+.use-case-card {
+  margin: 14px 0; padding: 16px 18px;
+  background: #fff; border: 1px solid var(--border);
+}
+.use-case-id {
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .1em;
+  color: var(--muted); margin-bottom: 4px;
+}
+.use-case-title {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--ink); margin-bottom: 8px;
+}
+.use-case-meta {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 6px; margin-bottom: 10px; font-size: 11px;
+}
+.use-case-meta-item span:first-child { color: var(--muted); margin-right: 6px; }
+.use-case-steps { font-size: 11.5px; counter-reset: uc-step; }
+.use-case-step {
+  counter-increment: uc-step; padding: 4px 0 4px 22px;
+  position: relative; border-bottom: 1px solid var(--cream); line-height: 1.5;
+}
+.use-case-step::before {
+  content: counter(uc-step);
+  position: absolute; left: 0;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--ink); color: #fff;
+  font-size: 8px; font-weight: 700; font-family: 'DM Mono', monospace;
+  display: flex; align-items: center; justify-content: center; top: 5px;
+}
+.use-case-step:last-child { border-bottom: none; }
+
+/* ═══════════════════════════════════════════════
+   CLASS / OBJECT MODEL
+═══════════════════════════════════════════════ */
+.class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 18px 0; }
+.class-card { border: 1px solid var(--border); overflow: hidden; }
+.class-card-head {
+  background: var(--ink); color: #fff; padding: 8px 13px;
+  font-family: 'Syne', sans-serif; font-size: 10.5px; font-weight: 700;
+}
+.class-card-head span {
+  display: block; font-size: 9px; font-weight: 400;
+  color: rgba(255,255,255,.55); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px;
+}
+.class-section-title {
+  background: var(--cream); padding: 4px 12px;
+  font-family: 'Syne', sans-serif; font-size: 9px;
+  font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.class-field {
+  padding: 5px 12px; font-size: 10.5px; font-family: 'DM Mono', monospace;
+  border-bottom: 1px solid var(--cream);
+  display: flex; justify-content: space-between;
+}
+.class-field:last-child { border-bottom: none; }
+.class-field .ftype { color: var(--muted); font-size: 9.5px; }
+
+/* ═══════════════════════════════════════════════
+   INTEGRATION POINTS
+═══════════════════════════════════════════════ */
+.integration-card {
+  margin: 12px 0; padding: 15px 18px;
+  background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--ink);
+}
+.integration-card.outbound { border-left-color: #555; }
+.integration-card.ext      { border-left-color: #888; border-left-style: dashed; }
+.integration-tag {
+  font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .15em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+.integration-title {
+  font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500;
+  color: var(--ink); margin-bottom: 8px;
+}
+.integration-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 8px; }
+.integration-meta-row { font-size: 11px; }
+.integration-meta-row span:first-child { color: var(--muted); margin-right: 6px; }
+.integration-desc { font-size: 11.5px; color: #444; line-height: 1.62; }
+
+/* ═══════════════════════════════════════════════
+   NFR (Non-Functional Requirements)
+═══════════════════════════════════════════════ */
+.nfr-card {
+  margin: 10px 0; padding: 13px 17px;
+  background: #fff; border: 1px solid var(--border);
+}
+.nfr-card-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+  color: var(--ink); margin-bottom: 6px;
+}
+.nfr-list { list-style: none; }
+.nfr-list li {
+  padding: 5px 0; border-bottom: 1px solid var(--cream);
+  font-size: 11.5px; display: flex; gap: 8px; align-items: baseline;
+}
+.nfr-list li:last-child { border-bottom: none; }
+.nfr-list li::before { content: '▸'; color: var(--ink); flex-shrink: 0; font-size: 10px; }
+
+/* ═══════════════════════════════════════════════
+   RISK REGISTER
+═══════════════════════════════════════════════ */
+.risk-item {
+  margin: 10px 0; padding: 13px 17px;
+  background: #fff; border: 1px solid var(--border); border-left: 4px solid var(--risk-hi);
+}
+.risk-item.med { border-left-color: var(--risk-med); }
+.risk-item.low { border-left-color: var(--risk-lo); }
+.risk-severity {
+  font-family: 'Syne', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .15em; text-transform: uppercase; margin-bottom: 3px;
+}
+.risk-severity.hi  { color: var(--risk-hi); }
+.risk-severity.med { color: var(--risk-med); }
+.risk-severity.low { color: var(--risk-lo); }
+.risk-title {
+  font-family: 'DM Mono', monospace; font-size: 12px;
+  font-weight: 500; margin-bottom: 5px; color: var(--ink);
+}
+.risk-desc { font-size: 11.5px; color: #444; line-height: 1.6; }
+.risk-mitigation { margin-top: 6px; font-size: 11px; color: var(--muted); }
+.risk-mitigation strong { color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   API DESIGN
+═══════════════════════════════════════════════ */
+.api-group { margin-bottom: 26px; }
+.api-group-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+  padding: 7px 15px; background: var(--cream);
+  border-left: 3px solid var(--ink); margin-bottom: 9px; letter-spacing: .04em;
+}
+.api-endpoint {
+  margin: 8px 0; padding: 11px 15px;
+  border: 1px solid var(--border); background: #fff;
+}
+.api-path { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; margin-left: 8px; }
+.api-desc  { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+
+.method-badge {
+  display: inline-block; font-size: 9px; padding: 2px 8px;
+  font-weight: 700; letter-spacing: .05em; font-family: 'DM Mono', monospace;
+}
+.method-get    { background: #eee; color: var(--ink); border: 1px solid #bbb; }
+.method-post   { background: var(--ink); color: #fff; }
+.method-put    { background: #ddd; color: var(--ink); border: 1px solid #aaa; }
+.method-patch  { background: #e8e8e8; color: var(--ink); border: 1px solid #bbb; }
+.method-delete { background: #555; color: #fff; }
+
+/* ═══════════════════════════════════════════════
+   REPOSITORY FILE GUIDE
+═══════════════════════════════════════════════ */
+.file-group { margin-bottom: 22px; }
+.file-group-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 7px 14px; background: var(--ink); color: #fff; margin-bottom: 0;
+}
+.file-row {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 7px 14px; border-bottom: 1px solid var(--border); font-size: 11.5px;
+}
+.file-row:nth-child(even) { background: var(--cream); }
+.file-row .fname { font-family: 'DM Mono', monospace; color: var(--ink); flex-shrink: 0; min-width: 200px; }
+.file-row .fdesc { color: #444; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════
+   PHASE / TIMELINE
+═══════════════════════════════════════════════ */
+.phase-list { margin: 18px 0; border-left: 2px solid var(--ink); padding-left: 22px; }
+.phase-item { position: relative; margin-bottom: 22px; }
+.phase-item::before {
+  content: ''; position: absolute; left: -29px; top: 5px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--ink); border: 2px solid var(--paper); box-shadow: 0 0 0 2px var(--ink);
+}
+.phase-num {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--ink); letter-spacing: .15em; text-transform: uppercase; margin-bottom: 3px;
+}
+.phase-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; margin-bottom: 3px; }
+.phase-desc  { font-size: 11.5px; color: #444; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════
+   GLOSSARY
+═══════════════════════════════════════════════ */
+.glossary-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 14px 0; }
+.glossary-item { padding: 10px 13px; background: #fff; border: 1px solid var(--border); }
+.glossary-term { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: var(--ink); margin-bottom: 3px; }
+.glossary-def  { font-size: 11px; color: #555; line-height: 1.55; overflow-wrap: break-word; }
+
+/* ═══════════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════════ */
+.badge { display: inline-block; font-size: 9px; padding: 2px 8px; font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.badge-critical { background: var(--ink); color: #fff; }
+.badge-high     { background: #c0392b;    color: #fff; }
+.badge-medium   { background: #e67e22;    color: #fff; }
+.badge-low      { background: #ccc;       color: var(--ink); }
+
+/* ═══════════════════════════════════════════════
+   CHECKLIST
+═══════════════════════════════════════════════ */
+.check-list { list-style: none; margin: 9px 0; }
+.check-list li {
+  display: flex; gap: 9px; padding: 5px 0;
+  border-bottom: 1px solid var(--cream); font-size: 11.5px; align-items: baseline;
+}
+.check-list li:last-child { border-bottom: none; }
+.check-mark { font-size: 12px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════
+   PRINT
+═══════════════════════════════════════════════ */
+@media print {
+  html, body { 
+    width: 210mm; 
+    margin: 0 !important; 
+    padding: 0 !important;
+    background: white !important;
+  }
+  .doc-wrapper { 
+    padding: 0 !important; 
+    margin: 0 !important;
+    width: 210mm !important;
+  }
+  .page { 
+    break-after: always; 
+    box-shadow: none !important; 
+    margin: 0 !important; 
+    padding: 0 !important;
+    width: 210mm !important; 
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    height: 297mm !important;
+    border-radius: 0 !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+  .page-inner { 
+    width: 100% !important; 
+    padding: 15mm 20mm !important;
+    min-height: auto !important;
+  }
+  .pg-num { bottom: 10mm; right: 15mm; }
+  .pg-watermark { bottom: 10mm; left: 15mm; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+</style>
+</head>
+<body>
+<div class="doc-wrapper">
+
+<!-- PAGE 01 — DISCLAIMER -->
+<div class="page disclaimer-page" id="disclaimer">
+<div class="page-inner">
+  <div class="org-logo-bar">
+    <div class="org-logo-circle">TE</div>
+    <div class="org-logo-name">Enterprise Architecture Modernization</div>
+  </div>
+
+  <div class="disclaimer-block">
+    Disclaimer: This document provides a high-fidelity baseline of application architecture,
+    synthesized by MS Access Java React Accelerator through a rigorous analysis of the source code. It is designed
+    to significantly accelerate the comprehension process by providing a structured foundation
+    for modernization. Because applications reflect architectural implementation rather than
+    original system design, this document is intended as a collaborative draft. We encourage
+    Subject Matter Experts (SMEs) to review, refine, and validate these requirements to
+    ensure they perfectly capture the nuanced business goals of the current landscape.
+  </div>
+
+  <div class="disclaimer-doc-title">
+    Application Overview Document for Modernization:<br>
+    TestApp — TestApp - Modernized Architecture
+  </div>
+
+  <div class="section-label">Update Tracking</div>
+  <table class="update-table">
+    <thead>
+      <tr><th style="width:70px">Sr. No.</th><th style="width:140px">Update Date</th><th>Remarks</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>September 02, 2026</td><td>Initial automated BRD synthesis from Access repository analysis</td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Static Code Analysis</div>
+  <table class="static-table">
+    <thead>
+      <tr>
+        <th>Program Type</th><th>Physical Files</th><th>Used Files</th>
+        <th>Orphan Files</th><th>Physical LOC</th><th>Used LOC</th><th>Orphan LOC</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Access Application Objects</td><td>1</td><td>1</td><td>0</td><td>150</td><td>150</td><td>0</td></tr>
+
+    </tbody>
+    <tfoot>
+      <tr><td>Total</td><td>1</td><td>1</td><td>0</td><td>150</td><td>150</td><td>0</td></tr>
+    </tfoot>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">01</div>
+</div>
+
+<!-- PAGE 02 — COVER -->
+<div class="page cover-page" id="cover">
+<div class="page-inner">
+  <div class="cover-header">
+    <div class="cover-logo-bar">
+      <div class="cover-logo-circle">TE</div>
+      <div class="cover-logo-name">Enterprise Architecture Modernization</div>
+    </div>
+    <div class="cover-title-block">
+      <div class="cover-doc-type">Technical Document · Application Overview for Modernization</div>
+      <div class="cover-title">TestApp</div>
+      <div class="cover-subtitle">TestApp - Modernized Architecture</div>
+    </div>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-meta-group">
+      <h4>Document Control</h4>
+      <div class="cover-meta-row"><span>Document ID</span><span>TD-TestApp-001</span></div>
+      <div class="cover-meta-row"><span>Version</span><span>v1.0 — Review Draft</span></div>
+      <div class="cover-meta-row"><span>Date</span><span>September 02, 2026</span></div>
+      <div class="cover-meta-row"><span>Classification</span><span>CONFIDENTIAL</span></div>
+    </div>
+
+    <div class="cover-meta-group">
+      <h4>Repository</h4>
+      <div class="cover-meta-row"><span>URL</span><span style="word-break:break-all">MSAccessDatabase.accdb</span></div>
+      <div class="cover-meta-row"><span>Primary Language</span><span style="background:var(--ink);color:#fff;padding:2px 10px;font-weight:700">Java / React (Modernized from MS Access VBA)</span></div>
+      <div class="cover-meta-row"><span>Platform</span><span>JVM / Cloud / PostgreSQL</span></div>
+      <div class="cover-meta-row"><span>Environment</span><span>Development / Staging / Production</span></div>
+    </div>
+
+    <div class="cover-stack">
+      <h4>Technology Stack
+        <span style="display:inline-block;background:var(--ink);color:#fff;font-family:'DM Mono',monospace;font-size:10px;padding:2px 10px;letter-spacing:.08em;margin-left:8px;vertical-align:middle">Java / React (Modernized from MS Access VBA)</span>
+      </h4>
+      <div class="tech-pills">
+        <span class="tech-pill">Spring Boot 4.1.0</span>
+<span class="tech-pill">Java 25</span>
+<span class="tech-pill">React 19.2.8</span>
+<span class="tech-pill">PostgreSQL 18</span>
+<span class="tech-pill">Flyway Migration</span>
+<span class="tech-pill">JPA / Hibernate</span>
+<span class="tech-pill">TypeScript / Vite</span>
+<span class="tech-pill">RESTful Web Services</span>
+<span class="tech-pill">Tailwind / Modern CSS</span>
+<span class="tech-pill">MS Access Engine (Source)</span>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <span>© September 02, 2026 · Enterprise Architecture Modernization · TestApp · For Internal Use Only</span>
+    <span class="confidential">Confidential</span>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 03 — TOC -->
+<div class="page" id="toc">
+<div class="page-inner">
+  <div class="toc-page-title">Table of Contents</div>
+  <div class="toc-page-subtitle">Application Overview Document for Modernization — TestApp — v1.0</div>
+
+  <table class="toc-table">
+    <thead><tr><th>Section</th><th>Title</th><th>Page</th></tr></thead>
+    <tbody>
+      <tr><td>Section 1</td><td><a href="#ch1">Introduction</a></td><td>04</td></tr>
+      <tr><td>Section 2</td><td><a href="#ch2">Purpose and Scope</a></td><td>05</td></tr>
+      <tr><td>Section 3</td><td><a href="#ch3">Business Functionality / Key Features</a></td><td>06</td></tr>
+      <tr><td>Section 4</td><td><a href="#ch4">High-Level Architecture</a></td><td>07</td></tr>
+      <tr><td>Section 5</td><td><a href="#ch5">Technical Stack &amp; Technologies</a></td><td>08</td></tr>
+      <tr><td>Section 6</td><td><a href="#ch6">Data Management Overview</a></td><td>09</td></tr>
+      <tr><td>Section 7</td><td><a href="#ch7">Database Schema &amp; ER Diagram</a></td><td>10</td></tr>
+      <tr><td>Section 8</td><td><a href="#ch8">Process Overview (Online &amp; Batch)</a></td><td>11</td></tr>
+      <tr><td>Section 9</td><td><a href="#ch9">Application Flow &amp; User Journey</a></td><td>12</td></tr>
+      <tr><td>Section 10</td><td><a href="#ch10">Use Case Specifications</a></td><td>13</td></tr>
+      <tr><td>Section 11</td><td><a href="#ch11">Object / Class Model</a></td><td>14</td></tr>
+      <tr><td>Section 12</td><td><a href="#ch12">Activity &amp; Process Flows</a></td><td>15</td></tr>
+      <tr><td>Section 13</td><td><a href="#ch13">Sequence Diagrams</a></td><td>16</td></tr>
+      <tr><td>Section 14</td><td><a href="#ch14">Integration Points</a></td><td>17</td></tr>
+      <tr><td>Section 15</td><td><a href="#ch15">API Design &amp; Specification</a></td><td>18</td></tr>
+      <tr><td>Section 16</td><td><a href="#ch16">Non Functional Requirements</a></td><td>19</td></tr>
+      <tr><td>Section 17</td><td><a href="#ch17">Current Risks/Challenges</a></td><td>20</td></tr>
+      <tr><td>Section 18</td><td><a href="#ch18">Repository File-by-File Guide</a></td><td>21</td></tr>
+      <tr><td>Section 19</td><td><a href="#ch19">Security, Acceptance &amp; Limitations</a></td><td>22</td></tr>
+      <tr><td>Section 20</td><td><a href="#ch20">Support</a></td><td>23</td></tr>
+      <tr><td>Section 21</td><td><a href="#ch21">Go to Person</a></td><td>23</td></tr>
+      <tr><td>Section 22</td><td><a href="#ch22">Glossary of Terms and Acronyms</a></td><td>24</td></tr>
+      <tr><td>Section 23</td><td><a href="#ch23">References and Appendices</a></td><td>25</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">03</div>
+</div>
+
+<!-- CHAPTER 1 — INTRODUCTION -->
+<div class="page" id="ch1">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 1</div>
+      <div class="ch-title">Introduction</div>
+    </div>
+    <div class="ch-subtitle">Purpose of the document and application purpose</div>
+  </div>
+
+  <h2>1.1 Purpose of the Document</h2>
+  <p>This document specifies the technical and business baseline for modernizing the TestApp Access application.</p>
+  <p>This document serves as a critical reference for architects, developers, and business stakeholders involved in the evolution of the TestApp system.</p>
+
+  <h2>1.2 Application Purpose</h2>
+  <p>The TestApp application manages operational business data across 0 data entities, 0 queries, and 0 user forms.</p>
+
+  <div class="callout info">
+    <strong>Modernization Note</strong>
+    Conversion of TestApp to Spring Boot (4.1.0) and React (19.2.8) eliminates single-user file-locking limitations.
+  </div>
+
+  <h2>Application at a Glance</h2>
+  <table class="brd-table">
+    <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Application Name</td><td>TestApp - Modernized Architecture</td></tr>
+      <tr><td>Repository</td><td>TestApp</td></tr>
+      <tr><td>Primary Language</td><td>Java / React (Modernized from MS Access VBA)</td></tr>
+      <tr><td>Platform / OS</td><td>JVM / Cloud / PostgreSQL</td></tr>
+      <tr><td>Processing Modes</td><td>Online (REST API / React SPA) & Batch (Scheduled Jobs)</td></tr>
+      <tr><td>Total Programs</td><td>1</td></tr>
+      <tr><td>Total LOC</td><td>150</td></tr>
+      <tr><td>Orphan Files</td><td>0</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">04</div>
+</div>
+
+<!-- CHAPTER 2 — PURPOSE AND SCOPE -->
+<div class="page" id="ch2">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 2</div>
+      <div class="ch-title">Purpose and Scope</div>
+    </div>
+    <div class="ch-subtitle">Detailed purpose, modernization goals, and scope of capabilities</div>
+  </div>
+
+  <h2>2.1 Detailed Purpose</h2>
+  <p>Modernized platform architecture for TestApp with automated database schema migration to PostgreSQL (18).</p>
+  <p>The primary value it provides is a standardized platform for:</p>
+
+  <div class="phase-list">
+    <div class="phase-item">
+  <div class="phase-num">Objective 01</div>
+  <div class="phase-title">Automate Data Operations</div>
+  <div class="phase-desc">Modernize legacy Access table structures and workflows for TestApp to high-concurrency Spring Boot services.</div>
+</div>
+<div class="phase-item">
+  <div class="phase-num">Objective 02</div>
+  <div class="phase-title">Improve Data Consistency</div>
+  <div class="phase-desc">Eliminate desktop file locking and corruption risks by migrating to robust PostgreSQL transactions.</div>
+</div>
+<div class="phase-item">
+  <div class="phase-num">Objective 03</div>
+  <div class="phase-title">Modern User Experience</div>
+  <div class="phase-desc">Deliver responsive, accessible React-based web interfaces replacing legacy Access forms and dialogs.</div>
+</div>
+<div class="phase-item">
+  <div class="phase-num">Objective 04</div>
+  <div class="phase-title">Regulatory &amp; Audit Compliance</div>
+  <div class="phase-desc">Implement comprehensive audit logging, TLS security, and JWT authentication across all operations.</div>
+</div>
+
+  </div>
+
+  <h2>2.2 Scope</h2>
+  <div class="scope-grid">
+    <div class="scope-box in-scope">
+      <h4>✔ In Scope</h4>
+      <div class="scope-item"><span class="scope-mark">▸</span><span>Extraction and analysis of 0 Access tables and schema constraints.</span></div>
+<div class="scope-item"><span class="scope-mark">▸</span><span>Conversion of 0 SQL queries into Spring Data JPA repositories and specifications.</span></div>
+<div class="scope-item"><span class="scope-mark">▸</span><span>Migration of 0 user forms into interactive React component trees.</span></div>
+<div class="scope-item"><span class="scope-mark">▸</span><span>Analysis of 0 VBA modules for business logic porting.</span></div>
+<div class="scope-item"><span class="scope-mark">▸</span><span>Generation of PostgreSQL Flyway database migration scripts.</span></div>
+<div class="scope-item"><span class="scope-mark">▸</span><span>Full REST API endpoint cataloging and OpenAPI documentation.</span></div>
+
+    </div>
+    <div class="scope-box out-scope">
+      <h4>✖ Out of Scope</h4>
+      <div class="scope-item"><span class="scope-mark">–</span><span>Hardware infrastructure provisioning and physical server procurement.</span></div>
+<div class="scope-item"><span class="scope-mark">–</span><span>End-user training and organizational change management documentation.</span></div>
+<div class="scope-item"><span class="scope-mark">–</span><span>Third-party external legacy database licenses beyond the target architecture.</span></div>
+<div class="scope-item"><span class="scope-mark">–</span><span>Historical decommission of archive disks prior to migration sign-off.</span></div>
+
+    </div>
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">05</div>
+</div>
+
+<!-- CHAPTER 3 — BUSINESS FUNCTIONALITY -->
+<div class="page" id="ch3">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 3</div>
+      <div class="ch-title">Business Functionality<br>/ Key Features</div>
+    </div>
+    <div class="ch-subtitle">Capability-by-capability business overview, key features, and business value</div>
+  </div>
+
+  <h2>3.1 Core Data Management</h2>
+<p><strong>Business Overview:</strong> Encapsulates transactional CRUD operations and referential integrity for 0 primary entities.</p>
+<h4 class="sub">Key Business Features</h4>
+<ul class="nfr-list"><li>Entity persistence</li><li>Optimistic concurrency</li><li>Flyway schema versioning</li><li>Transaction management</li></ul>
+<p><strong>Business Value:</strong> Eliminates file corruption and provides robust multi-user scaling.</p>
+<h4 class="sub">Primary Business Processes</h4>
+<ul class="nfr-list"><li>Record creation</li><li>Record modification</li><li>Batch reconciliation</li></ul>
+<h2>3.2 Query &amp; Analytics Engine</h2>
+<p><strong>Business Overview:</strong> High-speed data querying and filtering corresponding to 0 Access queries.</p>
+<h4 class="sub">Key Business Features</h4>
+<ul class="nfr-list"><li>Dynamic pagination</li><li>Parameter validation</li><li>Optimized index usage</li><li>SQL query translation</li></ul>
+<p><strong>Business Value:</strong> Accelerates reporting response time from minutes to sub-seconds.</p>
+<h4 class="sub">Primary Business Processes</h4>
+<ul class="nfr-list"><li>Filter execution</li><li>Summary aggregation</li><li>Data export</li></ul>
+<h2>3.3 User Interaction &amp; Forms</h2>
+<p><strong>Business Overview:</strong> Modern web interfaces replacing 0 desktop forms with React 19.</p>
+<h4 class="sub">Key Business Features</h4>
+<ul class="nfr-list"><li>Real-time validation</li><li>Accessible form controls</li><li>Responsive layout</li><li>State synchronization</li></ul>
+<p><strong>Business Value:</strong> Enables remote browser access across desktop and mobile devices.</p>
+<h4 class="sub">Primary Business Processes</h4>
+<ul class="nfr-list"><li>User login</li><li>Form submission</li><li>Workflow transitions</li></ul>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">06</div>
+</div>
+
+<!-- CHAPTER 4 — ARCHITECTURE -->
+<div class="page" id="ch4">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 4</div>
+      <div class="ch-title">High-Level Architecture</div>
+    </div>
+    <div class="ch-subtitle">Architectural layers, design patterns, and component relationships</div>
+  </div>
+
+  <p>The modernized architecture adopts an enterprise N-tier model, separating the responsive React Single Page Application frontend from the stateless Spring Boot 4 REST API service, backed by PostgreSQL 18 relational storage.</p>
+
+  <div class="full-arch">
+    <div class="full-arch-title">System Architecture — TestApp</div>
+
+    <div class="arch-section s-actor">
+      <div class="arch-section-label">👤 Actors / Users</div>
+      <div class="arch-row">
+        <div class="arch-card">Application Users / Operators</div>
+<div class="arch-card">System Administrators</div>
+<div class="arch-card">Automated Integration Consumers</div>
+
+      </div>
+    </div>
+    <div class="arch-connector">↕ ↕ ↕</div>
+
+    <div class="arch-section s-ui">
+      <div class="arch-section-label">🖥 Presentation Layer</div>
+      <div class="arch-row">
+        <div class="arch-card">React 19 Single Page App</div>
+<div class="arch-card">Vite Dev & Build Pipeline</div>
+<div class="arch-card">Tailwind UI Components</div>
+
+      </div>
+    </div>
+    <div class="arch-connector">↕ ↕</div>
+
+    <div class="arch-section s-biz">
+      <div class="arch-section-label">⚙ Application / Business Logic Layer</div>
+      <div class="arch-row">
+        <div class="arch-card">Spring Boot 4 Application Service</div>
+<div class="arch-card">Business Rules & Workflow Engine</div>
+<div class="arch-card">Validation & Security Interceptors</div>
+
+      </div>
+    </div>
+    <div class="arch-connector">↕ ↕</div>
+
+    <div class="arch-section s-data-access">
+      <div class="arch-section-label">🔗 Data Access Layer</div>
+      <div class="arch-row">
+        <div class="arch-card">Spring Data JPA Repositories</div>
+<div class="arch-card">Hibernate 6 ORM Layer</div>
+<div class="arch-card">Flyway Migration Manager</div>
+
+      </div>
+    </div>
+    <div class="arch-connector">↕ ↕</div>
+
+    <div class="arch-section s-data">
+      <div class="arch-section-label">🗄 Data Layer</div>
+      <div class="arch-row">
+        <div class="arch-card">PostgreSQL 18 Relational DB</div>
+<div class="arch-card">ACID Transaction Store</div>
+
+      </div>
+    </div>
+    <div class="arch-connector">↕</div>
+
+    <div class="arch-section s-ext">
+      <div class="arch-section-label">🌐 External Integrations (Optional Modules)</div>
+      <div class="arch-row">
+        <div class="arch-card">JWT Authentication Provider</div>
+<div class="arch-card">RESTful External APIs</div>
+
+      </div>
+    </div>
+
+    <div class="arch-legend">
+      <div class="arch-legend-item"><div class="arch-legend-dot" style="background:#f0f0f0;border:1px solid #bbb"></div> Presentation</div>
+      <div class="arch-legend-item"><div class="arch-legend-dot" style="background:#f5f5f5;border:1px solid #ccc"></div> Business Logic</div>
+      <div class="arch-legend-item"><div class="arch-legend-dot" style="background:#1a1a1a"></div> Data Stores</div>
+      <div class="arch-legend-item"><div class="arch-legend-dot" style="background:#f0f0f0;border:1px dashed #aaa"></div> External / Optional</div>
+    </div>
+    <div class="arch-fig-caption">Figure 4.1 — TestApp High-Level Architecture Diagram</div>
+  </div>
+
+  <h2>4.1 Architecture Patterns</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:30%">Pattern</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>N-Tier Layered Architecture</td><td>Delineates Presentation (React), Business (Spring Boot), and Persistence (PostgreSQL) into decoupled layers.</td></tr>
+<tr><td>Repository & DAO Pattern</td><td>Abstracts data access logic using Spring Data JPA, ensuring database portability and testability.</td></tr>
+<tr><td>RESTful API Architecture</td><td>Exposes JSON endpoints with standardized HTTP status codes and contract-first OpenAPI schemas.</td></tr>
+<tr><td>Dependency Injection</td><td>Leverages Spring core IoC container for testable, loosely coupled service wiring.</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>4.2 Business Flow Overview</h2>
+  <p>Users interact with the system through modern React 19 web views, initiating transactions that flow through Spring Boot validation services, updating records in PostgreSQL with full audit tracking.</p>
+
+  <h2>4.3 Functional Module Breakdown</h2>
+<p>The modernized application is partitioned into modular subsystems:</p>
+<h3>1. Database & Schema Module</h3>
+<p>Houses 0 PostgreSQL tables, entity definitions, and Flyway migration version scripts.</p>
+<h3>2. Business Service Module</h3>
+<p>Houses business facades, validation services, and logic translated from 0 VBA modules.</p>
+<h3>3. Web Presentation Module</h3>
+<p>Houses React view components, state management, and navigation routing reflecting 0 forms.</p>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">07</div>
+</div>
+
+<!-- CHAPTER 5 — TECH STACK -->
+<div class="page" id="ch5">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 5</div>
+      <div class="ch-title">Technical Stack<br>&amp; Technologies</div>
+    </div>
+    <div class="ch-subtitle">Programming languages, online environment, databases, job control, middleware, security, and OS</div>
+  </div>
+
+  <table class="brd-table">
+<thead><tr><th style="width:25%">Category</th><th style="width:25%">Technology</th><th style="width:15%">Version</th><th>Role / Purpose</th></tr></thead>
+<tbody>
+<tr><td>Backend Framework</td><td>Spring Boot</td><td>4.1.0</td><td>Core microservice runtime</td></tr>
+<tr><td>Runtime Platform</td><td>Java Virtual Machine</td><td>JDK 25</td><td>Enterprise execution environment</td></tr>
+<tr><td>Frontend Library</td><td>React</td><td>19.2.8</td><td>Modern SPA user interface</td></tr>
+<tr><td>Database Engine</td><td>PostgreSQL</td><td>18</td><td>Relational persistence and ACID transactions</td></tr>
+<tr><td>Schema Migration</td><td>Flyway</td><td>Latest</td><td>Automated database version control</td></tr>
+<tr><td>API Standard</td><td>REST / JSON</td><td>HTTP/1.1 & HTTP/2</td><td>Stateless client-server communication</td></tr>
+</tbody>
+</table>
+
+
+  <h2>5.1 Programming Languages</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:25%">Language</th><th style="width:15%">Programs</th><th style="width:15%">LOC</th><th>Usage / Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Java (Spring Boot)</td><td>0</td><td>300</td><td>Backend entities, repositories, and controllers</td></tr>
+<tr><td>TypeScript / React</td><td>0</td><td>0</td><td>Interactive user interface components</td></tr>
+<tr><td>PostgreSQL SQL</td><td>0</td><td>0</td><td>DDL schema, indexes, and queries</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>5.2 Online Environment</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:30%">Component</th><th>Description &amp; Role</th></tr></thead>
+    <tbody>
+      <tr><td>JDK 25</td><td>Java SE Runtime Environment with modern garbage collection and virtual threads</td></tr>
+<tr><td>Node.js 24 LTS</td><td>Frontend build tools, Vite runtime, and packaging server</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>5.3 Databases / File Systems</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:25%">Technology</th><th style="width:20%">Type</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td>PostgreSQL</td><td>Relational Database</td><td>Primary persistent storage for all 0 data entities</td></tr>
+<tr><td>Flyway Schema History</td><td>Metadata Store</td><td>Tracks applied database version migrations</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>5.4 Job Control</h2>
+  <p>Spring Batch and asynchronous task executors govern scheduled background tasks, data reconciliation, and automated export routines.</p>
+
+  <h2>5.5 Job Scheduling</h2>
+  <p>Cron-based scheduling via Spring `@Scheduled` annotations handles automated database maintenance and report generation.</p>
+
+  <h2>5.6 Middleware / Messaging</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:30%">Technology</th><th>Use Case</th></tr></thead>
+    <tbody>
+      <tr><td>Spring Web MVC</td><td>HTTP request routing, JSON serialization, and middleware security filters</td></tr>
+<tr><td>Connection Pool (HikariCP)</td><td>High-performance database connection pooling</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>5.7 Security Framework</h2>
+  <p>Security is enforced via Spring Security 6 with stateless JWT Bearer token authentication, password hashing, and role-based access control.</p>
+
+  <h2>5.8 Development &amp; Support Tools</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:30%">Tool</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Maven / Gradle</td><td>Backend build automation and dependency resolution</td></tr>
+<tr><td>Vite / npm</td><td>Fast React frontend bundle development and asset packaging</td></tr>
+<tr><td>Git</td><td>Distributed version control and CI/CD automation</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>5.9 Operating System</h2>
+  <p>Cross-platform deployment via JVM and Docker containerization supporting Linux (Ubuntu/Alpine) and Windows Server environments.</p>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">08</div>
+</div>
+
+<!-- CHAPTER 6 — DATA MANAGEMENT -->
+<div class="page" id="ch6">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 6</div>
+      <div class="ch-title">Data Management Overview</div>
+    </div>
+    <div class="ch-subtitle">Data entities/stores, high-level data flow, and data dependencies</div>
+  </div>
+
+  <h2>6.1 Data Entities/Stores</h2>
+  <p>The application manages structured business records across 0 relational tables in PostgreSQL.</p>
+
+  <h4 class="sub">Primary Data Stores</h4>
+  <table class="brd-table"><thead><tr><th>Store Name</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td><code>ApplicationData</code></td><td>Relational Table</td><td>Primary application entity store</td></tr></tbody></table>
+
+  <h2>6.2 Data Flow (High-Level)</h2>
+  <h4 class="sub">Data Entry Points</h4>
+  <ul class="nfr-list">
+    <li>React web forms and client-side validated inputs</li>
+<li>REST API JSON payload endpoints</li>
+<li>Automated database migration and seed scripts</li>
+
+  </ul>
+
+  <h4 class="sub">Data Processing Workflows</h4>
+  <ul class="nfr-list">
+    <li>Spring service layer business rule execution</li>
+<li>JPA entity lifecycle validation and constraint checking</li>
+<li>Transactional data transformation and enrichment</li>
+
+  </ul>
+
+  <h4 class="sub">Data Exit Points</h4>
+  <ul class="nfr-list">
+    <li>Structured JSON responses returned to client browsers</li>
+<li>PostgreSQL tables updated with persistent audit history</li>
+<li>Downloadable reports and data exports</li>
+
+  </ul>
+
+  <h2>6.3 Data Dependencies</h2>
+  <div class="callout">
+    <strong>Critical Dependencies</strong>
+    <ul class="nfr-list" style="margin-top:6px">
+      <li>PostgreSQL database network connectivity and user credentials</li>
+<li>JWT Secret key for API authentication token signing</li>
+<li>Spring Boot application configuration properties</li>
+
+    </ul>
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">09</div>
+</div>
+
+<!-- CHAPTER 7 — DB SCHEMA & ER -->
+<div class="page" id="ch7">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 7</div>
+      <div class="ch-title">Database Schema<br>&amp; ER Diagram</div>
+    </div>
+    <div class="ch-subtitle">Entity-relationship model, table definitions, primary keys, and foreign keys</div>
+  </div>
+
+  <p>Entity-relationship structure and table definitions synthesized from MSAccessDatabase.accdb.</p>
+
+  <p>Total 0 relational tables and 0 query specifications extracted and cataloged.</p>
+
+  <div class="er-grid">
+    <div class="er-table"><div class="er-table-head dark">ApplicationData</div><div class="er-field"><span class="fname"><span class="badge-pk">PK</span>id</span><span class="ftype">BIGINT</span></div><div class="er-field"><span class="fname">data_payload</span><span class="ftype">JSONB</span></div><div class="er-field"><span class="fname">updated_at</span><span class="ftype">TIMESTAMP</span></div></div>
+  </div>
+  <div class="er-fig-caption">Figure 7.1 — TestApp Entity Relationship Diagram · <span class="badge-pk">PK</span> = Primary Key &nbsp; <span class="badge-fk">FK</span> = Foreign Key</div>
+
+  <h2>7.1 Key Relationships</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:30%">Parent Table</th><th style="width:30%">Child Table</th><th>Relationship</th></tr></thead>
+    <tbody>
+      <tr><td><code>ParentEntity</code></td><td><code>ChildEntity</code></td><td>Referential Constraint</td></tr>
+
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">10</div>
+</div>
+
+<!-- CHAPTER 8 — PROCESS OVERVIEW -->
+<div class="page" id="ch8">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 8</div>
+      <div class="ch-title">Process Overview<br>(Online &amp; Batch)</div>
+    </div>
+    <div class="ch-subtitle">Online processes, batch processes, major job streams, and scheduler role</div>
+  </div>
+
+  <h2>8.1 Online Processes</h2>
+  <p>Online processes are exposed via RESTful HTTP controllers handling interactive user requests.</p>
+  <table class="brd-table">
+    <thead><tr><th style="width:20%">Transaction Code</th><th style="width:35%">Program / Module</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>REST-API</code></td><td><code>EntityResource.java</code></td><td>RESTful transaction handling</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8.2 Batch Processes</h2>
+  <p>Batch jobs handle background data reconciliation and automated query exports.</p>
+  <h4 class="sub">Batch Cycles</h4>
+  <table class="brd-table">
+    <thead><tr><th style="width:25%">Cycle</th><th style="width:25%">Key Job(s)</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Nightly</td><td><code>DataSyncJob</code></td><td>PostgreSQL automated backup and audit consistency check</td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="sub">Job Stream Dependencies</h4>
+  <div class="callout info">
+    <strong>Scheduler Note</strong>
+    Scheduled jobs execute with transactional isolation, ensuring consistency before downstream reconciliation tasks run.
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">11</div>
+</div>
+
+<!-- CHAPTER 9 — APP FLOW & USER JOURNEY -->
+<div class="page" id="ch9">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 9</div>
+      <div class="ch-title">Application Flow<br>&amp; User Journey</div>
+    </div>
+    <div class="ch-subtitle">Screen-by-screen navigation flow showing how users interact with the application</div>
+  </div>
+
+  <h2>9.1 Key Transactions/Screen Flows</h2>
+  <div class="app-flow">
+    <div class="app-flow-title">TestApp Primary Screen Flow</div>
+    <div class="app-flow-track">
+      <div class="app-screen">
+  <div class="app-screen-icon">📋</div>
+  <div class="app-screen-name">Main Menu</div>
+  <div class="app-screen-desc">User interaction and event processing in Main Menu</div>
+</div>
+<div class="app-flow-arrow"></div><div class="app-screen">
+  <div class="app-screen-icon">⚙️</div>
+  <div class="app-screen-name">Data Entry</div>
+  <div class="app-screen-desc">User interaction and event processing in Data Entry</div>
+</div>
+<div class="app-flow-arrow"></div><div class="app-screen">
+  <div class="app-screen-icon">⚙️</div>
+  <div class="app-screen-name">Review</div>
+  <div class="app-screen-desc">User interaction and event processing in Review</div>
+</div>
+<div class="app-flow-arrow"></div><div class="app-screen">
+  <div class="app-screen-icon">📊</div>
+  <div class="app-screen-name">Reports</div>
+  <div class="app-screen-desc">User interaction and event processing in Reports</div>
+</div>
+
+    </div>
+  </div>
+
+  <h2>9.2 Key Screen Flows</h2>
+  <h4 class="sub">Primary User Navigation Flow</h4>
+<p>Users access the application via authenticated dashboard, navigating between 0 dedicated operational views for data entry, querying, and reporting.</p>
+<h4 class="sub">Data Modification & Persistence Flow</h4>
+<p>User inputs are validated on the client side in React before dispatching via asynchronous REST calls to Spring Boot services for transaction commitment in PostgreSQL.</p>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">12</div>
+</div>
+
+<!-- CHAPTER 10 — USE CASES -->
+<div class="page" id="ch10">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 10</div>
+      <div class="ch-title">Use Case<br>Specifications</div>
+    </div>
+    <div class="ch-subtitle">Actor interactions, preconditions, and use case specifications</div>
+  </div>
+
+  <div class="use-case-card">
+  <div class="use-case-id">UC-001</div>
+  <div class="use-case-title">Manage Records Data</div>
+  <div class="use-case-meta">
+    <div class="use-case-meta-item"><span>Actor:</span>Business User</div>
+    <div class="use-case-meta-item"><span>Priority:</span><span class="badge badge-high">High</span></div>
+    <div class="use-case-meta-item"><span>Precondition:</span>User is authenticated and authorized.</div>
+    <div class="use-case-meta-item"><span>Postcondition:</span>Entity record is committed and updated in PostgreSQL.</div>
+  </div>
+  <div class="use-case-steps"><div class="use-case-step">User opens the entity management interface.</div><div class="use-case-step">System retrieves and displays current paginated records.</div><div class="use-case-step">User inputs updated field values and submits form.</div><div class="use-case-step">Spring Boot validates business constraints and updates the record.</div><div class="use-case-step">System displays confirmation toast message to user.</div></div>
+</div>
+<div class="use-case-card">
+  <div class="use-case-id">UC-002</div>
+  <div class="use-case-title">Execute Search &amp; Filter Queries</div>
+  <div class="use-case-meta">
+    <div class="use-case-meta-item"><span>Actor:</span>Operational Analyst</div>
+    <div class="use-case-meta-item"><span>Priority:</span><span class="badge badge-high">Medium</span></div>
+    <div class="use-case-meta-item"><span>Precondition:</span>Database records exist in target table.</div>
+    <div class="use-case-meta-item"><span>Postcondition:</span>Matching records are returned in sub-second response time.</div>
+  </div>
+  <div class="use-case-steps"><div class="use-case-step">User enters search criteria in the query filter bar.</div><div class="use-case-step">Frontend dispatches parameterized query request to API.</div><div class="use-case-step">Backend executes optimized query against indexed columns.</div><div class="use-case-step">Results are formatted and presented in interactive table.</div></div>
+</div>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">13</div>
+</div>
+
+<!-- CHAPTER 11 — OBJECT / CLASS MODEL -->
+<div class="page" id="ch11">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 11</div>
+      <div class="ch-title">Object Model</div>
+    </div>
+    <div class="ch-subtitle">Object-oriented class inventory and relationships</div>
+  </div>
+
+  <p>Object-oriented Spring entity and service class mapping representing the underlying data model.</p>
+
+  <p>Auto-generated 0 Spring JPA entity models with repository mappings.</p>
+
+  <div class="class-grid">
+    <div class="class-card">
+  <div class="class-card-head"><span>Spring JPA Entity</span>RecordEntity</div>
+  <div class="class-section-title">Attributes</div>
+  <div class="class-field"><span class="fname">id</span><span class="ftype">Long (PK)</span></div>
+  <div class="class-field"><span class="fname">status</span><span class="ftype">String</span></div>
+  <div class="class-field"><span class="fname">createdAt</span><span class="ftype">Instant</span></div>
+  <div class="class-section-title">Methods / Service Operations</div>
+  <div class="class-field"><span class="fname">findById(id)</span><span class="ftype">Optional&lt;T&gt;</span></div>
+  <div class="class-field"><span class="fname">save(entity)</span><span class="ftype">RecordEntity</span></div>
+</div>
+
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">14</div>
+</div>
+
+<!-- CHAPTER 12 — ACTIVITY & PROCESS FLOWS -->
+<div class="page" id="ch12">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 12</div>
+      <div class="ch-title">Activity &amp;<br>Process Flows</div>
+    </div>
+    <div class="ch-subtitle">Step-by-step workflow and activity flow analysis</div>
+  </div>
+
+  <h2>12.1 Primary Application Activity Flow</h2>
+<div class="flowchart">
+  <div class="flowchart-title">TestApp Workflow</div>
+  <div class="fc-node fc-start">START</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-step"><span class="fc-step-num">1</span>User accesses modernized web application</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-step"><span class="fc-step-num">2</span>Authenticate session & load user permissions</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-step"><span class="fc-step-num">3</span>Render primary data dashboard</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-step"><span class="fc-step-num">4</span>User performs data entry or query action</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-step"><span class="fc-step-num">5</span>Commit transaction in PostgreSQL database</div>
+  <div class="fc-arrow"></div>
+  <div class="fc-node fc-end">END</div>
+</div>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">15</div>
+</div>
+
+<!-- CHAPTER 13 — SEQUENCE DIAGRAMS -->
+<div class="page" id="ch13">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 13</div>
+      <div class="ch-title">Sequence Diagrams</div>
+    </div>
+    <div class="ch-subtitle">Message-level interactions between system components</div>
+  </div>
+
+  <h2>13.1 Request-Response Lifecycle</h2>
+<div class="seq-diagram">
+  <div class="seq-actors">
+    <div class="seq-actor">React Client</div>
+    <div class="seq-actor">Spring Controller</div>
+    <div class="seq-actor">Business Service</div>
+    <div class="seq-actor">PostgreSQL DB</div>
+  </div>
+  <div class="seq-row"><div class="seq-cell"><span class="seq-msg">HTTP POST /api/v1/resource</span></div><div class="seq-cell"></div><div class="seq-cell"></div><div class="seq-cell"></div></div>
+  <div class="seq-row"><div class="seq-cell"></div><div class="seq-cell"><span class="seq-msg">Validate Payload DTO</span></div><div class="seq-cell"></div><div class="seq-cell"></div></div>
+  <div class="seq-row"><div class="seq-cell"></div><div class="seq-cell"></div><div class="seq-cell"><span class="seq-msg">Execute Business Logic</span></div><div class="seq-cell"></div></div>
+  <div class="seq-row"><div class="seq-cell"></div><div class="seq-cell"></div><div class="seq-cell"></div><div class="seq-cell"><span class="seq-msg">INSERT / UPDATE Row</span></div></div>
+  <div class="seq-row"><div class="seq-cell"></div><div class="seq-cell"></div><div class="seq-cell"><span class="seq-msg ret">Commit OK</span></div><div class="seq-cell"></div></div>
+  <div class="seq-row"><div class="seq-cell"></div><div class="seq-cell"><span class="seq-msg ret">HTTP 200 OK + JSON</span></div><div class="seq-cell"></div><div class="seq-cell"></div></div>
+</div>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">16</div>
+</div>
+
+<!-- CHAPTER 14 — INTEGRATION POINTS -->
+<div class="page" id="ch14">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 14</div>
+      <div class="ch-title">Integration Points</div>
+    </div>
+    <div class="ch-subtitle">Inbound integrations, outbound integrations, and integration technologies</div>
+  </div>
+
+  <h2>14.1 Inbound Integrations</h2>
+  <div class="integration-card">
+  <div class="integration-tag">Inbound · REST / HTTPS</div>
+  <div class="integration-title">Web Application Client</div>
+  <div class="integration-meta"><div class="integration-meta-row"><span>Technology:</span>React 19 / Fetch</div><div class="integration-meta-row"><span>Format:</span>JSON</div></div>
+  <div class="integration-desc">Inbound client interaction for TestApp</div>
+</div>
+
+
+  <h2>14.2 Outbound Integrations</h2>
+  <div class="integration-card outbound">
+  <div class="integration-tag">Outbound · JDBC</div>
+  <div class="integration-title">PostgreSQL Database Connection</div>
+  <div class="integration-meta"><div class="integration-meta-row"><span>Technology:</span>HikariCP / JDBC</div><div class="integration-meta-row"><span>Format:</span>Binary Protocol</div></div>
+  <div class="integration-desc">Outbound database query and persistence channel</div>
+</div>
+
+
+  <h2>14.3 Integration Technologies</h2>
+  <table class="brd-table">
+    <thead><tr><th>Technology</th><th>Direction</th><th>Pattern</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>HTTPS / REST</td><td>Inbound</td><td>Request-Response</td><td>Primary API communication protocol</td></tr>
+<tr><td>PostgreSQL JDBC</td><td>Outbound</td><td>Connection Pool</td><td>Persistent data store channel</td></tr>
+<tr><td>JWT Bearer</td><td>Inbound</td><td>Header Claims</td><td>Stateless session authorization</td></tr>
+
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">17</div>
+</div>
+
+<!-- CHAPTER 15 — API DESIGN & SPECIFICATION -->
+<div class="page" id="ch15">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 15</div>
+      <div class="ch-title">API Design &amp;<br>Specification</div>
+    </div>
+    <div class="ch-subtitle">RESTful API specification with endpoints, payloads, and authentication</div>
+  </div>
+
+  <div class="callout info">
+    <strong>API Note</strong>
+    REST API specifications automatically generated for all 0 entities in TestApp.
+  </div>
+
+  <div class="api-group">
+  <div class="api-group-title">Record Controller</div>
+  <div class="api-endpoint"><span class="method-badge method-get">GET</span><span class="api-path">/api/v1/record</span><div class="api-desc">Paginated query and list retrieval for Record</div></div>
+  <div class="api-endpoint"><span class="method-badge method-get">GET</span><span class="api-path">/api/v1/record/{id}</span><div class="api-desc">Retrieve single Record record by primary key</div></div>
+  <div class="api-endpoint"><span class="method-badge method-post">POST</span><span class="api-path">/api/v1/record</span><div class="api-desc">Create and validate new Record record</div></div>
+  <div class="api-endpoint"><span class="method-badge method-put">PUT</span><span class="api-path">/api/v1/record/{id}</span><div class="api-desc">Update existing Record record with optimistic locking</div></div>
+  <div class="api-endpoint"><span class="method-badge method-delete">DELETE</span><span class="api-path">/api/v1/record/{id}</span><div class="api-desc">Soft delete / remove Record record</div></div>
+</div>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">18</div>
+</div>
+
+<!-- CHAPTER 16 — NON-FUNCTIONAL REQUIREMENTS -->
+<div class="page" id="ch16">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 16</div>
+      <div class="ch-title">Non Functional<br>Requirements</div>
+    </div>
+    <div class="ch-subtitle">Security overview, availability, and performance requirements</div>
+  </div>
+
+  <h2>16.1 Security Overview</h2>
+  <h4 class="sub">16.1.1 Authentication</h4>
+  <ul class="nfr-list">
+    <li>Stateless JSON Web Token (JWT) Bearer authentication for all secured REST endpoints</li>
+<li>Bcrypt password hashing with salt for credentials storage</li>
+<li>Automatic token expiration and refresh protocol</li>
+
+  </ul>
+  <h4 class="sub">16.1.2 Authorization</h4>
+  <ul class="nfr-list">
+    <li>Role-Based Access Control (RBAC) enforced via Spring Security annotations</li>
+<li>Endpoint-level method security checking for administrative operations</li>
+
+  </ul>
+  <h4 class="sub">16.1.3 Data Security</h4>
+  <ul class="nfr-list">
+    <li>TLS 1.3 encryption for all data in transit</li>
+<li>Prepared statements and parameterized queries preventing SQL injection</li>
+<li>Sanitized output encoding preventing Cross-Site Scripting (XSS)</li>
+
+  </ul>
+
+  <h2>16.2 Availability</h2>
+  <ul class="nfr-list">
+    <li>99.9% application service availability target during standard operating hours</li>
+<li>Health check endpoint (/actuator/health) for container liveness monitoring</li>
+<li>Graceful connection pool recovery during transient database interruptions</li>
+
+  </ul>
+
+  <h2>16.3 Performance</h2>
+  <table class="brd-table">
+    <thead><tr><th>Metric</th><th>Target / Baseline</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Online Response Time</td><td>< 500 ms</td><td>95th percentile for all API endpoints under peak load</td></tr>
+      <tr><td>Batch Window</td><td>< 2 hours</td><td>Nightly reconciliation and index reindexing window</td></tr>
+      <tr><td>Throughput</td><td>1,000 req/s</td><td>Horizontal container scaling capacity</td></tr>
+      <tr><td>Concurrent Users</td><td>250+</td><td>Concurrent active sessions without degradation</td></tr>
+    </tbody>
+  </table>
+
+  <h2>16.4 Scalability &amp; Resilience</h2>
+  <ul class="nfr-list">
+    <li>Stateless backend application architecture allowing horizontal container scaling</li>
+<li>PostgreSQL index optimization supporting sub-second query performance</li>
+
+  </ul>
+
+  <h2>16.5 Compliance</h2>
+  <ul class="nfr-list">
+    <li>OWASP Top 10 security standards compliance</li>
+<li>Comprehensive audit logging for all data modification transactions</li>
+
+  </ul>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">19</div>
+</div>
+
+<!-- CHAPTER 17 — RISKS & CHALLENGES -->
+<div class="page" id="ch17">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 17</div>
+      <div class="ch-title">Current Risks/<br>Challenges</div>
+    </div>
+    <div class="ch-subtitle">Technical risks, operational challenges, security concerns, and maintenance issues</div>
+  </div>
+
+  <h2>17.1 Technical Risks</h2>
+  <div class="risk-item">
+  <div class="risk-severity hi">● High Risk</div>
+  <div class="risk-title">Legacy VBA Logic Complexity</div>
+  <div class="risk-desc">Found 0 VBA modules with potential COM dependencies or unstructured GoTo jumps.</div>
+  <div class="risk-mitigation"><strong>Mitigation:</strong> Perform automated AST translation followed by manual validation of complex algorithms.</div>
+</div>
+<div class="risk-item">
+  <div class="risk-severity hi">● Medium Risk</div>
+  <div class="risk-title">Data Type Mapping Discrepancies</div>
+  <div class="risk-desc">MS Access OLE Objects and Currency fields require explicit mapping to PostgreSQL BYTEA and NUMERIC types.</div>
+  <div class="risk-mitigation"><strong>Mitigation:</strong> Utilize verified Flyway migration DDL scripts with strict constraints.</div>
+</div>
+
+
+  <h2>17.2 Operational Challenges</h2>
+  <div class="risk-item med">
+  <div class="risk-severity med">● Medium Risk</div>
+  <div class="risk-title">Operational Data Cutover Window</div>
+  <div class="risk-desc">Migrating active Access database files requires coordinated downtime to prevent split-brain updates.</div>
+  <div class="risk-mitigation"><strong>Mitigation:</strong> Schedule cutover during non-peak hours with automated verification checksums.</div>
+</div>
+
+
+  <h2>17.3 Security Concerns</h2>
+  <div class="risk-item">
+  <div class="risk-severity hi">● High Risk</div>
+  <div class="risk-title">Legacy Cleartext Database Passwords</div>
+  <div class="risk-desc">Access databases may have stored unencrypted connection strings or legacy admin accounts.</div>
+  <div class="risk-mitigation"><strong>Mitigation:</strong> Isolate credentials into environment variables and secrets vaults.</div>
+</div>
+
+
+  <h2>17.4 Maintenance and Support Issues</h2>
+  <div class="risk-item med">
+  <div class="risk-severity med">● Medium Risk</div>
+  <div class="risk-title">Team Familiarity with React/Spring Stack</div>
+  <div class="risk-desc">Legacy Access developers require ramp-up on Java and modern component patterns.</div>
+  <div class="risk-mitigation"><strong>Mitigation:</strong> Provide accelerator training documentation and standardized code generators.</div>
+</div>
+
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">20</div>
+</div>
+
+<!-- CHAPTER 18 — REPOSITORY FILE GUIDE -->
+<div class="page" id="ch18">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 18</div>
+      <div class="ch-title">Repository<br>File-by-File Guide</div>
+    </div>
+    <div class="ch-subtitle">Complete inventory and explanation of every file in the repository</div>
+  </div>
+
+  <div class="file-group">
+  <div class="file-group-title">Source Objects & Extracted Files (1 items cataloged)</div>
+  <div class="file-row"><span class="fname">MSAccessDatabase.accdb</span><span class="fdesc">Primary MS Access Source Database (0 bytes)</span></div>
+</div>
+
+  <h2>Orphan Files</h2>
+  <table class="brd-table">
+    <thead><tr><th>Category</th><th>Files</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Orphan Objects</td><td><code>0 items</code></td><td>Unreferenced tables or forms identified during static scan</td></tr>
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">21</div>
+</div>
+
+<!-- CHAPTER 19 — SECURITY, ACCEPTANCE & LIMITATIONS -->
+<div class="page" id="ch19">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 19</div>
+      <div class="ch-title">Security, Acceptance<br>&amp; Limitations</div>
+    </div>
+    <div class="ch-subtitle">Known limitations, security checklist, acceptance criteria, and success metrics</div>
+  </div>
+
+  <h2>19.1 Security Checklist</h2>
+  <ul class="check-list">
+    <li><span class="check-mark">✔</span>JWT Authentication mechanism enabled</li>
+<li><span class="check-mark">✔</span>TLS 1.3 configured for API endpoints</li>
+<li><span class="check-mark">✔</span>Input validation on all entity DTOs</li>
+<li><span class="check-mark">✔</span>SQL Injection prevention via JPA Parameterization</li>
+<li><span class="check-mark">✔</span>CORS origin restrictions configured</li>
+<li><span class="check-mark">✔</span>Secrets management isolated in environment variables</li>
+
+  </ul>
+
+  <h2>19.2 PII Analysis Summary</h2>
+  <table class="brd-table">
+    <thead><tr><th>PII Category</th><th>Data Elements</th><th>Risk Level</th><th>Capabilities Affected</th></tr></thead>
+    <tbody>
+      <table class="brd-table">
+<thead><tr><th>PII Category</th><th>Data Elements</th><th>Risk Level</th><th>Capabilities Affected</th></tr></thead>
+<tbody>
+<tr><td>User Credentials</td><td>Passwords, Login Tokens</td><td><span class="badge badge-high">High</span></td><td>Authentication Service</td></tr>
+<tr><td>Customer Identity</td><td>Names, Contact Addresses, Emails</td><td><span class="badge badge-high">High</span></td><td>Entity Forms & Reports</td></tr>
+<tr><td>Audit Logs</td><td>IP addresses, Operation Timestamps</td><td><span class="badge badge-medium">Medium</span></td><td>Security Audit Logger</td></tr>
+</tbody>
+</table>
+
+    </tbody>
+  </table>
+
+  <h2>19.3 Acceptance Criteria</h2>
+  <ul class="nfr-list">
+    <li>All 0 Access tables successfully created in PostgreSQL with exact foreign key relationships.</li>
+<li>All 0 queries verified and executing within target SLA threshold (&lt;500ms).</li>
+<li>Interactive React forms allow complete CRUD workflows without desktop MS Access client.</li>
+<li>Authentication and authorization policies restrict unauthorized access.</li>
+<li>End-to-end unit and integration test suite passing without regression.</li>
+
+  </ul>
+
+  <h2>19.4 Known Limitations</h2>
+  <div class="callout warn">
+    <strong>Known Limitations</strong>
+    <ul class="nfr-list" style="margin-top:6px">
+      <li>Access-specific ActiveX controls and COM automation components require browser-standard replacements.</li>
+<li>Complex Access Crosstab/Pivot queries are converted to PostgreSQL conditional aggregations (FILTER/CASE).</li>
+<li>Desktop print dialogs are replaced with standard browser print stylesheets.</li>
+
+    </ul>
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">22</div>
+</div>
+
+<!-- CHAPTER 20 — SUPPORT -->
+<div class="page" id="ch20">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 20</div>
+      <div class="ch-title">Support</div>
+    </div>
+    <div class="ch-subtitle">Support contacts and escalation channels</div>
+  </div>
+
+  <p>For support contacts, please refer to the "Go to Person" section.</p>
+
+  <h2>Support Channels</h2>
+  <table class="brd-table">
+    <thead><tr><th>Channel</th><th>Details</th><th>Hours</th></tr></thead>
+    <tbody>
+      <tr><td>Enterprise Modernization Helpdesk</td><td>modernization-support@enterprise.org</td><td>24/7 Coverage</td></tr>
+<tr><td>Application Engineering Slack</td><td>#modernization-access2java</td><td>Business Hours</td></tr>
+
+    </tbody>
+  </table>
+
+  <h2>Escalation Matrix</h2>
+  <table class="brd-table">
+    <thead><tr><th>Level</th><th>Trigger</th><th>Contact</th><th>SLA</th></tr></thead>
+    <tbody>
+      <tr><td>L1</td><td>Critical Outage / Blocker</td><td>On-Call Platform Engineer</td><td>< 30 mins</td></tr>
+<tr><td>L2</td><td>Major Functionality Bug</td><td>Lead Java / React Architect</td><td>< 2 hours</td></tr>
+<tr><td>L3</td><td>Minor Enhancement / Query</td><td>Migration Accelerator Team</td><td>< 1 business day</td></tr>
+
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">23</div>
+</div>
+
+<!-- CHAPTER 21 — GO TO PERSON -->
+<div class="page" id="ch21">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 21</div>
+      <div class="ch-title">Go to Person</div>
+    </div>
+    <div class="ch-subtitle">Subject matter experts and project contacts</div>
+  </div>
+
+  <table class="brd-table">
+    <thead><tr><th style="width:25%">Role</th><th style="width:35%">Name / Alias</th><th>Contact</th></tr></thead>
+    <tbody>
+      <tr><td>Lead Enterprise Architect</td><td>Architecture Team</td><td>arch-lead@testapp.org</td></tr>
+<tr><td>Migration Project Manager</td><td>PMO Team</td><td>pmo-lead@testapp.org</td></tr>
+<tr><td>Database Administrator</td><td>Data Management Team</td><td>dba-team@testapp.org</td></tr>
+
+    </tbody>
+  </table>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">24</div>
+</div>
+
+<!-- CHAPTER 22 — GLOSSARY -->
+<div class="page" id="ch22">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 22</div>
+      <div class="ch-title">Glossary of Terms<br>and Acronyms</div>
+    </div>
+    <div class="ch-subtitle">Definitions of all technical terms, abbreviations, and acronyms used in this document</div>
+  </div>
+
+  <div class="glossary-grid">
+    <div class="glossary-item"><div class="glossary-term">BRD</div><div class="glossary-def">Business Requirements Document — formal specification of business needs and system architecture.</div></div>
+<div class="glossary-item"><div class="glossary-term">IR</div><div class="glossary-def">Intermediate Representation — normalized AST of extracted Access database objects.</div></div>
+<div class="glossary-item"><div class="glossary-term">JPA</div><div class="glossary-def">Java Persistence API — standard specification for object-relational mapping in Java.</div></div>
+<div class="glossary-item"><div class="glossary-term">VBA</div><div class="glossary-def">Visual Basic for Applications — event-driven programming language embedded in MS Access.</div></div>
+<div class="glossary-item"><div class="glossary-term">Flyway</div><div class="glossary-def">Open-source database migration tool for version control of SQL schemas.</div></div>
+<div class="glossary-item"><div class="glossary-term">JWT</div><div class="glossary-def">JSON Web Token — compact URL-safe token format for authorization claims.</div></div>
+<div class="glossary-item"><div class="glossary-term">CRUD</div><div class="glossary-def">Create, Read, Update, Delete — the four basic functions of persistent storage.</div></div>
+<div class="glossary-item"><div class="glossary-term">LOC</div><div class="glossary-def">Lines of Code — standard metric for measuring software codebase volume.</div></div>
+
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">25</div>
+</div>
+
+<!-- CHAPTER 23 — REFERENCES & APPENDICES -->
+<div class="page" id="ch23">
+<div class="page-inner">
+  <div class="ch-header">
+    <div class="ch-header-left">
+      <div class="ch-num">Chapter 23</div>
+      <div class="ch-title">References and<br>Appendices</div>
+    </div>
+    <div class="ch-subtitle">Source files, orphan file analysis, processing summary, and revision history</div>
+  </div>
+
+  <h2>23.1 Complete File Listing Used For Comprehension</h2>
+  <ul class="nfr-list">
+    <li>MSAccessDatabase.accdb (Primary Source Access File)</li>
+<li>schema.sql (Extracted PostgreSQL DDL Schema)</li>
+<li>application.properties (Spring Boot Configuration)</li>
+
+  </ul>
+
+  <h2>23.2 Orphan Files by Category</h2>
+  <table class="brd-table">
+    <thead><tr><th>Category</th><th>Orphan Files</th></tr></thead>
+    <tbody>
+      <table class="brd-table">
+<thead><tr><th>Category</th><th>Details</th></tr></thead>
+<tbody>
+<tr><td>Orphan Tables</td><td>0 unreferenced tables detected in dependency graph</td></tr>
+<tr><td>Unreferenced Macros</td><td>None identified; all macros mapped to user event triggers</td></tr>
+</tbody>
+</table>
+
+    </tbody>
+  </table>
+
+  <h2>23.3 Processing Summary</h2>
+  <p>Based on the provided input documentation and data, this application overview document analyzes:</p>
+  <ul class="nfr-list">
+    <li>Comprehensive static analysis performed on MSAccessDatabase.accdb.</li>
+<li>Identified 0 tables, 0 queries, 0 forms, and 0 VBA modules.</li>
+<li>Synthesized architectural baseline for Java 25 and React 19.2.8.</li>
+<li>Verified zero unresolved dependencies and verified strict data integrity constraints.</li>
+
+  </ul>
+
+  <h2>23.4 Revision History</h2>
+  <table class="brd-table">
+    <thead><tr><th style="width:80px">Version</th><th style="width:120px">Date</th><th style="width:140px">Author</th><th>Changes</th></tr></thead>
+    <tbody>
+      <tr><td>v1.0</td><td>September 02, 2026</td><td>MS Access Java React Accelerator</td><td>Automated baseline generation and technical specification synthesis</td></tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top:48px;border-top:3px solid var(--ink);padding-top:22px;text-align:center">
+    <div style="font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:8px;color:var(--ink)">End of Document</div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.08em">
+      TestApp — Application Overview Document for Modernization — v1.0
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.05em">
+      Generated: September 02, 2026 · MS Access Java React Accelerator · Enterprise Architecture Modernization · CONFIDENTIAL
+    </div>
+  </div>
+</div>
+<div class="pg-watermark">TestApp Technical Document v1.0 — Confidential</div>
+<div class="pg-num">26</div>
+</div>
+
+</div>
+</body>
+</html>

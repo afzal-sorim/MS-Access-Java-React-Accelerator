@@ -1,32 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { formatNumber } from '../../../utils/helpers';
 
 /**
  * Step 3: Conversion Configuration
- * Per spec section 47:
- * - Backend: Spring Boot
- * - Java: 25 LTS default
- * - Frontend: React 19.2
- * - Build: Vite 8.1
- * - Database: PostgreSQL 18.x
- * - Project name
- * - Base package
- * - Authentication strategy
- * - Report strategy
- * - Migration strategy
  */
 export default function Step3Configure() {
     const { state, actions } = useWizard();
-    const { config, availableVersions, analysisResult } = state;
+    const { config, availableVersions } = state;
     const [localConfig, setLocalConfig] = useState(config);
-    const [versionsLoaded, setVersionsLoaded] = useState(false);
+    const [activeSection, setActiveSection] = useState('backend');
 
     // Sync local config with context
     useEffect(() => {
         setLocalConfig(config);
-        setVersionsLoaded(true);
-    }, [config, versionsLoaded]);
+    }, [config]);
 
     const handleConfigChange = (key, value) => {
         const newConfig = { ...localConfig, [key]: value };
@@ -36,334 +23,315 @@ export default function Step3Configure() {
 
     // Java versions
     const javaVersions = [
-        { value: 17, label: '17 LTS (Minimum for Spring Boot 4.1)' },
+        { value: 17, label: '17 LTS' },
         { value: 21, label: '21 LTS' },
         { value: 25, label: '25 LTS (Recommended)' },
     ];
 
-    // Spring Boot versions (from available versions or defaults)
+    // Version lists
     const springBootVersions = availableVersions?.backend?.versions || ['4.1.0'];
-
-    // React versions
     const reactVersions = availableVersions?.frontend?.versions || ['19.2.8'];
-
-    // Node versions
     const nodeVersions = availableVersions?.frontend?.node_versions || [20, 22, 24];
-
-    // PostgreSQL versions
     const postgresVersions = availableVersions?.database?.versions || ['16', '17', '18'];
 
-    // Authentication strategies
-    const authStrategies = [
-        { value: 'jwt', label: 'JWT (JSON Web Tokens)', description: 'Stateless authentication with token-based approach' },
-        { value: 'session', label: 'Session/Cookie', description: 'Traditional server-side session management' },
-        { value: 'oauth2', label: 'OAuth 2.0 / OIDC', description: 'External identity provider integration' },
-    ];
-
-    // Report strategies
-    const reportStrategies = [
-        { value: 'pdf', label: 'PDF Reports', description: 'Generate PDF reports using iText or similar' },
-        { value: 'excel', label: 'Excel Reports', description: 'Generate Excel reports with Apache POI' },
-        { value: 'html', label: 'HTML Reports', description: 'Web-based reports with print-to-PDF' },
-    ];
-
-    // Migration strategies
-    const migrationStrategies = [
-        { value: 'flyway', label: 'Flyway', description: 'Versioned database migrations (recommended)' },
-        { value: 'liquibase', label: 'Liquibase', description: 'Database schema change management' },
-        { value: 'hibernate', label: 'Hibernate Auto DDL', description: 'Automatic schema generation (dev only)' },
-    ];
-
     return (
-        <div>
-            <div className="card-header">
+        <div className="strategy-page" style={{ paddingBottom: '2rem' }}>
+            <div className="card-header strategy-heading" style={{ marginBottom: '1.5rem' }}>
                 <h2 className="card-title">Conversion Configuration</h2>
                 <p className="card-subtitle">
-                    Configure the target technology stack and project settings for the generated application.
+                    Choose the target stack for the generated application. Each choice below updates the build plan.
                 </p>
             </div>
+            
+            {/* Configuration Summary Banner — Stepper style */}
+            <div style={{ marginTop: '1rem', padding: '1.5rem 2rem 1rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3730a3', marginBottom: '1.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    ● Configuration Summary
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
 
-            <div className="grid grid-2" style={{ gap: '1.5rem' }}>
+                    {[
+                        { icon: '🛡️', value: localConfig.project_name, label: 'Project Name', color: '#4338ca', bg: '#e0e7ff' },
+                        { icon: '⚙️', value: localConfig.spring_boot_version, label: 'Spring Boot', color: '#0f766e', bg: '#ccfbf1' },
+                        { icon: '☕', value: `Java ${localConfig.java_version}`, label: 'Java Version', color: '#b45309', bg: '#fef3c7' },
+                        { icon: '⚛️', value: `React ${localConfig.react_version}`, label: 'React Version', color: '#0369a1', bg: '#e0f2fe' },
+                        { icon: '🟢', value: `Node ${localConfig.node_version}`, label: 'Node.js', color: '#15803d', bg: '#dcfce7' },
+                        { icon: '🐘', value: `PostgreSQL ${localConfig.postgres_version}`, label: 'Database', color: '#6d28d9', bg: '#ede9fe' },
+                        { icon: '🔐', value: (localConfig.authentication_strategy || 'JWT').toUpperCase(), label: 'Auth Strategy', color: '#be123c', bg: '#ffe4e6' },
+                        { icon: '🔄', value: (localConfig.migration_strategy || 'flyway').charAt(0).toUpperCase() + (localConfig.migration_strategy || 'flyway').slice(1), label: 'Migration', color: '#0f766e', bg: '#ccfbf1' },
+                    ].map((item, idx, arr) => (
+                        <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
+                            {/* Step Item */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1 }}>
+                                {/* Circle */}
+                                <div style={{
+                                    width: '54px', height: '54px', borderRadius: '50%',
+                                    background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '1.4rem', marginBottom: '0.6rem',
+                                    border: `2px solid ${item.color}22`,
+                                    boxShadow: `0 4px 12px ${item.color}22`
+                                }}>
+                                    {item.icon}
+                                </div>
+                                {/* Value */}
+                                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: item.color, marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '90px' }}>
+                                    {item.value}
+                                </div>
+                                {/* Label */}
+                                <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {item.label}
+                                </div>
+                            </div>
+
+                            {/* Arrow connector */}
+                            {idx < arr.length - 1 && (
+                                <div style={{ display: 'flex', alignItems: 'center', paddingTop: '16px', color: '#cbd5e1', flexShrink: 0 }}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="9 18 15 12 9 6" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="strategy-layout" style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 0, marginTop: '1.5rem' }}>
+                <nav className="strategy-nav" aria-label="Configuration sections">
+                    {[
+                        ['project', '▤', 'Project settings'],
+                        ['backend', '⚙', 'Backend (Spring Boot)'],
+                        ['frontend', '◫', 'Frontend (React)'],
+                        ['database', '▦', 'Database (PostgreSQL)'],
+                        ['auth', '▣', 'Authentication strategy'],
+                        ['reports', '↔', 'Reports & migration'],
+                    ].map(([key, icon, label]) => (
+                        <button
+                            key={key}
+                            type="button"
+                            className={`strategy-nav-item ${activeSection === key ? 'active' : ''}`}
+                            onClick={() => setActiveSection(key)}
+                        >
+                            <span className="strategy-nav-icon">{icon}</span>
+                            <span>{label}</span>
+                            <span className="strategy-nav-status" aria-hidden="true">●</span>
+                        </button>
+                    ))}
+                </nav>
+                <div className="strategy-panel">
+                    <div className="strategy-panel-header">
+                        <h3>{[
+                            ['project', 'Project settings'],
+                            ['backend', 'Backend - Spring Boot'],
+                            ['frontend', 'Frontend - React'],
+                            ['database', 'Database - PostgreSQL'],
+                            ['auth', 'Authentication strategy'],
+                            ['reports', 'Reports & migration'],
+                        ].find(([key]) => key === activeSection)?.[1]}</h3>
+                        <p>Configure the selected target for your generated application.</p>
+                    </div>
                 {/* Project Settings */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Project Settings
-                    </h3>
+                {activeSection === 'project' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>📝</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Project Settings</h3>
+                    </div>
 
                     <div className="form-group">
-                        <label className="form-label">Project Name</label>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>Project Name</label>
                         <input
                             type="text"
                             className="form-control"
                             value={localConfig.project_name}
                             onChange={(e) => handleConfigChange('project_name', e.target.value)}
                             placeholder="ConvertedApplication"
+                            style={{ padding: '0.6rem 0.85rem' }}
                         />
-                        <p className="form-hint">Used as the application name in generated code and project directory</p>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Base Java Package</label>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>Base Java Package</label>
                         <input
                             type="text"
                             className="form-control"
                             value={localConfig.base_package}
                             onChange={(e) => handleConfigChange('base_package', e.target.value)}
                             placeholder="com.generated.app"
+                            style={{ padding: '0.6rem 0.85rem' }}
                         />
-                        <p className="form-hint">Root package for all generated Java classes</p>
                     </div>
-                </div>
+                </div>}
 
                 {/* Backend Configuration */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Backend (Spring Boot)
-                    </h3>
-
-                    <div className="form-group">
-                        <label className="form-label">Framework</label>
-                        <select
-                            className="form-control"
-                            value="spring-boot"
-                            disabled
-                        >
-                            <option>Spring Boot</option>
-                        </select>
-                        <p className="form-hint">Spring Boot is the only supported backend framework</p>
+                {activeSection === 'backend' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>☕</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Backend (Spring Boot)</h3>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Spring Boot Version</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Framework</label>
+                        <select className="form-control" value="spring-boot" disabled style={{ background: '#f8fafc' }}>
+                            <option>Spring Boot</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Spring Boot Version</label>
                         <select
                             className="form-control"
                             value={localConfig.spring_boot_version}
                             onChange={(e) => handleConfigChange('spring_boot_version', e.target.value)}
                         >
-                            {springBootVersions.map(v => (
-                                <option key={v} value={v}>{v}</option>
-                            ))}
+                            {springBootVersions.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Java Version</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Java Version</label>
                         <select
                             className="form-control"
                             value={localConfig.java_version}
                             onChange={(e) => handleConfigChange('java_version', parseInt(e.target.value, 10))}
                         >
-                            {javaVersions.map(v => (
-                                <option key={v.value} value={v.value}>{v.label}</option>
-                            ))}
+                            {javaVersions.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
                         </select>
-                        <p className="form-hint">Java 25 LTS is recommended for new projects</p>
                     </div>
-                </div>
+                </div>}
 
                 {/* Frontend Configuration */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Frontend (React)
-                    </h3>
-
-                    <div className="form-group">
-                        <label className="form-label">Framework</label>
-                        <select
-                            className="form-control"
-                            value="react"
-                            disabled
-                        >
-                            <option>React</option>
-                        </select>
-                        <p className="form-hint">React 19 with Vite is the standard stack</p>
+                {activeSection === 'frontend' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>⚛️</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Frontend (React)</h3>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">React Version</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Framework</label>
+                        <select className="form-control" value="react" disabled style={{ background: '#f8fafc' }}>
+                            <option>React</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>React Version</label>
                         <select
                             className="form-control"
                             value={localConfig.react_version}
                             onChange={(e) => handleConfigChange('react_version', e.target.value)}
                         >
-                            {reactVersions.map(v => (
-                                <option key={v} value={v}>{v}</option>
-                            ))}
+                            {reactVersions.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Node.js Version</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Node.js Version</label>
                         <select
                             className="form-control"
                             value={localConfig.node_version}
                             onChange={(e) => handleConfigChange('node_version', parseInt(e.target.value, 10))}
                         >
-                            {nodeVersions.map(v => (
-                                <option key={v} value={v}>{v} {v === 24 ? '(LTS)' : ''}</option>
-                            ))}
+                            {nodeVersions.map(v => <option key={v} value={v}>{v} {v === 24 ? '(LTS)' : ''}</option>)}
                         </select>
-                        <p className="form-hint">Node 24 LTS is the recommended version</p>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Build Tool</label>
-                        <select
-                            className="form-control"
-                            value="vite"
-                            disabled
-                        >
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Build Tool</label>
+                        <select className="form-control" value="vite" disabled style={{ background: '#f8fafc' }}>
                             <option>Vite 8.1+</option>
                         </select>
                     </div>
-                </div>
+                </div>}
 
                 {/* Database Configuration */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Database (PostgreSQL)
-                    </h3>
-
-                    <div className="form-group">
-                        <label className="form-label">Database Engine</label>
-                        <select
-                            className="form-control"
-                            value="postgresql"
-                            disabled
-                        >
-                            <option>PostgreSQL</option>
-                        </select>
-                        <p className="form-hint">PostgreSQL is the target database</p>
+                {activeSection === 'database' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🗄️</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Database (PostgreSQL)</h3>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">PostgreSQL Version</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Database Engine</label>
+                        <select className="form-control" value="postgresql" disabled style={{ background: '#f8fafc' }}>
+                            <option>PostgreSQL</option>
+                        </select>
+                    </div>
+
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>PostgreSQL Version</label>
                         <select
                             className="form-control"
                             value={localConfig.postgres_version}
                             onChange={(e) => handleConfigChange('postgres_version', e.target.value)}
                         >
-                            {postgresVersions.map(v => (
-                                <option key={v} value={v}>{v} {v === '18' ? '(Latest)' : ''}</option>
-                            ))}
+                            {postgresVersions.map(v => <option key={v} value={v}>{v} {v === '18' ? '(Latest)' : ''}</option>)}
                         </select>
-                        <p className="form-hint">PostgreSQL 18 is the current major release</p>
                     </div>
-                </div>
+                </div>}
 
                 {/* Authentication Strategy */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Authentication Strategy
-                    </h3>
+                {activeSection === 'auth' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🔗</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Authentication Strategy</h3>
+                    </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {authStrategies.map((strategy) => (
-                            <label
-                                key={strategy.value}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    gap: '0.75rem',
-                                    padding: '1rem',
-                                    border: `2px solid ${localConfig.authentication_strategy === strategy.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    background: localConfig.authentication_strategy === strategy.value ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                    transition: 'all var(--transition-fast)',
-                                }}
-                            >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {[
+                            { value: 'jwt', label: 'JWT (JSON Web Tokens)' },
+                            { value: 'session', label: 'Session/Cookie' },
+                            { value: 'oauth2', label: 'OAuth 2.0 / OIDC' }
+                        ].map((strategy) => (
+                            <label key={strategy.value} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                                 <input
                                     type="radio"
-                                    name="authentication_strategy"
-                                    value={strategy.value}
+                                    name="auth"
                                     checked={localConfig.authentication_strategy === strategy.value}
                                     onChange={() => handleConfigChange('authentication_strategy', strategy.value)}
-                                    style={{ marginTop: '0.125rem' }}
+                                    style={{ width: '18px', height: '18px', accentColor: '#4338ca' }}
                                 />
-                                <div>
-                                    <div style={{ fontWeight: 500 }}>{strategy.label}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{strategy.description}</div>
-                                </div>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#1e293b' }}>{strategy.label}</span>
                             </label>
                         ))}
                     </div>
-                </div>
+                </div>}
 
-                {/* Report & Migration Strategy */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--color-primary)' }}>
-                        Reports & Migration
-                    </h3>
+                {/* Reports & Migration Strategy */}
+                {activeSection === 'reports' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🔄</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Reports & Migration</h3>
+                    </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Report Strategy</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Report Strategy</label>
                         <select
                             className="form-control"
                             value={localConfig.report_strategy}
                             onChange={(e) => handleConfigChange('report_strategy', e.target.value)}
                         >
-                            {reportStrategies.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
+                            <option value="pdf">PDF Reports</option>
+                            <option value="excel">Excel Reports</option>
+                            <option value="html">HTML Reports</option>
                         </select>
-                        <p className="form-hint">{reportStrategies.find(s => s.value === localConfig.report_strategy)?.description}</p>
                     </div>
 
-                    <div className="form-group">
-                        <label className="form-label">Migration Strategy</label>
+                    <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Migration Strategy</label>
                         <select
                             className="form-control"
                             value={localConfig.migration_strategy}
                             onChange={(e) => handleConfigChange('migration_strategy', e.target.value)}
                         >
-                            {migrationStrategies.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
+                            <option value="flyway">Flyway</option>
+                            <option value="liquibase">Liquibase</option>
+                            <option value="hibernate">Hibernate Auto</option>
                         </select>
-                        <p className="form-hint">{migrationStrategies.find(s => s.value === localConfig.migration_strategy)?.description}</p>
                     </div>
-                </div>
+                </div>}
+            </div>
             </div>
 
-            {/* Preview Summary */}
-            <div className="card" style={{ marginTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Configuration Summary</h3>
-                <div className="grid grid-4">
-                    <div className="stat-card">
-                        <div className="stat-card-value">{localConfig.project_name}</div>
-                        <div className="stat-card-label">Project Name</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">{localConfig.spring_boot_version}</div>
-                        <div className="stat-card-label">Spring Boot</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">Java {localConfig.java_version}</div>
-                        <div className="stat-card-label">Java Version</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">React {localConfig.react_version}</div>
-                        <div className="stat-card-label">React Version</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">Node {localConfig.node_version}</div>
-                        <div className="stat-card-label">Node.js</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">PostgreSQL {localConfig.postgres_version}</div>
-                        <div className="stat-card-label">Database</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">{localConfig.authentication_strategy.toUpperCase()}</div>
-                        <div className="stat-card-label">Auth Strategy</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-card-value">{localConfig.migration_strategy}</div>
-                        <div className="stat-card-label">Migration</div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

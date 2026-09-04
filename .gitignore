@@ -91,7 +91,7 @@ C*Users*
 # ------------------------------------------------------------------------------
 # Environment Variables & Secrets
 # ------------------------------------------------------------------------------
-.env
+converter/.env
 .env.local
 .env.*.local
 *.env
@@ -144,3 +144,9 @@ $RECYCLE.BIN/
 ._*
 .Spotlight-V100
 .Trashes
+
+# ------------------------------------------------------------------------------
+# MS Access Corpus (PeopleManager) - Ignore everything except the .accdb database
+# ------------------------------------------------------------------------------
+corpus/PeopleManager/*
+!corpus/PeopleManager/*.accdb
