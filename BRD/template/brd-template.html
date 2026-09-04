@@ -3,226 +3,167 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<title>{{PROJECT_NAME}} - Business Requirements Document</title>
+<title>{{PROJECT_NAME}} - Detailed Business Requirements Document</title>
 
 <style>
 /* =========================================================
-   BRD TEMPLATE
-   Access2Java / MS Access Migration
-   White + Blue Theme
+   BRD TEMPLATE — Detailed 48-Section Specifications
+   White + Blue Modern Enterprise Theme
    ========================================================= */
 
 :root {
     --primary: #1769e0;
     --primary-dark: #0f4fa8;
     --primary-light: #eaf2ff;
-
     --text: #172033;
     --muted: #667085;
     --border: #d9e1ec;
-
     --white: #ffffff;
     --background: #f4f7fb;
-
     --success: #16803c;
     --warning: #b7791f;
     --danger: #c53030;
-
-    --page-width: 794px;
+    --page-width: 100%;
 }
 
-* {
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; width: 100%; }
+body {
+    margin: 0;
+    padding: 20px 16px;
+    background: var(--background);
+    color: var(--text);
+    font-family: Inter, Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.page {
+    width: 100%;
+    max-width: 100%;
+    min-height: auto;
+    margin: 0 0 24px;
+    background: var(--white);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    position: relative;
+    overflow: visible;
     box-sizing: border-box;
 }
 
-html {
-    scroll-behavior: smooth;
-}
-
-body {
-    margin: 0;
-    padding: 30px 0;
-    background: var(--background);
-    color: var(--text);
-
-    font-family:
-        Inter,
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    line-height: 1.6;
-}
-
-/* =========================================================
-   PAGE
-   ========================================================= */
-
-.page {
-    width: var(--page-width);
-    min-height: auto;
-
-    margin: 0 auto 30px;
-
-    background: var(--white);
-
-    border: 1px solid #e2e8f0;
-
-    box-shadow:
-        0 8px 30px rgba(15, 23, 42, 0.08);
-
-    position: relative;
-
-    /* page-break-after: auto; */
-}
-
 .page-inner {
-    padding: 40px 48px 45px;
+    padding: 32px 3%;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    width: 100%;
+    box-sizing: border-box;
 }
-
-/* =========================================================
-   COVER PAGE
-   ========================================================= */
 
 .cover {
     min-height: auto;
-
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-
-    background:
-        linear-gradient(
-            180deg,
-            #ffffff 0%,
-            #ffffff 72%,
-            #eef5ff 100%
-        );
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #eef5ff 100%);
 }
 
 .cover-top {
     border-left: 6px solid var(--primary);
     padding-left: 24px;
-    margin-top: 80px;
+    margin-top: 60px;
 }
 
 .cover-label {
     display: inline-block;
-
     padding: 7px 14px;
-
     background: var(--primary-light);
-
     color: var(--primary);
-
     font-size: 12px;
     font-weight: 700;
-
     letter-spacing: 1px;
-
     border-radius: 6px;
-
-    margin-bottom: 25px;
+    margin-bottom: 20px;
 }
 
 .cover h1 {
-    font-size: 38px;
-    line-height: 1.15;
-
-    margin: 0 0 16px;
-
+    font-size: 34px;
+    line-height: 1.2;
+    margin: 0 0 14px;
     color: var(--text);
 }
 
 .cover h2 {
-    font-size: 20px;
-
+    font-size: 18px;
     font-weight: 500;
-
     color: var(--muted);
-
     margin: 0;
 }
 
 .cover-meta {
     margin-top: 35px;
-
     display: grid;
-
     grid-template-columns: 1fr 1fr;
-
     gap: 14px;
 }
 
 .meta-card {
     border: 1px solid var(--border);
-
     padding: 14px 16px;
-
     border-radius: 8px;
-
     background: #fff;
 }
 
 .meta-label {
     font-size: 11px;
-
     color: var(--muted);
-
     text-transform: uppercase;
-
     letter-spacing: 0.5px;
-
     margin-bottom: 4px;
 }
 
 .meta-value {
-    font-size: 14px;
-
+    font-size: 13.5px;
     font-weight: 600;
 }
 
 .cover-footer {
     border-top: 1px solid var(--border);
-
     padding-top: 20px;
-
     color: var(--muted);
-
     font-size: 12px;
 }
 
-/* =========================================================
-   HEADER / FOOTER
-   ========================================================= */
-
 .report-header {
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
     padding-bottom: 15px;
-
-    margin-bottom: 35px;
-
+    margin-bottom: 30px;
     border-bottom: 2px solid var(--primary-light);
 }
 
 .report-logo {
     font-size: 14px;
-
     font-weight: 800;
-
     color: var(--primary);
 }
 
 .report-name {
     font-size: 11px;
-
     color: var(--muted);
+}
+
+.report-page-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 .report-footer {
@@ -236,83 +177,42 @@ body {
     width: 100%;
 }
 
-/* =========================================================
-   TYPOGRAPHY
-   ========================================================= */
-
-h1,
-h2,
-h3,
-h4 {
-    margin-top: 0;
-}
+h1, h2, h3, h4 { margin-top: 0; }
 
 .section-number {
+    font-size: 12px;
+    font-weight: 800;
     color: var(--primary);
-
-    font-size: 13px;
-
-    font-weight: 700;
-
-    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
 }
 
 .section-title {
-    font-size: 25px;
-
-    line-height: 1.2;
-
-    margin: 5px 0 25px;
+    font-size: 24px;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
 }
 
 .sub-title {
-    font-size: 17px;
-
-    margin: 25px 0 12px;
-
-    color: var(--primary-dark);
+    font-size: 16px;
+    color: var(--text);
+    margin: 24px 0 12px;
+    font-weight: 700;
 }
 
-p {
-    font-size: 13px;
-
-    margin: 0 0 12px;
+.sub-sub-title {
+    font-size: 14px;
+    color: #1e3a8a;
+    margin: 18px 0 10px;
+    font-weight: 700;
 }
 
-ul,
-ol {
-    padding-left: 22px;
-
-    font-size: 13px;
-}
-
-li {
-    margin-bottom: 7px;
-}
-
-/* =========================================================
-   INFO BOX
-   ========================================================= */
-
-.info-box {
-    background: var(--primary-light);
-
-    border-left: 4px solid var(--primary);
-
-    padding: 15px 18px;
-
-    border-radius: 5px;
-
-    margin: 18px 0;
-}
-
-.info-box strong {
-    color: var(--primary-dark);
-}
-
-/* =========================================================
-   TABLES
-   ========================================================= */
+p { margin-top: 0; margin-bottom: 14px; font-size: 13px; }
+ul, ol { margin-top: 0; margin-bottom: 16px; padding-left: 22px; font-size: 13px; }
+li { margin-bottom: 6px; }
 
 .table-wrapper {
     width: 100%;
@@ -354,9 +254,7 @@ td {
     overflow-wrap: anywhere;
 }
 
-tr:nth-child(even) td {
-    background: #fafcff;
-}
+tr:nth-child(even) td { background: #fafcff; }
 
 td code, th code {
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
@@ -372,455 +270,29 @@ td code, th code {
     max-width: 100%;
 }
 
-/* =========================================================
-   STATUS / BADGES
-   ========================================================= */
-
 .badge {
     display: inline-block;
-
-    padding: 4px 9px;
-
-    border-radius: 20px;
-
+    padding: 3px 8px;
+    border-radius: 12px;
     font-size: 10px;
-
     font-weight: 700;
 }
-
-.badge-success {
-    color: var(--success);
-
-    background: #eaf7ef;
-}
-
-.badge-warning {
-    color: var(--warning);
-
-    background: #fff7e6;
-}
-
-.badge-danger {
-    color: var(--danger);
-
-    background: #fff0f0;
-}
-
-.badge-info {
-    color: var(--primary);
-
-    background: var(--primary-light);
-}
-
-/* =========================================================
-   REQUIREMENT CARDS
-   ========================================================= */
-
-.requirement {
-    border: 1px solid var(--border);
-
-    border-radius: 8px;
-
-    padding: 15px;
-
-    margin-bottom: 12px;
-
-    background: #fff;
-}
-
-.requirement-header {
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    gap: 10px;
-
-    margin-bottom: 8px;
-}
-
-.requirement-id {
-    color: var(--primary);
-
-    font-weight: 800;
-
-    font-size: 12px;
-}
-
-.requirement-title {
-    font-weight: 700;
-
-    font-size: 13px;
-}
-
-.requirement-description {
-    font-size: 12px;
-
-    color: #475467;
-}
-
-/* =========================================================
-   ARCHITECTURE
-   ========================================================= */
-
-.architecture {
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: center;
-
-    gap: 10px;
-
-    margin: 30px 0;
-}
-
-.arch-box {
-    width: 75%;
-
-    text-align: center;
-
-    padding: 14px;
-
-    border: 1px solid var(--primary);
-
-    border-radius: 8px;
-
-    background: var(--primary-light);
-
-    color: var(--primary-dark);
-
-    font-weight: 700;
-
-    font-size: 12px;
-}
-
-.arch-arrow {
-    color: var(--primary);
-
-    font-size: 20px;
-
-    font-weight: bold;
-}
-
-/* =========================================================
-   FLOW
-   ========================================================= */
-
-.flow {
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    flex-wrap: wrap;
-
-    gap: 10px;
-
-    margin: 25px 0;
-}
-
-.flow-step {
-    padding: 12px 15px;
-
-    border: 1px solid var(--border);
-
-    border-radius: 8px;
-
-    background: #fff;
-
-    font-size: 11px;
-
-    font-weight: 600;
-
-    text-align: center;
-}
-
-.flow-arrow {
-    color: var(--primary);
-
-    font-weight: bold;
-}
-
-/* =========================================================
-   TOC
-   ========================================================= */
-
-.toc {
-    margin-top: 20px;
-}
-
-.toc-item {
-    display: flex;
-
-    justify-content: space-between;
-
-    border-bottom: 1px dotted var(--border);
-
-    padding: 8px 0;
-
-    font-size: 13px;
-}
-
-.toc-number {
-    color: var(--primary);
-
-    font-weight: 700;
-}
-
-
-
-.signoff-card {
-    border: 1px solid var(--border);
-
-    padding: 18px;
-
-    min-height: 120px;
-
-    border-radius: 8px;
-}
-
-.signoff-role {
-    font-size: 11px;
-
-    color: var(--muted);
-
-    margin-bottom: 35px;
-}
-
-.signoff-line {
-    border-top: 1px solid #475467;
-
-    padding-top: 5px;
-
-    font-size: 11px;
-}
-
-/* =========================================================
-   CODE / TECHNICAL CONTENT
-   ========================================================= */
-
-.code {
+.badge-success { color: var(--success); background: #eaf7ef; }
+.badge-warning { color: var(--warning); background: #fff7e6; }
+.badge-danger { color: var(--danger); background: #fff0f0; }
+.badge-info { color: var(--primary); background: var(--primary-light); }
+
+.info-callout {
+    padding: 14px 18px;
     background: #f8fafc;
-
-    border: 1px solid var(--border);
-
-    border-radius: 6px;
-
-    padding: 15px;
-
-    font-family: "Courier New", monospace;
-
-    font-size: 10px;
-
-    white-space: pre-wrap;
-
-    overflow-wrap: anywhere;
-}
-
-/* =========================================================
-   DIAGRAM PLACEHOLDER
-   ========================================================= */
-
-.diagram {
-    min-height: 180px;
-
-    border: 1px dashed var(--primary);
-
-    background: #f8fbff;
-
-    border-radius: 8px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    text-align: center;
-
-    padding: 25px;
-
-    color: var(--muted);
-
-    font-size: 12px;
-
-    margin: 20px 0;
-}
-
-/* =========================================================
-   PRINT
-   ========================================================= */
-
-@media print {
-
-    body {
-        background: white;
-
-        padding: 0;
-    }
-
-    .page {
-        margin: 0;
-
-        width: 210mm;
-
-        min-height: 297mm;
-
-        box-shadow: none;
-
-        border: none;
-    }
-
-    .no-print {
-        display: none !important;
-    }
-}
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
-
-@media screen and (max-width: 850px) {
-
-    body {
-        padding: 10px;
-    }
-
-    .page {
-        width: 100%;
-
-        min-height: auto;
-    }
-
-    .page-inner {
-        padding: 35px 25px 60px;
-    }
-
-    .cover {
-        min-height: 900px;
-    }
-
-    .cover-meta,
-    .signoff-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .report-footer {
-        left: 25px;
-
-        right: 25px;
-    }
-}
-
-/* =========================================================
-   ENTITY RELATIONSHIP DIAGRAM (ERD) STYLING
-   ========================================================= */
-
-.er-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    margin: 20px 0;
-}
-
-.er-table {
-    background: #ffffff;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-    overflow: hidden;
-    transition: all 0.2s ease;
-}
-
-.er-table:hover {
-    border-color: #3b82f6;
-    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.12);
-}
-
-.er-table-head {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 14px;
-    padding: 10px 14px;
-    letter-spacing: 0.5px;
-    border-bottom: 2px solid #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.er-table-head.dark {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-}
-
-.er-field {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 14px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 13px;
-    background: #ffffff;
-}
-
-.er-field:nth-child(even) {
-    background: #f8fafc;
-}
-
-.er-field:last-child {
-    border-bottom: none;
-}
-
-.er-field .fname {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-    color: #334155;
-}
-
-.er-field .ftype {
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 11px;
-    color: #475569;
-    background: #e2e8f0;
-    padding: 2px 6px;
+    border-left: 4px solid var(--primary);
     border-radius: 4px;
+    margin: 16px 0;
+    font-size: 12.5px;
 }
 
-.badge-pk {
-    background: #ef4444;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 3px;
-    letter-spacing: 0.5px;
-}
-
-.badge-fk {
-    background: #3b82f6;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 3px;
-    letter-spacing: 0.5px;
-}
-
-/* =========================================================
-   ERD VISUAL CONNECTION FLOWS & CONNECT SYMBOLS
-   ========================================================= */
-
-.erd-container {
-    width: 100%;
-    margin: 15px 0 25px;
-}
-
+/* ERD & Connection Styles */
+.erd-container { width: 100%; margin: 15px 0 25px; }
 .erd-visual-header {
     display: flex;
     justify-content: space-between;
@@ -831,24 +303,8 @@ td code, th code {
     border-radius: 8px 8px 0 0;
     font-weight: 700;
     font-size: 13px;
-    letter-spacing: 0.3px;
 }
-
-.erd-visual-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.erd-legend {
-    font-size: 11px;
-    font-weight: 500;
-    color: #93c5fd;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+.erd-legend { font-size: 11px; color: #93c5fd; display: flex; gap: 8px; }
 .erd-flows-wrapper {
     border: 1.5px solid #cbd5e1;
     border-top: none;
@@ -860,7 +316,6 @@ td code, th code {
     gap: 12px;
     margin-bottom: 25px;
 }
-
 .erd-connection-item {
     display: flex;
     align-items: center;
@@ -870,1795 +325,163 @@ td code, th code {
     border-radius: 8px;
     padding: 12px 16px;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
-    transition: all 0.2s ease;
+}
+.erd-box { flex: 0 0 170px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; }
+.erd-box.erd-parent { border-left: 4px solid #ef4444; }
+.erd-box.erd-child { border-left: 4px solid #2563eb; }
+.erd-box-title { font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 4px; display: flex; gap: 5px; }
+.erd-box-field { font-size: 11px; display: flex; gap: 6px; }
+.erd-connector { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 15px; }
+.erd-cardinality-left, .erd-cardinality-right { font-size: 13px; font-weight: 800; color: #1e3a8a; display: flex; flex-direction: column; align-items: center; }
+.conn-symbol-dot { font-size: 10px; color: #2563eb; }
+.conn-symbol-crow { font-size: 15px; color: #2563eb; font-weight: 900; }
+.erd-line-container { flex: 1; margin: 0 10px; display: flex; flex-direction: column; align-items: center; }
+.erd-line-label { font-size: 10px; font-weight: 700; color: #1e40af; background: #e0edff; padding: 2px 8px; border-radius: 12px; margin-bottom: 2px; }
+.erd-svg-wrap { width: 100%; height: 24px; }
+.erd-line-criteria { font-size: 9.5px; color: #64748b; margin-top: 2px; }
+.er-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0; }
+.er-table { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+.er-table-head { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 12px; display: flex; justify-content: space-between; }
+.er-field { display: flex; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.er-field:nth-child(even) { background: #f8fafc; }
+.fname { font-weight: 600; color: #334155; display: flex; gap: 4px; align-items: center; }
+.ftype { font-family: monospace; font-size: 10.5px; color: #475569; background: #e2e8f0; padding: 1px 5px; border-radius: 3px; }
+.badge-pk { background: #ef4444; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.badge-fk { background: #3b82f6; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.fk-target-badge { font-size: 9px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-family: monospace; }
+.er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
+.er-card-rel-tag { font-size: 9.5px; color: #334155; }
+
+/* Table of Contents Styling */
+.toc-container { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 22px 28px; margin: 20px 0 30px; width: 100%; box-sizing: border-box; }
+.toc-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); margin-bottom: 16px; border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; }
+.toc-list { list-style: none; padding-left: 0; margin: 0; column-count: 3; column-gap: 24px; width: 100%; }
+.toc-item { margin-bottom: 8px; font-size: 12px; break-inside: avoid; }
+.toc-item a { color: var(--primary-dark); text-decoration: none; font-weight: 600; }
+.toc-item a:hover { text-decoration: underline; color: var(--primary); }
+
+/* Responsive Media Queries for 100% Width Fit-to-Screen */
+@media (max-width: 1200px) {
+    .toc-list { column-count: 2; }
+    .cover-meta { grid-template-columns: 1fr 1fr; }
 }
 
-.erd-connection-item:hover {
-    border-color: #2563eb;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+@media (max-width: 768px) {
+    body { padding: 10px 8px; }
+    .page-inner { padding: 20px 14px; }
+    .toc-list { column-count: 1; }
+    .cover-meta { grid-template-columns: 1fr; }
+    .erd-connection-item { flex-direction: column; gap: 8px; align-items: stretch; }
+    .erd-box { flex: 1 1 auto; width: 100%; }
 }
-
-.erd-box {
-    flex: 0 0 170px;
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 8px 12px;
-}
-
-.erd-box.erd-parent {
-    border-left: 4px solid #ef4444;
-}
-
-.erd-box.erd-child {
-    border-left: 4px solid #2563eb;
-}
-
-.erd-box-title {
-    font-weight: 700;
-    font-size: 12px;
-    color: #1e293b;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.erd-box-field {
-    font-size: 11px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.erd-connector {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 15px;
-    position: relative;
-}
-
-.erd-cardinality-left, .erd-cardinality-right {
-    font-size: 13px;
-    font-weight: 800;
-    color: #1e3a8a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
-}
-
-.conn-symbol-dot {
-    font-size: 10px;
-    color: #2563eb;
-}
-
-.conn-symbol-crow {
-    font-size: 15px;
-    color: #2563eb;
-    font-weight: 900;
-}
-
-.erd-line-container {
-    flex: 1;
-    margin: 0 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.erd-line-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: #1e40af;
-    background: #e0edff;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-bottom: 2px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.erd-svg-wrap {
-    width: 100%;
-    height: 24px;
-}
-
-.erd-line-criteria {
-    font-size: 9.5px;
-    color: #64748b;
-    margin-top: 2px;
-}
-
-.erd-subheading {
-    font-size: 14px;
-    font-weight: 700;
-    color: #1e3a8a;
-    margin: 24px 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.fk-target-badge {
-    font-size: 9.5px;
-    color: #2563eb;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    padding: 1px 4px;
-    border-radius: 3px;
-    margin-left: 4px;
-    font-family: monospace;
-}
-
-.er-card-rel-section {
-    border-top: 1px solid #e2e8f0;
-    background: #f8fafc;
-    padding: 6px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.er-card-rel-tag {
-    font-size: 10px;
-    color: #334155;
-    line-height: 1.3;
-}
-
-.conn-glyph-tag {
-    font-size: 11px;
-    font-weight: 800;
-    color: #2563eb;
-    background: #eef5ff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-family: monospace;
-    white-space: nowrap;
-}
-
 </style>
 </head>
 
 <body>
 
 <!-- ======================================================
-     PAGE 1 — COVER
+     COVER PAGE
      ====================================================== -->
-
 <section class="page cover">
+<div class="page-inner">
+  <div class="cover-top">
+    <span class="cover-label">BUSINESS REQUIREMENTS DOCUMENT</span>
+    <h1>{{PROJECT_NAME}}</h1>
+    <h2>Comprehensive Business Specifications & Data Architecture</h2>
+  </div>
 
-    <div class="page-inner">
+  <div class="cover-meta">
+    <div class="meta-card"><div class="meta-label">Document Name</div><div class="meta-value">{{DOCUMENT_NAME}}</div></div>
+    <div class="meta-card"><div class="meta-label">Document Version</div><div class="meta-value">{{DOCUMENT_VERSION}}</div></div>
+    <div class="meta-card"><div class="meta-label">Source Database File</div><div class="meta-value">{{SOURCE_APPLICATION}}</div></div>
+    <div class="meta-card"><div class="meta-label">Publication Date</div><div class="meta-value">{{DOCUMENT_DATE}}</div></div>
+    <div class="meta-card"><div class="meta-label">Organization</div><div class="meta-value">{{ORGANIZATION_NAME}}</div></div>
+    <div class="meta-card"><div class="meta-label">Document Status</div><div class="meta-value">{{DOCUMENT_STATUS}}</div></div>
+  </div>
 
-        <div class="cover-top">
-
-            <div class="cover-label">
-                BUSINESS REQUIREMENTS DOCUMENT
-            </div>
-
-            <h1>
-                {{PROJECT_NAME}}
-            </h1>
-
-            <h2>
-                MS Access Application Modernization & Migration
-            </h2>
-
-            <div class="cover-meta">
-
-                <div class="meta-card">
-                    <div class="meta-label">Version</div>
-                    <div class="meta-value">
-                        {{DOCUMENT_VERSION}}
-                    </div>
-                </div>
-
-                <div class="meta-card">
-                    <div class="meta-label">Date</div>
-                    <div class="meta-value">
-                        {{DOCUMENT_DATE}}
-                    </div>
-                </div>
-
-                <div class="meta-card">
-                    <div class="meta-label">Source Application</div>
-                    <div class="meta-value">
-                        {{SOURCE_APPLICATION}}
-                    </div>
-                </div>
-
-                <div class="meta-card">
-                    <div class="meta-label">Target Technology</div>
-                    <div class="meta-value">
-                        {{TARGET_TECHNOLOGY}}
-                    </div>
-                </div>
-
-                <div class="meta-card">
-                    <div class="meta-label">Status</div>
-                    <div class="meta-value">
-                        {{DOCUMENT_STATUS}}
-                    </div>
-                </div>
-
-                <div class="meta-card">
-                    <div class="meta-label">Prepared By</div>
-                    <div class="meta-value">
-                        {{PREPARED_BY}}
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="page-inner cover-footer">
-
-        <strong>{{ORGANIZATION_NAME}}</strong><br />
-
-        Generated by Access2Java
-
-    </div>
-
+  <div class="cover-footer">
+    <span>Prepared by: {{PREPARED_BY}}</span> &bull; 
+    <span>Approved by: {{APPROVED_BY}}</span>
+  </div>
+</div>
 </section>
 
-
 <!-- ======================================================
-     PAGE 2 — DOCUMENT CONTROL
+     TABLE OF CONTENTS
      ====================================================== -->
-
-<section class="page">
-
+<section class="page" id="sec_toc">
 <div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">{{PROJECT_NAME}}</span>
+    <span class="report-name">Table of Contents</span>
+    <span class="report-page-num">TOC</span>
+  </div>
 
-<div class="report-header">
-    <div class="report-logo">ACCESS2JAVA</div>
-    <div class="report-name">{{PROJECT_NAME}} — BRD</div>
-</div>
+  <div class="toc-container">
+    <div class="toc-title">Table of Contents</div>
+    <ul class="toc-list">
+      {{TABLE_OF_CONTENTS}}
+    </ul>
+  </div>
 
-<div class="section-number">DOCUMENT CONTROL</div>
-
-<h1 class="section-title">
-    Document Control
-</h1>
-
-<table>
-<thead>
-<tr>
-    <th>Field</th>
-    <th>Details</th>
-</tr>
-</thead>
-
-<tbody>
-
-<tr>
-    <td>Document Name</td>
-    <td>{{DOCUMENT_NAME}}</td>
-</tr>
-
-<tr>
-    <td>Application</td>
-    <td>{{PROJECT_NAME}}</td>
-</tr>
-
-<tr>
-    <td>Source</td>
-    <td>{{SOURCE_APPLICATION}}</td>
-</tr>
-
-<tr>
-    <td>Target</td>
-    <td>{{TARGET_TECHNOLOGY}}</td>
-</tr>
-
-<tr>
-    <td>Version</td>
-    <td>{{DOCUMENT_VERSION}}</td>
-</tr>
-
-<tr>
-    <td>Status</td>
-    <td>{{DOCUMENT_STATUS}}</td>
-</tr>
-
-<tr>
-    <td>Prepared By</td>
-    <td>{{PREPARED_BY}}</td>
-</tr>
-
-<tr>
-    <td>Approved By</td>
-    <td>{{APPROVED_BY}}</td>
-</tr>
-
-</tbody>
-</table>
-
-<h2 class="sub-title">
-    Revision History
-</h2>
-
-<div id="revision-history">
-    {{REVISION_HISTORY}}
-</div>
-
-<div class="info-box">
-
-    <strong>Purpose of this document:</strong>
-
-    {{DOCUMENT_PURPOSE}}
-
-</div>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>Page 2</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     PAGE 3 — TABLE OF CONTENTS
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="report-header">
-    <div class="report-logo">ACCESS2JAVA</div>
-    <div class="report-name">Business Requirements Document</div>
-</div>
-
-<div class="section-number">CONTENTS</div>
-
-<h1 class="section-title">
-    Table of Contents
-</h1>
-
-<div class="toc">
-
-    <div class="toc-item">
-        <span><span class="toc-number">1.</span> Executive Summary</span>
-        <span>3</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">2.</span> Business Problem / Need</span>
-        <span>4</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">3.</span> Business Objectives</span>
-        <span>5</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">4.</span> Scope</span>
-        <span>6</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">5.</span> Stakeholders and User Roles</span>
-        <span>7</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">6.</span> Current System — AS-IS</span>
-        <span>8</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">7.</span> Proposed System — TO-BE</span>
-        <span>10</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">8.</span> Functional Requirements</span>
-        <span>12</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">9.</span> Data Migration Requirements</span>
-        <span>15</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">10.</span> Access-to-Web Migration Mapping</span>
-        <span>17</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">11.</span> Non-Functional Requirements</span>
-        <span>19</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">12.</span> Business Rules</span>
-        <span>21</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">13.</span> UI / UX Requirements</span>
-        <span>22</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">14.</span> API Requirements</span>
-        <span>23</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">15.</span> Security Requirements</span>
-        <span>24</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">16.</span> Testing & UAT</span>
-        <span>25</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">17.</span> Acceptance Criteria</span>
-        <span>26</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">18.</span> Risks and Mitigation</span>
-        <span>27</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">19.</span> Assumptions and Dependencies</span>
-        <span>28</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">20.</span> Migration Phases</span>
-        <span>29</span>
-    </div>
-
-    <div class="toc-item">
-        <span><span class="toc-number">21.</span> Traceability</span>
-        <span>30</span>
-    </div>
-
-    
-
-    <div class="toc-item">
-        <span><span class="toc-number">23.</span> Appendix</span>
-        <span>32</span>
-    </div>
-
-</div>
-
-</div>
-
-<div class="report-footer">
+  <div class="report-footer">
     <span>{{PROJECT_NAME}}</span>
     <span>Table of Contents</span>
+  </div>
 </div>
-
 </section>
 
-
 <!-- ======================================================
-     1 — EXECUTIVE SUMMARY
+     SECTIONS 1 TO 48 & APPENDICES
      ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">01</div>
-
-<h1 class="section-title">
-    Executive Summary
-</h1>
-
-<p>
-{{EXECUTIVE_SUMMARY}}
-</p>
-
-<div class="info-box">
-
-<strong>Application:</strong>
-{{PROJECT_NAME}}
-
-<br><br>
-
-<strong>Migration Objective:</strong>
-{{MIGRATION_OBJECTIVE}}
-
-</div>
-
-<h2 class="sub-title">
-    Current Application
-</h2>
-
-<p>
-{{CURRENT_APPLICATION_DESCRIPTION}}
-</p>
-
-<h2 class="sub-title">
-    Proposed Modernization
-</h2>
-
-<p>
-{{PROPOSED_SYSTEM_DESCRIPTION}}
-</p>
-
-<h2 class="sub-title">
-    Expected Benefits
-</h2>
-
-<ul id="business-benefits">
-    {{BUSINESS_BENEFITS}}
-</ul>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>1. Executive Summary</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     2 — BUSINESS PROBLEM
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">02</div>
-
-<h1 class="section-title">
-    Business Problem / Need
-</h1>
-
-<p>
-{{BUSINESS_PROBLEM}}
-</p>
-
-<h2 class="sub-title">
-    Current Challenges
-</h2>
-
-<ul>
-    {{CURRENT_CHALLENGES}}
-</ul>
-
-<h2 class="sub-title">
-    Business Impact
-</h2>
-
-<table>
-<thead>
-<tr>
-    <th>Area</th>
-    <th>Current Impact</th>
-    <th>Expected Improvement</th>
-</tr>
-</thead>
-
-<tbody id="business-impact-table">
-
-{{BUSINESS_IMPACT_ROWS}}
-
-</tbody>
-</table>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>2. Business Problem</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     3 — OBJECTIVES
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">03</div>
-
-<h1 class="section-title">
-    Business Objectives
-</h1>
-
-<div id="objectives">
-
-{{BUSINESS_OBJECTIVES}}
-
-</div>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>3. Business Objectives</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     4 — SCOPE
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">04</div>
-
-<h1 class="section-title">
-    Scope
-</h1>
-
-<h2 class="sub-title">
-    4.1 In Scope
-</h2>
-
-<ul>
-    {{IN_SCOPE}}
-</ul>
-
-<h2 class="sub-title">
-    4.2 Out of Scope
-</h2>
-
-<ul>
-    {{OUT_OF_SCOPE}}
-</ul>
-
-<h2 class="sub-title">
-    4.3 To Be Confirmed
-</h2>
-
-<ul>
-    {{TO_BE_CONFIRMED}}
-</ul>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>4. Scope</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     5 — STAKEHOLDERS
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">05</div>
-
-<h1 class="section-title">
-    Stakeholders and User Roles
-</h1>
-
-<table>
-
-<thead>
-<tr>
-    <th>Role</th>
-    <th>Description</th>
-    <th>Responsibilities</th>
-</tr>
-</thead>
-
-<tbody>
-
-{{STAKEHOLDER_ROWS}}
-
-</tbody>
-
-</table>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>5. Stakeholders</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     6 — AS-IS SYSTEM
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">06</div>
-
-<h1 class="section-title">
-    Current System — AS-IS
-</h1>
-
-<p>
-{{AS_IS_DESCRIPTION}}
-</p>
-
-<h2 class="sub-title">
-    Current System Architecture
-</h2>
-
-<div class="diagram" style="margin-bottom: 25px;">
-    {{AS_IS_ARCHITECTURE_DIAGRAM}}
-</div>
-
-<h2 class="sub-title">
-    Access Object Inventory & Migration Scope
-</h2>
-
-<div class="table-wrapper">
-<table class="table-as-is">
-<colgroup>
-    <col style="width: 14%;">
-    <col style="width: 22%;">
-    <col style="width: 24%;">
-    <col style="width: 28%;">
-    <col style="width: 12%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Object Type</th>
-    <th>Object Name</th>
-    <th>Source Details</th>
-    <th>Target Modernization</th>
-    <th style="text-align:center;">Status</th>
-</tr>
-</thead>
-<tbody>
-{{ACCESS_OBJECT_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>6. Current System — AS-IS</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     7 — TO-BE SYSTEM
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">07</div>
-
-<h1 class="section-title">
-    Proposed System — TO-BE
-</h1>
-
-<p>
-{{TO_BE_DESCRIPTION}}
-</p>
-
-<h2 class="sub-title">
-    Proposed Architecture
-</h2>
-
-<div class="architecture">
-
-    <div class="arch-box">
-        React Web Application
-    </div>
-
-    <div class="arch-arrow">↓</div>
-
-    <div class="arch-box">
-        REST API
-    </div>
-
-    <div class="arch-arrow">↓</div>
-
-    <div class="arch-box">
-        Java Spring Boot Services
-    </div>
-
-    <div class="arch-arrow">↓</div>
-
-    <div class="arch-box">
-        Relational Database
-    </div>
-
-</div>
-
-<h2 class="sub-title">
-    Target Technology
-</h2>
-
-<div class="table-wrapper">
-<table class="table-tech-stack">
-<colgroup>
-    <col style="width: 25%;">
-    <col style="width: 75%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Architecture Tier</th>
-    <th>Modern Target Technology Stack</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-    <td><strong>Frontend</strong></td>
-    <td>{{FRONTEND_TECHNOLOGY}}</td>
-</tr>
-<tr>
-    <td><strong>Backend</strong></td>
-    <td>{{BACKEND_TECHNOLOGY}}</td>
-</tr>
-<tr>
-    <td><strong>Database</strong></td>
-    <td>{{DATABASE_TECHNOLOGY}}</td>
-</tr>
-<tr>
-    <td><strong>Authentication</strong></td>
-    <td>{{AUTHENTICATION_TECHNOLOGY}}</td>
-</tr>
-</tbody>
-</table>
-</div>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>7. Proposed System</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     8 — FUNCTIONAL REQUIREMENTS
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">08</div>
-
-<h1 class="section-title">
-    Functional Requirements
-</h1>
-
-<div id="functional-requirements">
-
-{{FUNCTIONAL_REQUIREMENTS}}
-
-</div>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>8. Functional Requirements</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     9 — DATA MIGRATION
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">09</div>
-
-<h1 class="section-title">
-    Data Migration Requirements
-</h1>
-
-<div class="table-wrapper">
-<table class="table-data-migration">
-<colgroup>
-    <col style="width: 25%;">
-    <col style="width: 25%;">
-    <col style="width: 38%;">
-    <col style="width: 12%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Source Object</th>
-    <th>Target Entity / Table</th>
-    <th>Migration Strategy</th>
-    <th style="text-align:center;">Status</th>
-</tr>
-</thead>
-<tbody>
-{{DATA_MIGRATION_ROWS}}
-</tbody>
-</table>
-</div>
-
-<h2 class="sub-title">
-    Migration Considerations
-</h2>
-
-<ul>
-    {{MIGRATION_CONSIDERATIONS}}
-</ul>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>9. Data Migration</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     10 — ACCESS TO WEB MAPPING
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">10</div>
-
-<h1 class="section-title">
-    Access-to-Web Migration Mapping
-</h1>
-
-<div class="table-wrapper">
-<table class="table-mapping">
-<colgroup>
-    <col style="width: 25%;">
-    <col style="width: 35%;">
-    <col style="width: 40%;">
-</colgroup>
-<thead>
-<tr>
-    <th>MS Access Paradigm</th>
-    <th>Target System Component</th>
-    <th>Migration & Architecture Approach</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-    <td>Access Table</td>
-    <td>Relational Database Table (PostgreSQL)</td>
-    <td>Flyway DDL versioned schema and transactional data migration</td>
-</tr>
-<tr>
-    <td>Access Form</td>
-    <td>React UI Single-Page Application</td>
-    <td>Component-driven web view with real-time validation</td>
-</tr>
-<tr>
-    <td>Access Query</td>
-    <td>Spring Data JPA / Native SQL Repositories</td>
-    <td>Parameterized JPA repository methods and native queries</td>
-</tr>
-<tr>
-    <td>VBA Code Module</td>
-    <td>Spring Boot Java Service Layer</td>
-    <td>Business logic refactored into service classes and utility facades</td>
-</tr>
-<tr>
-    <td>Macro</td>
-    <td>Spring Event Handlers / Workflows</td>
-    <td>Automated actions translated to transactional service workflows</td>
-</tr>
-<tr>
-    <td>Access Report</td>
-    <td>Web Report / PDF Generator</td>
-    <td>Responsive HTML report layouts with print styling</td>
-</tr>
-<tr>
-    <td>Relationship</td>
-    <td>Database Foreign Key Constraints</td>
-    <td>Explicit relational integrity, ON DELETE / UPDATE rules</td>
-</tr>
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>10. Migration Mapping</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     10.1 — ENTITY RELATIONSHIP DIAGRAM (ERD)
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">10.1</div>
-
-<h1 class="section-title">
-    Entity Relationship Diagram (ERD)
-</h1>
-
-<p>
-The following relational diagram illustrates the target database entity schemas, foreign key connections, cardinalities, and join criteria mapped from the source Microsoft Access database.
-</p>
-
-{{ER_DIAGRAM}}
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>10.1. Entity Relationship Diagram</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     11 — NON FUNCTIONAL
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">11</div>
-
-<h1 class="section-title">
-    Non-Functional Requirements
-</h1>
-
-<table>
-
-<thead>
-<tr>
-    <th>ID</th>
-    <th>Category</th>
-    <th>Requirement</th>
-</tr>
-</thead>
-
-<tbody>
-
-{{NON_FUNCTIONAL_REQUIREMENT_ROWS}}
-
-</tbody>
-
-</table>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>11. Non-Functional Requirements</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     12 — BUSINESS RULES
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">12</div>
-
-<h1 class="section-title">
-    Business Rules
-</h1>
-
-<div class="table-wrapper">
-<table class="table-business-rules">
-<colgroup>
-    <col style="width: 12%;">
-    <col style="width: 28%;">
-    <col style="width: 36%;">
-    <col style="width: 24%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Rule ID</th>
-    <th>Routine / Operation</th>
-    <th>Business Purpose & Context</th>
-    <th>Target Java Service</th>
-</tr>
-</thead>
-<tbody>
-{{BUSINESS_RULE_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>12. Business Rules</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     13 — UI / UX
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">13</div>
-
-<h1 class="section-title">
-    UI / UX Requirements
-</h1>
-
-<ul>
-    {{UI_UX_REQUIREMENTS}}
-</ul>
-
-<h2 class="sub-title">
-    Migrated Screens / Forms
-</h2>
-
-<div class="table-wrapper">
-<table class="table-form-migration">
-<colgroup>
-    <col style="width: 18%;">
-    <col style="width: 26%;">
-    <col style="width: 22%;">
-    <col style="width: 22%;">
-    <col style="width: 12%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Access Form</th>
-    <th>Source & Controls</th>
-    <th>React View Component</th>
-    <th>Modernization Scope</th>
-    <th style="text-align:center;">Status</th>
-</tr>
-</thead>
-<tbody>
-{{FORM_MIGRATION_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>13. UI / UX</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     14 — API
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">14</div>
-
-<h1 class="section-title">
-    API Requirements
-</h1>
-
-<div class="table-wrapper">
-<table class="table-api-requirements">
-<colgroup>
-    <col style="width: 14%;">
-    <col style="width: 26%;">
-    <col style="width: 34%;">
-    <col style="width: 26%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Type</th>
-    <th>REST Endpoint</th>
-    <th>Operations & Purpose</th>
-    <th>Target Controller</th>
-</tr>
-</thead>
-<tbody>
-{{API_REQUIREMENT_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>14. API Requirements</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     15 — SECURITY
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">15</div>
-
-<h1 class="section-title">
-    Security Requirements
-</h1>
-
-<ul>
-    {{SECURITY_REQUIREMENTS}}
-</ul>
-
-<h2 class="sub-title">
-    Authentication & Authorization
-</h2>
-
-<p>
-{{AUTHORIZATION_REQUIREMENTS}}
-</p>
-
-<h2 class="sub-title">
-    Data Protection
-</h2>
-
-<p>
-{{DATA_PROTECTION_REQUIREMENTS}}
-</p>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>15. Security</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     16 — TESTING
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">16</div>
-
-<h1 class="section-title">
-    Testing & UAT
-</h1>
-
-<div class="table-wrapper">
-<table class="table-testing">
-<colgroup>
-    <col style="width: 20%;">
-    <col style="width: 26%;">
-    <col style="width: 40%;">
-    <col style="width: 14%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Test Area</th>
-    <th>Framework / Tooling</th>
-    <th>Scope & Objective</th>
-    <th style="text-align:center;">Execution</th>
-</tr>
-</thead>
-<tbody>
-{{TESTING_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>16. Testing & UAT</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     17 — ACCEPTANCE
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">17</div>
-
-<h1 class="section-title">
-    Acceptance Criteria
-</h1>
-
-<ol>
-    {{ACCEPTANCE_CRITERIA}}
-</ol>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>17. Acceptance Criteria</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     18 — RISKS
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">18</div>
-
-<h1 class="section-title">
-    Risks and Mitigation
-</h1>
-
-<div class="table-wrapper">
-<table class="table-risks">
-<colgroup>
-    <col style="width: 12%;">
-    <col style="width: 12%;">
-    <col style="width: 24%;">
-    <col style="width: 26%;">
-    <col style="width: 26%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Risk ID</th>
-    <th style="text-align:center;">Severity</th>
-    <th>Risk Category</th>
-    <th>Impact Description</th>
-    <th>Mitigation Strategy</th>
-</tr>
-</thead>
-<tbody>
-{{RISK_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>18. Risks and Mitigation</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     19 — ASSUMPTIONS
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">19</div>
-
-<h1 class="section-title">
-    Assumptions and Dependencies
-</h1>
-
-<h2 class="sub-title">
-    Assumptions
-</h2>
-
-<ul>
-    {{ASSUMPTIONS}}
-</ul>
-
-<h2 class="sub-title">
-    Dependencies
-</h2>
-
-<ul>
-    {{DEPENDENCIES}}
-</ul>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>19. Assumptions</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     20 — MIGRATION PHASES
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">20</div>
-
-<h1 class="section-title">
-    Migration Phases
-</h1>
-
-<div class="flow">
-
-    <div class="flow-step">Discovery</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Analysis</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Database Migration</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Backend</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Frontend</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Testing</div>
-    <div class="flow-arrow">→</div>
-
-    <div class="flow-step">Cutover</div>
-
-</div>
-
-<div class="table-wrapper">
-<table class="table-phases">
-<colgroup>
-    <col style="width: 15%;">
-    <col style="width: 30%;">
-    <col style="width: 40%;">
-    <col style="width: 15%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Phase</th>
-    <th>Phase Name</th>
-    <th>Scope & Key Deliverables</th>
-    <th style="text-align:center;">Status</th>
-</tr>
-</thead>
-<tbody>
-{{MIGRATION_PHASE_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>20. Migration Phases</span>
-</div>
-
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     21 — TRACEABILITY
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">21</div>
-
-<h1 class="section-title">
-    Requirements Traceability
-</h1>
-
-<div class="table-wrapper">
-<table class="table-traceability">
-<colgroup>
-    <col style="width: 22%;">
-    <col style="width: 26%;">
-    <col style="width: 26%;">
-    <col style="width: 26%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Requirement</th>
-    <th>Access Source</th>
-    <th>Target Component</th>
-    <th>Test Verification</th>
-</tr>
-</thead>
-<tbody>
-{{TRACEABILITY_ROWS}}
-</tbody>
-</table>
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>21. Traceability</span>
-</div>
-
-</div>
-
-</section>
-
-
-
-
-
-<!-- ======================================================
-     23 — APPENDIX
-     ====================================================== -->
-
-<section class="page">
-
-<div class="page-inner">
-
-<div class="section-number">23</div>
-
-<h1 class="section-title">
-    Appendix
-</h1>
-
-<h2 class="sub-title">
-    23.1 Source File Inventory
-</h2>
-
-<div class="table-wrapper">
-<table class="table-source-inventory">
-<colgroup>
-    <col style="width: 28%;">
-    <col style="width: 18%;">
-    <col style="width: 40%;">
-    <col style="width: 14%;">
-</colgroup>
-<thead>
-<tr>
-    <th>File Name</th>
-    <th>Type</th>
-    <th>Purpose / Role</th>
-    <th style="text-align:center;">Status</th>
-</tr>
-</thead>
-<tbody>
-{{SOURCE_FILE_ROWS}}
-</tbody>
-</table>
-</div>
-
-<h2 class="sub-title">
-    23.2 Access Database Inventory
-</h2>
-
-<div class="table-wrapper">
-<table class="table-access-inventory">
-<colgroup>
-    <col style="width: 24%;">
-    <col style="width: 12%;">
-    <col style="width: 34%;">
-    <col style="width: 30%;">
-</colgroup>
-<thead>
-<tr>
-    <th>Object Type</th>
-    <th style="text-align:center;">Count</th>
-    <th>Description</th>
-    <th>Modernized Target Equivalent</th>
-</tr>
-</thead>
-<tbody>
-{{ACCESS_INVENTORY_ROWS}}
-</tbody>
-</table>
-</div>
-
-<h2 class="sub-title">
-    23.3 Processing Summary
-</h2>
-
-<p>
-{{PROCESSING_SUMMARY}}
-</p>
-
-<h2 class="sub-title">
-    23.4 Notes
-</h2>
-
-<p>
-{{APPENDIX_NOTES}}
-</p>
-
-</div>
-
-<div class="report-footer">
-    <span>{{PROJECT_NAME}}</span>
-    <span>23. Appendix</span>
-</div>
-
-</section>
-
-
-<!-- ======================================================
-     DYNAMIC REPORT DATA
-     ====================================================== -->
-
-<script>
-
-/*
-=========================================================
-BRD TEMPLATE DATA CONTRACT
-=========================================================
-
-Your React application can generate this object dynamically
-from the uploaded Access/source files and migration analysis.
-
-Example:
-
-const brdData = {
-    projectName: "Online Shop",
-    sourceApplication: "Online Shop.accdb",
-    targetTechnology: "React + Java Spring Boot",
-
-    ...
-
-};
-
-The template can then be populated before creating
-the downloadable HTML report.
-=========================================================
-*/
-
-const brdData = window.BRD_DATA || {};
-
-/*
----------------------------------------------------------
-Utility
----------------------------------------------------------
-*/
-
-function safeValue(value) {
-
-    if (
-        value === undefined ||
-        value === null ||
-        value === ""
-    ) {
-        return "Not Available";
-    }
-
-    return value;
-}
-
-/*
----------------------------------------------------------
-Simple placeholder replacement
----------------------------------------------------------
-*/
-
-function replacePlaceholders(root, data) {
-
-    const walker = document.createTreeWalker(
-        root,
-        NodeFilter.SHOW_TEXT
-    );
-
-    const nodes = [];
-
-    while (walker.nextNode()) {
-        nodes.push(walker.currentNode);
-    }
-
-    nodes.forEach(node => {
-
-        node.nodeValue = node.nodeValue.replace(
-            /\{\{([A-Z0-9_]+)\}\}/g,
-            function(match, key) {
-
-                const camelKey =
-                    key
-                        .toLowerCase()
-                        .replace(/_([a-z])/g,
-                            (_, letter) =>
-                                letter.toUpperCase()
-                        );
-
-                return safeValue(data[camelKey]);
-            }
-        );
-
-    });
-}
-
-/*
----------------------------------------------------------
-Automatic basic population
----------------------------------------------------------
-*/
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function() {
-
-        replacePlaceholders(
-            document.body,
-            brdData
-        );
-
-    }
-);
-
-</script>
+{{SECTION_1_DOCUMENT_CONTROL}}
+{{SECTION_2_EXECUTIVE_SUMMARY}}
+{{SECTION_3_EXISTING_SYSTEM}}
+{{SECTION_4_BUSINESS_CONTEXT}}
+{{SECTION_5_STAKEHOLDER_ANALYSIS}}
+{{SECTION_6_USER_ROLES}}
+{{SECTION_7_OVERALL_FUNCTIONAL_SCOPE}}
+{{SECTION_8_TRAP_MANAGEMENT}}
+{{SECTION_9_WORK_MANAGEMENT}}
+{{SECTION_10_LOCATION_MANAGEMENT}}
+{{SECTION_11_CALENDAR_MANAGEMENT}}
+{{SECTION_12_CUMULATIVE_VALUE}}
+{{SECTION_13_TAG_MANAGEMENT}}
+{{SECTION_14_DATA_DICTIONARY}}
+{{SECTION_15_DYNAMIC_STRUCTURE}}
+{{SECTION_16_FILE_MANAGEMENT}}
+{{SECTION_17_CONTACT_MANAGEMENT}}
+{{SECTION_18_BRANDING}}
+{{SECTION_19_REPORTING}}
+{{SECTION_20_DATA_EXPORT_IMPORT}}
+{{SECTION_21_EMAIL}}
+{{SECTION_22_VBA_AUTOMATION}}
+{{SECTION_23_QUERY_REQUIREMENTS}}
+{{SECTION_24_SQL_SERVER}}
+{{SECTION_25_DATA_MODEL}}
+{{SECTION_26_CORE_TABLES}}
+{{SECTION_27_BUSINESS_RULES}}
+{{SECTION_28_FUNCTIONAL_REQUIREMENTS}}
+{{SECTION_29_NON_FUNCTIONAL_REQUIREMENTS}}
+{{SECTION_30_UI_REQUIREMENTS}}
+{{SECTION_31_FORM_REQUIREMENTS}}
+{{SECTION_32_REPORT_REQUIREMENTS}}
+{{SECTION_33_SECURITY}}
+{{SECTION_34_ERROR_HANDLING}}
+{{SECTION_35_AUDIT_TRACEABILITY}}
+{{SECTION_36_BACKUP_RECOVERY}}
+{{SECTION_37_INTEGRATIONS}}
+{{SECTION_38_TECHNICAL_ARCHITECTURE}}
+{{SECTION_39_DATA_MIGRATION}}
+{{SECTION_40_SYSTEM_MODERNIZATION}}
+{{SECTION_41_TESTING_ACCEPTANCE}}
+{{SECTION_42_DEPLOYMENT}}
+{{SECTION_43_TRAINING}}
+{{SECTION_44_OPERATIONAL_SUPPORT}}
+{{SECTION_45_RISKS_CONSTRAINTS}}
+{{SECTION_46_TRACEABILITY_MATRIX}}
+{{SECTION_47_ACCEPTANCE_CRITERIA}}
+{{SECTION_48_APPENDICES}}
 
 </body>
 </html>

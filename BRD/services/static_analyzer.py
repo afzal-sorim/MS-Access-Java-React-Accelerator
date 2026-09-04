@@ -19,16 +19,36 @@ def escape(val: Any) -> str:
     return html.escape(str(val))
 
 
+def is_system_object(name: str | None) -> bool:
+    """Identify Access system, temp, navigation, or internal configuration objects."""
+    if not name:
+        return False
+    n = name.strip().lower()
+    return (
+        n.startswith("msys")
+        or n.startswith("usys")
+        or n.startswith("~")
+        or n.startswith("f_")
+        or n.startswith("sys")
+        or "navpane" in n
+        or "msysnavpane" in n
+    )
+
+
 def compute_static_metrics(facts: Dict[str, Any]) -> Dict[str, Any]:
     """Compute concrete metrics and HTML fragments for template rendering with 0 fabrication."""
-    tables = facts.get("tables", [])
+    tables = [t for t in facts.get("tables", []) if not is_system_object(t.get("name"))]
     system_tables = facts.get("system_tables", [])
     queries = facts.get("queries", [])
     forms = facts.get("forms", [])
     reports = facts.get("reports", [])
     macros = facts.get("macros", [])
     vba_modules = facts.get("vba_modules", [])
-    relationships = facts.get("relationships", [])
+    raw_rels = facts.get("relationships", [])
+    relationships = [
+        r for r in raw_rels
+        if not (is_system_object(r.get("parent_table")) or is_system_object(r.get("child_table")))
+    ]
     runtime_objects = facts.get("runtime_objects", [])
     orphans = facts.get("orphans", [])
 

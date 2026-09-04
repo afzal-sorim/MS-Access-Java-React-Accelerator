@@ -17,16 +17,19 @@ logger = logging.getLogger("converter.brd.source_analyzer")
 
 
 def is_system_object(name: Optional[str]) -> bool:
-    """Identify Access system, temp, or configuration objects (spec Step 2)."""
+    """Identify Access system, temp, navigation, or internal configuration objects."""
     if not name:
         return False
     n = name.strip()
+    nl = n.lower()
     return (
-        n.startswith("MSys")
-        or n.startswith("USys")
-        or n.startswith("~")
-        or n.startswith("f_")
-        or n.lower().startswith("sys")
+        nl.startswith("msys")
+        or nl.startswith("usys")
+        or nl.startswith("~")
+        or nl.startswith("f_")
+        or nl.startswith("sys")
+        or "navpane" in nl
+        or "msysnavpane" in nl
     )
 
 
@@ -147,13 +150,78 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
     """Parse real VBA module code for header comments, procedure signatures, and behavioral summaries (spec Step 3)."""
     mname = m.get("name", "Module")
     mtype = m.get("module_type", "STANDARD")
+def describe_vba_procedure(pname: str, kind: str, params: str, ret_type: str, comments: str, mod_name: str) -> str:
+    """Infer a deep, specific behavioral description for an individual VBA routine."""
+    plower = pname.lower()
+    mlower = mod_name.lower()
+
+    # Specialized Mathematical & Statistical Functions
+    if plower in ("arccos", "acos"):
+        return "Calculates the inverse cosine (arc cosine) of a real numeric angle value in radians."
+    elif plower in ("arcsin", "asin"):
+        return "Calculates the inverse sine (arc sine) of a real numeric angle value in radians."
+    elif plower in ("arctan", "atan", "atan2"):
+        return "Calculates the inverse tangent (arc tangent / 2-argument arc tangent) of numeric coordinates."
+    elif plower in ("arccosec", "acsc"):
+        return "Calculates the inverse cosecant of a numeric angle value."
+    elif plower in ("arccotan", "acot"):
+        return "Calculates the inverse cotangent of a numeric angle value."
+    elif plower in ("arcsec", "asec"):
+        return "Calculates the inverse secant of a numeric angle value."
+    elif plower in ("cosec", "csc"):
+        return "Calculates the cosecant (1 / sin(x)) of a numeric angle in radians."
+    elif plower in ("cotan", "cot"):
+        return "Calculates the cotangent (1 / tan(x)) of a numeric angle in radians."
+    elif plower in ("sec", "secant"):
+        return "Calculates the secant (1 / cos(x)) of a numeric angle in radians."
+    elif "greatarcdistance" in plower or ("distance" in plower and ("3d" in plower or "xyz" in mlower)):
+        return "Calculates 3D Euclidean spatial distance or spherical great-arc distance between coordinate points."
+    elif "area" in plower or "volume" in plower or plower.startswith(("acircle", "arect", "asphere", "vcone", "vcylinder", "vsphere")):
+        return f"Computes geometric area and volumetric metrics for spatial shapes ({pname})."
+
+    # Calendar & Date Functions
+    elif "weekending" in plower or "week_ending" in plower or plower == "endofweek":
+        return "Calculates the week-ending Saturday/Sunday date boundary for a given input transaction date."
+    elif "quarter" in plower:
+        return "Derives calendar/fiscal quarter (Q1-Q4) for a given date parameter."
+    elif "monthcal" in plower or "calendar" in plower:
+        return "Renders interactive month calendar view controls and handles date selection events."
+    elif "daysinmonth" in plower:
+        return "Calculates the total number of calendar days in a given month and year (accounting for leap years)."
+    elif "leapyear" in plower:
+        return "Determines whether a given calendar year is a leap year."
+
+    # Outlook & Email Operations
+    elif "mail" in plower or "send" in plower or "outlook" in mlower or "pushappointments" in plower:
+        return "Constructs MAPI email message, attaches generated reports, or syncs calendar appointments with Outlook."
+
+    # File & Path Operations
+    elif "file" in plower or "path" in plower or "dir" in plower or "trailingslash" in plower:
+        return "Executes local file system I/O, file path verification, load/save operations, or disk directory checks."
+
+    if comments and len(comments) > 25 and not comments.lower().startswith("execution routine"):
+        return comments
+    elif comments and len(comments) > 3:
+        return f"{comments} — Executes procedure {pname}({params}) returning {ret_type} in {mod_name}."
+
+    # Generic Fallback with Specific Context
+    if "sub" in kind.lower():
+        return f"Subroutine executing operational procedure {pname}({params}) in {mod_name}."
+    else:
+        return f"Function returning {ret_type} derived from parameter inputs ({params}) in {mod_name}."
+
+
+def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse VBA module code to extract header comments, procedure signatures, and deep behavioral descriptions."""
+    mname = m.get("name") or "Module"
+    mtype = m.get("module_type") or "Standard"
     src = m.get("source") or m.get("code") or ""
 
     header_comments: List[str] = []
     purposes: List[str] = []
     procedures: List[Dict[str, Any]] = []
 
-    lines = src.splitlines()
+    lines = [l for l in src.splitlines() if l.strip()]
 
     # 1. Extract header purpose and comment blocks
     for line in lines[:80]:
@@ -180,7 +248,6 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
 
     for match in proc_pattern.finditer(src):
         kind, pname, params, ret_type = match.groups()
-        # Look for comment directly preceding or following the signature
         proc_start = match.start()
         before_text = src[max(0, proc_start - 300) : proc_start]
         after_text = src[match.end() : match.end() + 200]
@@ -196,18 +263,26 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
                     inline_desc = al.strip(" '\t-=")
                     break
 
+        kind_clean = kind.strip()
+        pname_clean = pname.strip()
+        params_clean = params.strip() if params else ""
+        ret_clean = ret_type.strip() if ret_type else ("Void" if "Sub" in kind_clean else "Object")
+
+        deep_desc = describe_vba_procedure(pname_clean, kind_clean, params_clean, ret_clean, inline_desc, mname)
+
         procedures.append(
             {
-                "name": pname,
-                "kind": kind.strip(),
-                "params": params.strip() if params else "",
-                "return_type": ret_type.strip() if ret_type else ("Void" if "Sub" in kind else "Object"),
+                "name": pname_clean,
+                "kind": kind_clean,
+                "params": params_clean,
+                "return_type": ret_clean,
                 "comments": inline_desc,
-                "signature": f"{kind.strip()} {pname}({params.strip() if params else ''}){' As ' + ret_type if ret_type else ''}",
+                "signature": f"{kind_clean} {pname_clean}({params_clean}){' As ' + ret_clean if ret_type else ''}",
+                "behavioral_description": deep_desc,
             }
         )
 
-    # 3. Behavioral Description Synthesis (Rule: Reflect what it ACTUALLY DOES)
+    # 3. Behavioral Description Synthesis (Reflect what it ACTUALLY DOES)
     behavioral_desc = ""
     if purposes:
         behavioral_desc = "; ".join(purposes)
@@ -217,10 +292,9 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
             behavioral_desc = meaningful[0]
 
     if not behavioral_desc and procedures:
-        # Synthesize from routine names
         names = [p["name"] for p in procedures]
         lower_names = " ".join(names).lower()
-        if any(w in lower_names for w in ("sin", "cos", "tan", "rad", "deg", "atan", "trig")):
+        if any(w in lower_names for w in ("sin", "cos", "tan", "rad", "deg", "atan", "trig", "arccos", "arcsin")):
             behavioral_desc = f"Trigonometric and mathematical calculation utilities ({', '.join(names[:6])})"
         elif any(w in lower_names for w in ("trim", "split", "word", "capitalize", "replace", "str")):
             behavioral_desc = f"String manipulation, text formatting, and parsing operations ({', '.join(names[:6])})"
@@ -482,17 +556,21 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
     sup_res = await session.execute(sup_stmt)
     sup_items = sup_res.scalars().all()
 
-    # 6. Extract Relationships (MSysRelationships)
+    # 6. Extract Relationships (MSysRelationships) - Filter System Tables
     raw_relationships = extraction_data.get("relationships") or ir_data.get("relationships") or []
     relationships: List[Dict[str, Any]] = []
     if isinstance(raw_relationships, list):
         for r in raw_relationships:
             if isinstance(r, dict):
+                pt = r.get("parent_table") or ""
+                ct = r.get("child_table") or ""
+                if is_system_object(pt) or is_system_object(ct):
+                    continue
                 relationships.append(
                     {
                         "name": r.get("name") or "Rel",
-                        "parent_table": r.get("parent_table") or "",
-                        "child_table": r.get("child_table") or "",
+                        "parent_table": pt,
+                        "child_table": ct,
                         "parent_columns": r.get("parent_columns") or [],
                         "child_columns": r.get("child_columns") or [],
                         "enforce_integrity": r.get("enforce_integrity", True),
@@ -797,6 +875,32 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
         len(runtime_objects),
     )
 
+    # 16. Feature Module Detection Flags for Conditional BRD Section Rendering
+    all_obj_names_text = " ".join([
+        " ".join(t.get("name", "") for t in business_tables),
+        " ".join(" ".join(c.get("name", "") for c in t.get("columns", [])) for t in business_tables),
+        " ".join(q.get("name", "") + " " + (q.get("sql") or "") for q in queries),
+        " ".join(f.get("name", "") for f in forms),
+        " ".join(r.get("name", "") for r in reports),
+        " ".join(m.get("name", "") for m in vba_modules),
+    ]).lower()
+
+    feature_flags = {
+        "has_trap_management": any(k in all_obj_names_text for k in ["trap_type", "trap_lctn", "trap_pull", "trap"]),
+        "has_work_management": any(k in all_obj_names_text for k in ["work_type", "work_priority", "maintainable", "failure_code", "cost_center", "expense_category", "doecc", "crew", "vendor", "supervisor", "site_id"]),
+        "has_location_management": any(k in all_obj_names_text for k in ["location", "lctn", "trap_lctn"]),
+        "has_calendar_management": any(k in all_obj_names_text for k in ["calendar", "modcalendar", "clsmonthcal", "week_ending", "dayofweek"]),
+        "has_cumulative_management": any(k in all_obj_names_text for k in ["cum_val", "decum_val", "modmathcumulative", "cumulative"]),
+        "has_tag_management": any(k in all_obj_names_text for k in ["tag_grp", "tag_nme", "tag_name"]),
+        "has_data_dictionary": any(k in all_obj_names_text for k in ["database_structure", "tb_structure", "field_metadata"]),
+        "has_file_management": any(k in all_obj_names_text for k in ["filelist", "tblfilelist", "modfilefunctions", "file_name"]),
+        "has_contact_management": any(k in all_obj_names_text for k in ["contacts", "tblcontacts", "contact_master"]),
+        "has_branding": any(k in all_obj_names_text for k in ["logo_tb", "tbldefaults", "organization_logo"]),
+        "has_outlook": any(k in all_obj_names_text for k in ["modoutlook", "sendmail", "outlook_integration", "email_report"]),
+        "has_math_modules": any(k in all_obj_names_text for k in ["modmathxyz", "modmathstatistics", "modmathareavolume"]),
+        "has_sql_server": any(k in all_obj_names_text for k in ["odbc", "sqlserver", "dsn", "passthrough"]),
+    }
+
     return {
         "job_id": job_id,
         "project_name": project_name,
@@ -809,6 +913,7 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
         "react_version": job.react_version or "19.2.8",
         "postgres_version": job.postgres_version or "18",
         "base_package": job.base_package or "com.generated.app",
+        "feature_flags": feature_flags,
         "tables": business_tables,
         "tables_count": len(business_tables),
         "system_tables": system_tables,

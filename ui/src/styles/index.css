@@ -3663,8 +3663,33 @@ a:hover {
     height: 16px;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+/* ============================================================
+   100% RESPONSIVE & 100% WIDTH FIT-TO-SCREEN GLOBAL UTILITIES
+   ============================================================ */
+
+html, body, #root, .app-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.app-content, .wizard-container, .wizard-stepper-card, .card, .step-container, .report-viewer-card, .iframe-container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+iframe {
+    width: 100%;
+    max-width: 100%;
+    border: none;
+    box-sizing: border-box;
+}
+
+/* Responsive Grid & Flex Layout Utilities for Fit to Screen */
+@media (max-width: 1200px) {
     .s6-stats-row { grid-template-columns: repeat(2, 1fr); }
     .s6-cols { grid-template-columns: 1fr; }
     .s6-func-grid { grid-template-columns: 1fr; }
@@ -3681,5 +3706,8 @@ a:hover {
     .s6-filter-search { max-width: 100%; }
     .s6-func-mapping { flex-direction: column; }
     .s6-func-map-arrow { transform: rotate(90deg); }
+    .app-header { padding: 0 16px; }
+    .wizard-stepper-card { padding: 1rem; }
 }
+
 
