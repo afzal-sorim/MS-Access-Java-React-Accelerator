@@ -8,6 +8,7 @@ import { formatNumber, formatPercentage } from '../../../utils/helpers';
  * Redesigned for maximum effectiveness and executive view.
  */
 const REVIEW_TABS = [
+    { key: 'all', label: 'All Objects', icon: '🌐' },
     { key: 'tables', label: 'Tables', icon: '🗃️' },
     { key: 'queries', label: 'Queries', icon: '🔍' },
     { key: 'forms', label: 'Forms', icon: '📋' },
@@ -265,83 +266,131 @@ export default function Step4Review() {
 
         return {
             tables: supportability.filter(s => s.category === 'TABLE').map((s, i) => ({
-                id: `table-${i}`, name: s.object, recordCount: '—', target: 'PostgreSQL Table', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `table-${i}`, tabKey: 'tables', name: s.object, recordCount: '—', target: 'PostgreSQL Table', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             queries: supportability.filter(s => s.category === 'QUERY').map((s, i) => ({
-                id: `query-${i}`, name: s.object, recordCount: '—', target: 'JPA Repository / Custom Query', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `query-${i}`, tabKey: 'queries', name: s.object, recordCount: '—', target: 'JPA Repository / Custom Query', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             forms: supportability.filter(s => s.category === 'FORM').map((s, i) => ({
-                id: `form-${i}`, name: s.object, recordCount: '—', target: 'React Page + Components', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `form-${i}`, tabKey: 'forms', name: s.object, recordCount: '—', target: 'React Page + Components', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             reports: supportability.filter(s => s.category === 'REPORT').map((s, i) => ({
-                id: `report-${i}`, name: s.object, recordCount: '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `report-${i}`, tabKey: 'reports', name: s.object, recordCount: '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             modules: supportability.filter(s => s.category === 'VBA' || s.category === 'VBA_MODULE' || s.category === 'VBA_FUNCTION' || s.category === 'VBA_SUB').map((s, i) => ({
-                id: `module-${i}`, name: s.object, recordCount: '—', target: 'Spring Service / Utility', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `module-${i}`, tabKey: 'modules', name: s.object, recordCount: '—', target: 'Spring Service / Utility', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             macros: supportability.filter(s => s.category === 'MACRO').map((s, i) => ({
-                id: `macro-${i}`, name: s.object, recordCount: '—', target: 'React Navigation / API Call', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
+                id: `macro-${i}`, tabKey: 'macros', name: s.object, recordCount: '—', target: 'React Navigation / API Call', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
             externalDependencies: (report.externalDependencies || []).map((dep, i) => ({
-                id: `ext-${i}`, name: dep.name || dep.type, recordCount: '—', target: dep.migrationStrategy || 'Manual Review', status: 'UNSUPPORTED', risk: dep.riskLevel || 'HIGH', confidence: 0, reason: enhanceReason('UNSUPPORTED', dep.details || 'External dependency requires manual migration'), conversion: 'MANUAL', selected: false,
+                id: `ext-${i}`, tabKey: 'externalDependencies', name: dep.name || dep.type, recordCount: '—', target: dep.migrationStrategy || 'Manual Review', status: 'UNSUPPORTED', risk: dep.riskLevel || 'HIGH', confidence: 0, reason: enhanceReason('UNSUPPORTED', dep.details || 'External dependency requires manual migration'), conversion: 'MANUAL', selected: false,
             })),
         };
     };
 
     const getMockReviewData = () => ({
         tables: [
-            { id: 't1', name: 'Employees', recordCount: '1,250', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Standard table with PK and indexes.\nAll data types are directly compatible with PostgreSQL.\nNo complex constraints detected.', conversion: 'ENTITY', selected: true },
-            { id: 't2', name: 'Departments', recordCount: '25', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Simple lookup table.\nContains standard text and numeric fields.\nPerfect candidate for automated migration.', conversion: 'ENTITY', selected: true },
-            { id: 't4', name: 'SysUsers', recordCount: '50', target: 'PostgreSQL Table (User)', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.85, reason: 'Contains plaintext password fields.\nSecurity review required for password hashing.\nAudit trails should be implemented during migration.', conversion: 'ENTITY', selected: true },
+            { id: 't1', tabKey: 'tables', name: 'Employees', recordCount: '1,250', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Standard table with PK and indexes.\nAll data types are directly compatible with PostgreSQL.\nNo complex constraints detected.', conversion: 'ENTITY', selected: true },
+            { id: 't2', tabKey: 'tables', name: 'Departments', recordCount: '25', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Simple lookup table.\nContains standard text and numeric fields.\nPerfect candidate for automated migration.', conversion: 'ENTITY', selected: true },
+            { id: 't4', tabKey: 'tables', name: 'SysUsers', recordCount: '50', target: 'PostgreSQL Table (User)', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.85, reason: 'Contains plaintext password fields.\nSecurity review required for password hashing.\nAudit trails should be implemented during migration.', conversion: 'ENTITY', selected: true },
         ],
         queries: [
-            { id: 'q1', name: 'qryActiveEmployees', recordCount: '—', target: 'JPA Repository Method', status: 'SUPPORTED', risk: 'LOW', confidence: 0.95, reason: 'Simple SELECT with WHERE clause.\nStandard JOIN between Employees and Departments.\nFully convertible to Spring Data JPA method.', conversion: 'REPOSITORY_METHOD', selected: true },
-            { id: 'q2', name: 'qryLeaveBalance', recordCount: '—', target: 'JPA Repository / Custom Query', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.82, reason: 'Uses DLookup domain function.\nRequires conversion to a service-level calculation.\nComplex VBA-based criteria found in SQL.', conversion: 'SERVICE_METHOD', selected: true },
-            { id: 'q3', name: 'qryYearlySalesCrosstab', recordCount: '—', target: 'Manual Migration', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'CROSSTAB queries not supported in V1.\n\nWhy is this unsupported?\nCROSSTAB is a proprietary Access feature for dynamic pivot tables. Standard SQL does not natively support dynamic pivots without complex PIVOT clauses.\n\nAction Required:\nYou must manually recreate this logic using a Spring Boot aggregate query and a React DataGrid with grouping/pivoting capabilities.', conversion: 'MANUAL', selected: false },
+            { id: 'q1', tabKey: 'queries', name: 'qryActiveEmployees', recordCount: '—', target: 'JPA Repository Method', status: 'SUPPORTED', risk: 'LOW', confidence: 0.95, reason: 'Simple SELECT with WHERE clause.\nStandard JOIN between Employees and Departments.\nFully convertible to Spring Data JPA method.', conversion: 'REPOSITORY_METHOD', selected: true },
+            { id: 'q2', tabKey: 'queries', name: 'qryLeaveBalance', recordCount: '—', target: 'JPA Repository / Custom Query', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.82, reason: 'Uses DLookup domain function.\nRequires conversion to a service-level calculation.\nComplex VBA-based criteria found in SQL.', conversion: 'SERVICE_METHOD', selected: true },
+            { id: 'q3', tabKey: 'queries', name: 'qryYearlySalesCrosstab', recordCount: '—', target: 'Manual Migration', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'CROSSTAB queries not supported in V1.\n\nWhy is this unsupported?\nCROSSTAB is a proprietary Access feature for dynamic pivot tables. Standard SQL does not natively support dynamic pivots without complex PIVOT clauses.\n\nAction Required:\nYou must manually recreate this logic using a Spring Boot aggregate query and a React DataGrid with grouping/pivoting capabilities.', conversion: 'MANUAL', selected: false },
         ],
         forms: [
-            { id: 'f1', name: 'frmEmployee', recordCount: '—', target: 'React Page + Form', status: 'SUPPORTED', risk: 'LOW', confidence: 0.94, reason: 'Standard CRUD form with bound fields.\nClean layout with common UI controls.\nDirect mapping to React Hook Form components.', conversion: 'PAGE_FORM', selected: true },
+            { id: 'f1', tabKey: 'forms', name: 'frmEmployee', recordCount: '—', target: 'React Page + Form', status: 'SUPPORTED', risk: 'LOW', confidence: 0.94, reason: 'Standard CRUD form with bound fields.\nClean layout with common UI controls.\nDirect mapping to React Hook Form components.', conversion: 'PAGE_FORM', selected: true },
         ],
         reports: [],
         modules: [],
         macros: [],
         externalDependencies: [
-            { id: 'ext1', name: 'Outlook COM', recordCount: '—', target: 'Manual Review', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'External Outlook automation is not cloud-compatible.\n\nWhy is this unsupported?\nThis object relies on proprietary MS Access COM object integration that has no direct equivalent in a modern Java/React stack.\n\nAction Required:\nYou must resolve this manually by redesigning the underlying workflow or implementing a custom API integration (e.g., Microsoft Graph API).', conversion: 'MANUAL', selected: false },
+            { id: 'ext1', tabKey: 'externalDependencies', name: 'Outlook COM', recordCount: '—', target: 'Manual Review', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'External Outlook automation is not cloud-compatible.\n\nWhy is this unsupported?\nThis object relies on proprietary MS Access COM object integration that has no direct equivalent in a modern Java/React stack.\n\nAction Required:\nYou must resolve this manually by redesigning the underlying workflow or implementing a custom API integration (e.g., Microsoft Graph API).', conversion: 'MANUAL', selected: false },
         ],
     });
 
-    const currentObjects = useMemo(() => {
-        const objects = reviewData[reviewTab] || [];
-        return objects.filter(obj => {
-            const matchesSearch = !searchQuery ||
-                obj.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                obj.target.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesStatus = filterStatus === 'all' || 
-                (filterStatus === 'selected' ? selectedObjects.has(obj.id) : obj.status === filterStatus);
-            return matchesSearch && matchesStatus;
-        });
-    }, [reviewData, reviewTab, filterStatus, searchQuery, selectedObjects]);
+    // Status matching helpers
+    const isNeedsReview = (status) => {
+        if (!status) return false;
+        const s = String(status).toUpperCase();
+        return s.includes('REVIEW') || s.includes('TRANSFORMATION');
+    };
+
+    const isUnsupported = (status) => {
+        if (!status) return false;
+        const s = String(status).toUpperCase();
+        return s === 'UNSUPPORTED' || s === 'FAILED_EXTRACTION' || s.includes('UNSUPPORTED') || s.includes('FAIL');
+    };
+
+    const isFullySupported = (status) => {
+        if (!status) return false;
+        const s = String(status).toUpperCase();
+        return s === 'SUPPORTED';
+    };
+
+    const checkObjectMatchesStatus = (obj, filter) => {
+        if (!obj) return false;
+        if (filter === 'all') return true;
+        if (filter === 'needs_review') return isNeedsReview(obj.status);
+        if (filter === 'UNSUPPORTED') return isUnsupported(obj.status);
+        if (filter === 'SUPPORTED') return isFullySupported(obj.status);
+        if (filter === 'selected') return selectedObjects.has(obj.id);
+        return obj.status === filter;
+    };
 
     // KPI Metrics calculation
     const allObjectsFlat = useMemo(() => Object.values(reviewData).flat(), [reviewData]);
     const totalObjectsCount = allObjectsFlat.length;
-    const supportedCount = allObjectsFlat.filter(o => o.status === 'SUPPORTED').length;
-    const reviewCount = allObjectsFlat.filter(o => o.status.includes('REVIEW') || o.status.includes('TRANSFORMATION')).length;
-    const unsupportedCount = allObjectsFlat.filter(o => o.status === 'UNSUPPORTED' || o.status === 'FAILED_EXTRACTION').length;
+    const supportedCount = allObjectsFlat.filter(o => isFullySupported(o.status)).length;
+    const reviewCount = allObjectsFlat.filter(o => isNeedsReview(o.status)).length;
+    const unsupportedCount = allObjectsFlat.filter(o => isUnsupported(o.status)).length;
     const readinessScore = totalObjectsCount > 0 ? Math.round(((supportedCount + reviewCount * 0.5) / totalObjectsCount) * 100) : 0;
 
+    const currentObjects = useMemo(() => {
+        const objects = reviewTab === 'all'
+            ? allObjectsFlat
+            : (reviewData[reviewTab] || []);
+        return objects.filter(obj => {
+            const matchesSearch = !searchQuery ||
+                obj.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                obj.target.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesStatus = checkObjectMatchesStatus(obj, filterStatus);
+            return matchesSearch && matchesStatus;
+        });
+    }, [reviewData, reviewTab, filterStatus, searchQuery, selectedObjects, allObjectsFlat]);
+
+    const handleKpiCardClick = (statusKey) => {
+        setFilterStatus(statusKey);
+        if (statusKey === 'all') {
+            return;
+        }
+        const currentTabObjects = reviewTab === 'all' ? allObjectsFlat : (reviewData[reviewTab] || []);
+        const hasMatchingInCurrentTab = currentTabObjects.some(o => checkObjectMatchesStatus(o, statusKey));
+        if (!hasMatchingInCurrentTab) {
+            actions.setReviewTab('all');
+        }
+    };
+
     const currentSelectedCount = useMemo(() => {
-        return currentObjects.filter(o => o.status !== 'UNSUPPORTED' && o.status !== 'FAILED_EXTRACTION' && selectedObjects.has(o.id)).length;
+        return currentObjects.filter(o => !isUnsupported(o.status) && selectedObjects.has(o.id)).length;
     }, [currentObjects, selectedObjects]);
 
     const handleSelectAll = () => {
-        const selectable = currentObjects.filter(o => o.status !== 'UNSUPPORTED' && o.status !== 'FAILED_EXTRACTION');
+        const selectable = currentObjects.filter(o => !isUnsupported(o.status));
         actions.selectAllObjects(selectable);
     };
 
     const handleGlobalSelectAll = () => {
-        const allSelectable = allObjectsFlat.filter(o => o.status !== 'UNSUPPORTED' && o.status !== 'FAILED_EXTRACTION');
+        const allSelectable = allObjectsFlat.filter(o => !isUnsupported(o.status));
         actions.selectAllObjects(allSelectable);
+    };
+
+    const handleGlobalDeselectAll = (e) => {
+        if (e) e.stopPropagation();
+        actions.deselectAllObjects();
+        setFilterStatus('all');
     };
 
     const handleDeselectAll = () => {
@@ -355,14 +404,16 @@ export default function Step4Review() {
         setExpandedRows(newSet);
     };
 
-    const handleTargetChange = (objectId, newTarget) => {
-        actions.updateObjectMapping(reviewTab, objectId, { target: newTarget });
+    const handleTargetChange = (objectId, newTarget, tabKey) => {
+        const targetTab = tabKey || (reviewTab === 'all' ? 'tables' : reviewTab);
+        actions.updateObjectMapping(targetTab, objectId, { target: newTarget });
     };
 
     const handleBatchTargetChange = (newTarget) => {
         currentObjects.forEach(obj => {
             if (selectedObjects.has(obj.id)) {
-                actions.updateObjectMapping(reviewTab, obj.id, { target: newTarget });
+                const targetTab = obj.tabKey || (reviewTab === 'all' ? 'tables' : reviewTab);
+                actions.updateObjectMapping(targetTab, obj.id, { target: newTarget });
             }
         });
         setBatchActionTab(false);
@@ -401,24 +452,24 @@ export default function Step4Review() {
                 <>
                     {/* KPI Scorecards */}
                     <div className="kpi-container">
-                        <div className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>
+                        <div className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleKpiCardClick('all')}>
                             <div className="kpi-header">📊 Total Objects</div>
                             <div className="kpi-value">{totalObjectsCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
                                 <span style={{ color: readinessScore > 80 ? '#10b981' : '#f59e0b', fontWeight: 600 }}>{readinessScore}%</span> Auto-Ready
                             </div>
                         </div>
-                        <div className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED')}>
+                        <div className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleKpiCardClick('SUPPORTED')}>
                             <div className="kpi-header">✅ Fully Supported</div>
                             <div className="kpi-value">{supportedCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Ready for codegen</div>
                         </div>
-                        <div className={`kpi-card kpi-review ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED_WITH_REVIEW')}>
+                        <div className={`kpi-card kpi-review ${filterStatus === 'needs_review' ? 'active' : ''}`} onClick={() => handleKpiCardClick('needs_review')}>
                             <div className="kpi-header">⚠️ Needs Review</div>
                             <div className="kpi-value">{reviewCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Check mappings</div>
                         </div>
-                        <div className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('UNSUPPORTED')}>
+                        <div className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => handleKpiCardClick('UNSUPPORTED')}>
                             <div className="kpi-header">❌ Manual / Skipped</div>
                             <div className="kpi-value">{unsupportedCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Requires attention</div>
@@ -428,8 +479,17 @@ export default function Step4Review() {
                     {/* Segmented Category Tabs */}
                     <div className="review-tabs">
                         {REVIEW_TABS.map((tab) => {
-                            const count = reviewData[tab.key]?.length || 0;
-                            const hasIssues = reviewData[tab.key]?.some(o => o.status === 'UNSUPPORTED' || o.status === 'FAILED_EXTRACTION');
+                            const totalCount = tab.key === 'all'
+                                ? allObjectsFlat.length
+                                : (reviewData[tab.key]?.length || 0);
+                            const tabObjects = tab.key === 'all'
+                                ? allObjectsFlat
+                                : (reviewData[tab.key] || []);
+
+                            const matchingCount = tabObjects.filter(o => checkObjectMatchesStatus(o, filterStatus)).length;
+                            const hasUnsupported = tabObjects.some(o => isUnsupported(o.status));
+                            const hasReview = tabObjects.some(o => isNeedsReview(o.status));
+
                             return (
                                 <button
                                     key={tab.key}
@@ -437,11 +497,13 @@ export default function Step4Review() {
                                     onClick={() => actions.setReviewTab(tab.key)}
                                 >
                                     {tab.icon} {tab.label}
-                                    <span className="review-tab-count">{formatNumber(count)}</span>
-                                    {count > 0 && (
+                                    <span className="review-tab-count">
+                                        {filterStatus !== 'all' ? matchingCount : formatNumber(totalCount)}
+                                    </span>
+                                    {totalCount > 0 && (
                                         <span style={{
                                             width: '8px', height: '8px', borderRadius: '50%',
-                                            background: hasIssues ? '#ef4444' : '#10b981'
+                                            background: hasUnsupported ? '#ef4444' : hasReview ? '#f59e0b' : '#10b981'
                                         }} />
                                     )}
                                 </button>
@@ -452,10 +514,77 @@ export default function Step4Review() {
                     {/* Smart Toolbar */}
                     <div className="review-toolbar">
                         <div className="quick-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>All</span>
-                            <span className={`filter-chip ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED')}>Supported</span>
+                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleKpiCardClick('all')}>All</span>
+                            <span className={`filter-chip ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleKpiCardClick('SUPPORTED')}>Supported</span>
+                            <span className={`filter-chip ${filterStatus === 'needs_review' ? 'active' : ''}`} onClick={() => handleKpiCardClick('needs_review')}>Needs Review ({reviewCount})</span>
                             <span className={`filter-chip ${filterStatus === 'selected' ? 'active' : ''}`} onClick={() => setFilterStatus('selected')}>Selected ({selectedObjects.size})</span>
-                            <button className="btn btn-primary" onClick={handleGlobalSelectAll} style={{ marginLeft: '1rem', borderRadius: '999px', fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}>Select All Globally</button>
+                            {/* Select All Globally with Close / Unselect Button */}
+                            <div
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'stretch',
+                                    marginLeft: '1rem',
+                                    borderRadius: '999px',
+                                    background: 'var(--color-primary, #4338ca)',
+                                    color: '#ffffff',
+                                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                    overflow: 'hidden',
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={handleGlobalSelectAll}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#ffffff',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        padding: '0.375rem 0.65rem 0.375rem 0.85rem',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        lineHeight: 1.2,
+                                        transition: 'background-color 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    Select All Globally
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleGlobalDeselectAll}
+                                    title="Unselect filter and deselect all"
+                                    aria-label="Unselect filter and deselect all"
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        borderLeft: '1px solid rgba(255, 255, 255, 0.25)',
+                                        color: '#ffffff',
+                                        fontSize: '0.75rem',
+                                        lineHeight: 1,
+                                        padding: '0.375rem 0.65rem',
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'background-color 0.15s ease',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
                         </div>
                         <div className="search-box">
                             <input
@@ -505,7 +634,23 @@ export default function Step4Review() {
                                                     )}
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1rem' }}>
-                                                    <div style={{ fontWeight: 600, color: '#1e293b' }}>{obj.name}</div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{obj.name}</span>
+                                                        {reviewTab === 'all' && (
+                                                            <span style={{
+                                                                fontSize: '0.65rem',
+                                                                fontWeight: 700,
+                                                                textTransform: 'uppercase',
+                                                                padding: '1px 6px',
+                                                                borderRadius: '4px',
+                                                                background: '#f1f5f9',
+                                                                color: '#475569',
+                                                                border: '1px solid #e2e8f0',
+                                                            }}>
+                                                                {obj.tabKey ? obj.tabKey.slice(0, -1) : 'object'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.125rem' }}>
                                                         {obj.recordCount !== '—' ? `${obj.recordCount} records` : obj.conversion?.replace(/_/g, ' ')}
                                                     </div>
@@ -514,10 +659,10 @@ export default function Step4Review() {
                                                     <select
                                                         className="inline-select"
                                                         value={obj.target}
-                                                        onChange={(e) => handleTargetChange(obj.id, e.target.value)}
+                                                        onChange={(e) => handleTargetChange(obj.id, e.target.value, obj.tabKey)}
                                                         disabled={isInactive}
                                                     >
-                                                        {(TARGET_OPTIONS[reviewTab] || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                        {(TARGET_OPTIONS[obj.tabKey || reviewTab] || TARGET_OPTIONS['tables'] || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1rem' }}>
@@ -530,9 +675,9 @@ export default function Step4Review() {
                                                     </div>
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                                                    <button className="btn btn-secondary btn-sm" onClick={() => handleToggleExpand(obj.id)} style={{ marginRight: '0.5rem' }}>
+                                                    {/* <button className="btn btn-secondary btn-sm" onClick={() => handleToggleExpand(obj.id)} style={{ marginRight: '0.5rem' }}>
                                                         {isExpanded ? 'Hide' : 'View'}
-                                                    </button>
+                                                    </button> */}
                                                     <button className="btn btn-primary btn-sm" onClick={() => setEditingObject(obj)} disabled={isInactive}>
                                                         Edit
                                                     </button>
@@ -565,7 +710,18 @@ export default function Step4Review() {
                         </table>
                         {currentObjects.length === 0 && (
                             <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-                                No objects found matching your criteria.
+                                <p style={{ margin: '0 0 0.5rem', fontWeight: 600, fontSize: '0.95rem', color: '#334155' }}>
+                                    No objects found matching this filter in {REVIEW_TABS.find(t => t.key === reviewTab)?.label || 'this tab'}.
+                                </p>
+                                {allObjectsFlat.some(o => checkObjectMatchesStatus(o, filterStatus)) && reviewTab !== 'all' && (
+                                    <button
+                                        className="btn btn-secondary btn-sm"
+                                        onClick={() => actions.setReviewTab('all')}
+                                        style={{ marginTop: '0.5rem', borderRadius: '20px', fontWeight: 600 }}
+                                    >
+                                        View all {allObjectsFlat.filter(o => checkObjectMatchesStatus(o, filterStatus)).length} matching objects in All Objects tab →
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
@@ -576,9 +732,10 @@ export default function Step4Review() {
             {editingObject && (
                 <MappingDrawer
                     object={editingObject}
-                    tab={reviewTab}
+                    tab={editingObject.tabKey || (reviewTab === 'all' ? 'tables' : reviewTab)}
                     onSave={(mapping) => {
-                        actions.updateObjectMapping(reviewTab, editingObject.id, mapping);
+                        const targetTab = editingObject.tabKey || (reviewTab === 'all' ? 'tables' : reviewTab);
+                        actions.updateObjectMapping(targetTab, editingObject.id, mapping);
                         setEditingObject(null);
                     }}
                     onClose={() => setEditingObject(null)}
