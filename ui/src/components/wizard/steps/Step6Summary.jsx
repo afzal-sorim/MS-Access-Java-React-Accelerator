@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { useWizard } from '../../../context/WizardContext';
 import { getReport, downloadResult } from '../../../services/api';
 import { formatNumber, formatPercentage } from '../../../utils/helpers';
+import { getGeneratedCounts } from '../../../utils/generatedCounts';
 
 /* ─── tiny SVG icons (inline to avoid extra deps) ─── */
 const CheckIcon = () => (
@@ -374,7 +375,10 @@ export default function Step6Summary() {
 
     // Generated file counts
     const generated = report?.generated || {};
-    const totalFilesGenerated = (generated.backend_files || 0) + (generated.frontend_files || 0) + 1;
+    const estimated = getGeneratedCounts(analysisProgress);
+    const backendFiles = estimated.backend || generated.backend_files || 0;
+    const frontendFiles = estimated.frontend || generated.frontend_files || 0;
+    const totalFilesGenerated = backendFiles + frontendFiles + estimated.database;
 
     // Filter functionalities
     const filteredFuncs = useMemo(() => {
@@ -650,7 +654,7 @@ export default function Step6Summary() {
     ];
 
     return (
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ width: '100%' }}>
 
             {/* ── HERO ── */}
             <div className="s6-hero">
@@ -724,7 +728,7 @@ export default function Step6Summary() {
                     <div className="s6-stat-card-header"><div className="s6-stat-card-icon"><LayersIcon /></div></div>
                     <div className="s6-stat-card-value">{formatNumber(totalFilesGenerated)}</div>
                     <div className="s6-stat-card-label">FILES GENERATED</div>
-                    <div className="s6-stat-card-desc">{generated.backend_files || 0} backend + {generated.frontend_files || 0} frontend</div>
+                    <div className="s6-stat-card-desc">{backendFiles} backend + {frontendFiles} frontend</div>
                     <div className="s6-stat-card-bar"><div className="s6-stat-card-bar-fill blue" style={{ width: '100%' }} /></div>
                 </div>
             </div>
@@ -854,9 +858,9 @@ export default function Step6Summary() {
                     {/* Generated output summary */}
                     <div className="s6-generated-bar">
                         <span className="s6-generated-label">Generated Output</span>
-                        <span className="s6-generated-value">{generated.backend_files || 0} Java files</span>
+                        <span className="s6-generated-value">{backendFiles} Java files</span>
                         <span className="s6-generated-sep">•</span>
-                        <span className="s6-generated-value">{generated.frontend_files || 0} React files</span>
+                        <span className="s6-generated-value">{frontendFiles} React files</span>
                         <span className="s6-generated-sep">•</span>
                         <span className="s6-generated-value">1 SQL schema</span>
                     </div>

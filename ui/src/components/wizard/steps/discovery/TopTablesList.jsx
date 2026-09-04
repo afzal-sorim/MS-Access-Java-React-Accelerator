@@ -217,7 +217,7 @@ const TopTablesList = ({ progress, result }) => {
                     padding: '1.5rem', boxSizing: 'border-box'
                 }}>
                     <div style={{
-                        width: '100%', maxWidth: '600px', backgroundColor: '#ffffff', borderRadius: '24px',
+                        width: '100%', maxWidth: '1100px', backgroundColor: '#ffffff', borderRadius: '24px',
                         padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1.5rem'
                     }}>

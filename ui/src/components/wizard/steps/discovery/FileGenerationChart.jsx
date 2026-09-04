@@ -1,27 +1,9 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { getGeneratedCounts } from '../../../../utils/generatedCounts';
 
 const FileGenerationChart = ({ progress }) => {
-    const tablesCount = progress?.tables?.count || 11;
-    const queriesCount = progress?.queries?.count || 10;
-    const formsCount = progress?.forms?.count || 10;
-    const reportsCount = progress?.reports?.count || 8;
-    const vbaCount = progress?.vba?.count || 9;
-    const macrosCount = progress?.macros?.count || 5;
-
-    const frontendFiles = Math.max(1, formsCount + Math.ceil(reportsCount * 0.375)) +
-                          Math.max(5, (formsCount * 3) + Math.ceil(reportsCount * 0.25)) +
-                          Math.max(2, Math.ceil(formsCount * 0.4) + Math.ceil(reportsCount * 0.25)) +
-                          Math.max(2, formsCount + Math.ceil(queriesCount * 0.8)) +
-                          Math.max(2, Math.ceil((formsCount + tablesCount) * 0.33)) +
-                          Math.max(4, tablesCount + queriesCount + Math.ceil(formsCount * 0.3));
-
-    const backendFiles = Math.max(1, formsCount + Math.ceil(queriesCount * 0.6)) +
-                         Math.max(1, vbaCount + queriesCount + macrosCount) +
-                         tablesCount +
-                         (tablesCount + Math.ceil(queriesCount * 0.7)) +
-                         (formsCount + Math.ceil(queriesCount * 0.5)) +
-                         Math.max(3, Math.ceil(vbaCount * 0.4) + 2);
+    const { frontend: frontendFiles, backend: backendFiles } = getGeneratedCounts(progress);
 
     const total = frontendFiles + backendFiles;
 

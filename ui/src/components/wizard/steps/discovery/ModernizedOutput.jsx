@@ -67,6 +67,14 @@ const FILE_DETAILS_MAP = {
         { name: 'Category.ts', path: 'src/types/Category.ts', desc: 'TypeScript interface for Product Categories' },
         { name: 'Employee.ts', path: 'src/types/Employee.ts', desc: 'TypeScript interface for Staff records' }
     ],
+    'Application Files': [
+        { name: 'App.jsx', path: 'src/App.jsx', desc: 'Application shell and generated routes' },
+        { name: 'main.jsx', path: 'src/main.jsx', desc: 'React application entry point' },
+        { name: 'index.css', path: 'src/index.css', desc: 'Generated application styles' },
+        { name: 'package.json', path: 'package.json', desc: 'Generated frontend dependencies' },
+        { name: 'vite.config.js', path: 'vite.config.js', desc: 'Frontend build configuration' },
+        { name: 'index.html', path: 'index.html', desc: 'Frontend document shell' }
+    ],
     'REST API Controllers': [
         { name: 'CustomerController.java', path: 'com.generated.app.controller.CustomerController', desc: 'Spring @RestController for Customer CRUD' },
         { name: 'OrderController.java', path: 'com.generated.app.controller.OrderController', desc: 'Spring @RestController for Order processing' },
@@ -107,6 +115,10 @@ const FILE_DETAILS_MAP = {
         { name: 'VBAExpressionEvaluator.java', path: 'com.generated.app.util.VBAExpressionEvaluator', desc: 'Helper for VBA IIF() / NZ() conversion' },
         { name: 'ReportPdfGenerator.java', path: 'com.generated.app.util.ReportPdfGenerator', desc: 'PDF generation utility for reports' },
         { name: 'GlobalExceptionHandler.java', path: 'com.generated.app.util.GlobalExceptionHandler', desc: 'Spring @ControllerAdvice exception handler' }
+    ],
+    'Application / Configuration': [
+        { name: 'Application.java', path: 'com.generated.app.Application', desc: 'Spring Boot application entry point' },
+        { name: 'WebConfig.java', path: 'com.generated.app.config.WebConfig', desc: 'Spring Web and CORS configuration' }
     ]
 };
 
@@ -114,12 +126,19 @@ const ModernizedOutput = ({ type, progress }) => {
     const [selectedItem, setSelectedItem] = useState(null);
     const isFrontend = type === 'frontend';
 
-    const tablesCount = progress?.tables?.count || 11;
-    const queriesCount = progress?.queries?.count || 10;
-    const formsCount = progress?.forms?.count || 10;
-    const reportsCount = progress?.reports?.count || 8;
-    const vbaCount = progress?.vba?.count || 9;
-    const macrosCount = progress?.macros?.count || 5;
+    const sourceCount = (key) => {
+        const count = progress?.[key]?.count;
+        const items = progress?.[key]?.items;
+        return Number.isFinite(count)
+            ? count
+            : Array.isArray(items) ? items.length : 0;
+    };
+
+    const tablesCount = sourceCount('tables');
+    const queriesCount = sourceCount('queries');
+    const formsCount = sourceCount('forms');
+    const reportsCount = sourceCount('reports');
+    const vbaCount = sourceCount('vba');
 
     const title = isFrontend 
         ? 'Modernized Output - Frontend (UI) Files' 
@@ -130,30 +149,26 @@ const ModernizedOutput = ({ type, progress }) => {
         : 'Estimated backend files to be generated';
 
     const frontendItems = useMemo(() => {
-        const pages = Math.max(1, formsCount + Math.ceil(reportsCount * 0.375));
-        const components = Math.max(5, (formsCount * 3) + Math.ceil(reportsCount * 0.25));
-        const layouts = Math.max(2, Math.ceil(formsCount * 0.4) + Math.ceil(reportsCount * 0.25));
-        const services = Math.max(2, formsCount + Math.ceil(queriesCount * 0.8));
-        const stateFiles = Math.max(2, Math.ceil((formsCount + tablesCount) * 0.33));
-        const types = Math.max(4, tablesCount + queriesCount + Math.ceil(formsCount * 0.3));
+        const pages = formsCount + (reportsCount > 0 ? 1 : 0);
 
         return [
             { label: 'React Pages / Views', count: pages, icon: Layout, color: '#8b5cf6' },
-            { label: 'Components', count: components, icon: Layers, color: '#8b5cf6' },
-            { label: 'Layouts', count: layouts, icon: Grid, color: '#8b5cf6' },
-            { label: 'Services (API Calls)', count: services, icon: RefreshCw, color: '#8b5cf6' },
-            { label: 'State Management Files', count: stateFiles, icon: Database, color: '#8b5cf6' },
-            { label: 'Types / Interfaces', count: types, icon: Code, color: '#8b5cf6' },
+            { label: 'Components', count: 0, icon: Layers, color: '#8b5cf6' },
+            { label: 'Layouts', count: 0, icon: Grid, color: '#8b5cf6' },
+            { label: 'Services (API Calls)', count: 1, icon: RefreshCw, color: '#8b5cf6' },
+            { label: 'State Management Files', count: 0, icon: Database, color: '#8b5cf6' },
+            { label: 'Types / Interfaces', count: 0, icon: Code, color: '#8b5cf6' },
+            { label: 'Application Files', count: 6, icon: FileCode, color: '#8b5cf6' },
         ];
-    }, [tablesCount, queriesCount, formsCount, reportsCount]);
+    }, [formsCount, reportsCount]);
 
     const backendItems = useMemo(() => {
-        const controllers = Math.max(1, formsCount + Math.ceil(queriesCount * 0.6));
-        const serviceClasses = Math.max(1, vbaCount + queriesCount + macrosCount);
+        const controllers = tablesCount;
+        const serviceClasses = tablesCount + vbaCount + (queriesCount > 0 ? 1 : 0);
         const repo = tablesCount;
-        const entities = tablesCount + Math.ceil(queriesCount * 0.7);
-        const dtos = formsCount + Math.ceil(queriesCount * 0.5);
-        const utils = Math.max(3, Math.ceil(vbaCount * 0.4) + 2);
+        const entities = tablesCount;
+        const dtos = tablesCount;
+        const utils = 4;
 
         return [
             { label: 'REST API Controllers', count: controllers, icon: Server, color: '#6366f1' },
@@ -162,8 +177,9 @@ const ModernizedOutput = ({ type, progress }) => {
             { label: 'Entity Models', count: entities, icon: Shield, color: '#f59e0b' },
             { label: 'DTOs', count: dtos, icon: FileText, color: '#ec4899' },
             { label: 'Utilities / Helpers', count: utils, icon: Wrench, color: '#64748b' },
+            { label: 'Application / Configuration', count: 2, icon: FileCode, color: '#64748b' },
         ];
-    }, [tablesCount, queriesCount, formsCount, vbaCount, macrosCount]);
+    }, [tablesCount, queriesCount, vbaCount]);
 
     const items = isFrontend ? frontendItems : backendItems;
     const totalCount = items.reduce((acc, curr) => acc + curr.count, 0);
@@ -172,8 +188,12 @@ const ModernizedOutput = ({ type, progress }) => {
         if (!selectedItem) return [];
         const rawTables = progress?.tables?.items || [];
         const rawForms = progress?.forms?.items || [];
+        const rawQueries = progress?.queries?.items || [];
+        const rawVba = progress?.vba?.items || [];
         const tableNames = rawTables.map(t => typeof t === 'string' ? t.replace(/^tbl_?/i, '') : (t.name || 'Item').replace(/^tbl_?/i, ''));
         const formNames = rawForms.map(f => typeof f === 'string' ? f.replace(/_frm$/i, '').replace(/^frm_?/i, '') : (f.name || 'View').replace(/_frm$/i, '').replace(/^frm_?/i, ''));
+        const queryNames = rawQueries.map(q => typeof q === 'string' ? q : (q.name || 'Query'));
+        const vbaNames = rawVba.map(v => typeof v === 'string' ? v : (v.name || 'Module'));
         const requiredCount = selectedItem.count;
 
         let dynamicList = [];
@@ -183,6 +203,13 @@ const ModernizedOutput = ({ type, progress }) => {
                 path: `src/views/${name.toLowerCase()}/${name}View.jsx`,
                 desc: `Modern React responsive view for ${name}`
             }));
+            if (reportsCount > 0) {
+                dynamicList.push({
+                    name: 'ReportsPage.jsx',
+                    path: 'src/pages/ReportsPage.jsx',
+                    desc: 'Generated React page for Access reports'
+                });
+            }
         } else if (selectedItem.label === 'REST API Controllers' && tableNames.length > 0) {
             dynamicList = tableNames.map(name => ({
                 name: `${name}Controller.java`,
@@ -213,21 +240,36 @@ const ModernizedOutput = ({ type, progress }) => {
                 path: `com.generated.app.service.${name}Service`,
                 desc: `Spring Service business logic bean for ${name}`
             }));
+            dynamicList = dynamicList.concat(vbaNames.map(name => ({
+                name: `${name}Service.java`,
+                path: `com.generated.app.service.${name}Service`,
+                desc: `Converted VBA module service for ${name}`
+            })));
+            if (queryNames.length > 0) {
+                dynamicList.push({
+                    name: 'QueryStubs.java',
+                    path: 'com.generated.app.service.QueryStubs',
+                    desc: `Generated query service/stub layer for ${queryNames.length} Access queries`
+                });
+            }
+        } else if (selectedItem.label === 'Service Classes') {
+            dynamicList = [
+                ...vbaNames.map(name => ({
+                    name: `${name}Service.java`,
+                    path: `com.generated.app.service.${name}Service`,
+                    desc: `Converted VBA module service for ${name}`
+                })),
+                ...(queryNames.length > 0 ? [{
+                    name: 'QueryStubs.java',
+                    path: 'com.generated.app.service.QueryStubs',
+                    desc: `Generated query service/stub layer for ${queryNames.length} Access queries`
+                }] : [])
+            ];
         } else {
             dynamicList = FILE_DETAILS_MAP[selectedItem.label] || [];
         }
 
-        if (dynamicList.length >= requiredCount) {
-            return dynamicList.slice(0, requiredCount);
-        }
-        const ext = isFrontend ? '.jsx' : '.java';
-        const prefix = selectedItem.label.split(' ')[0];
-        const extra = Array.from({ length: requiredCount - dynamicList.length }, (_, i) => ({
-            name: `${prefix}Module_${dynamicList.length + i + 1}${ext}`,
-            path: `generated/${selectedItem.label.toLowerCase().replace(/\s+/g, '_')}/${prefix}Module_${dynamicList.length + i + 1}${ext}`,
-            desc: `Generated ${selectedItem.label.toLowerCase()} component`
-        }));
-        return [...dynamicList, ...extra];
+        return dynamicList.slice(0, requiredCount);
     }, [selectedItem, isFrontend, progress]);
 
     return (
@@ -297,7 +339,7 @@ const ModernizedOutput = ({ type, progress }) => {
                     padding: '1.5rem'
                 }}>
                     <div style={{
-                        width: '100%', maxWidth: '600px', backgroundColor: '#ffffff', borderRadius: '24px',
+                        width: '100%', maxWidth: '1100px', backgroundColor: '#ffffff', borderRadius: '24px',
                         padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         border: '1px solid #e2e8f0', maxHeight: '85vh', overflowY: 'auto'
                     }}>
