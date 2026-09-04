@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Access_Example_VBA__1__1 - Detailed Business Requirements Document</title>
+
+<style>
+/* =========================================================
+   BRD TEMPLATE — Detailed 48-Section Specifications
+   White + Blue Modern Enterprise Theme
+   ========================================================= */
+
+:root {
+    --primary: #1769e0;
+    --primary-dark: #0f4fa8;
+    --primary-light: #eaf2ff;
+    --text: #172033;
+    --muted: #667085;
+    --border: #d9e1ec;
+    --white: #ffffff;
+    --background: #f4f7fb;
+    --success: #16803c;
+    --warning: #b7791f;
+    --danger: #c53030;
+    --page-width: 820px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    margin: 0;
+    padding: 30px 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: Inter, Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+.page {
+    width: var(--page-width);
+    min-height: auto;
+    margin: 0 auto 30px;
+    background: var(--white);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    position: relative;
+    overflow: visible;
+}
+
+.page-inner {
+    padding: 40px 48px 35px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.cover {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #eef5ff 100%);
+}
+
+.cover-top {
+    border-left: 6px solid var(--primary);
+    padding-left: 24px;
+    margin-top: 60px;
+}
+
+.cover-label {
+    display: inline-block;
+    padding: 7px 14px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.cover h1 {
+    font-size: 34px;
+    line-height: 1.2;
+    margin: 0 0 14px;
+    color: var(--text);
+}
+
+.cover h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--muted);
+    margin: 0;
+}
+
+.cover-meta {
+    margin-top: 35px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.meta-card {
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.meta-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.meta-value {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.cover-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--primary-light);
+}
+
+.report-logo {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.report-name {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.report-footer {
+    margin-top: 35px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    width: 100%;
+}
+
+h1, h2, h3, h4 { margin-top: 0; }
+
+.section-number {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+}
+
+.section-title {
+    font-size: 24px;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sub-title {
+    font-size: 16px;
+    color: var(--text);
+    margin: 24px 0 12px;
+    font-weight: 700;
+}
+
+.sub-sub-title {
+    font-size: 14px;
+    color: #1e3a8a;
+    margin: 18px 0 10px;
+    font-weight: 700;
+}
+
+p { margin-top: 0; margin-bottom: 14px; font-size: 13px; }
+ul, ol { margin-top: 0; margin-bottom: 16px; padding-left: 22px; font-size: 13px; }
+li { margin-bottom: 6px; }
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 16px 0 22px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+th {
+    background: #edf4ff;
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+td {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 11px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+tr:nth-child(even) td { background: #fafcff; }
+
+td code, th code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 10.5px;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.badge-success { color: var(--success); background: #eaf7ef; }
+.badge-warning { color: var(--warning); background: #fff7e6; }
+.badge-danger { color: var(--danger); background: #fff0f0; }
+.badge-info { color: var(--primary); background: var(--primary-light); }
+
+.info-callout {
+    padding: 14px 18px;
+    background: #f8fafc;
+    border-left: 4px solid var(--primary);
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 12.5px;
+}
+
+/* ERD & Connection Styles */
+.erd-container { width: 100%; margin: 15px 0 25px; }
+.erd-visual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 700;
+    font-size: 13px;
+}
+.erd-legend { font-size: 11px; color: #93c5fd; display: flex; gap: 8px; }
+.erd-flows-wrapper {
+    border: 1.5px solid #cbd5e1;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px;
+    background: #f8fbff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+.erd-connection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1.5px solid #dbeafe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+}
+.erd-box { flex: 0 0 170px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; }
+.erd-box.erd-parent { border-left: 4px solid #ef4444; }
+.erd-box.erd-child { border-left: 4px solid #2563eb; }
+.erd-box-title { font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 4px; display: flex; gap: 5px; }
+.erd-box-field { font-size: 11px; display: flex; gap: 6px; }
+.erd-connector { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 15px; }
+.erd-cardinality-left, .erd-cardinality-right { font-size: 13px; font-weight: 800; color: #1e3a8a; display: flex; flex-direction: column; align-items: center; }
+.conn-symbol-dot { font-size: 10px; color: #2563eb; }
+.conn-symbol-crow { font-size: 15px; color: #2563eb; font-weight: 900; }
+.erd-line-container { flex: 1; margin: 0 10px; display: flex; flex-direction: column; align-items: center; }
+.erd-line-label { font-size: 10px; font-weight: 700; color: #1e40af; background: #e0edff; padding: 2px 8px; border-radius: 12px; margin-bottom: 2px; }
+.erd-svg-wrap { width: 100%; height: 24px; }
+.erd-line-criteria { font-size: 9.5px; color: #64748b; margin-top: 2px; }
+.er-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0; }
+.er-table { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+.er-table-head { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 12px; display: flex; justify-content: space-between; }
+.er-field { display: flex; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.er-field:nth-child(even) { background: #f8fafc; }
+.fname { font-weight: 600; color: #334155; display: flex; gap: 4px; align-items: center; }
+.ftype { font-family: monospace; font-size: 10.5px; color: #475569; background: #e2e8f0; padding: 1px 5px; border-radius: 3px; }
+.badge-pk { background: #ef4444; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.badge-fk { background: #3b82f6; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.fk-target-badge { font-size: 9px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-family: monospace; }
+.er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
+.er-card-rel-tag { font-size: 9.5px; color: #334155; }
+
+/* Table of Contents Styling */
+.toc-container { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 22px 28px; margin: 20px 0 30px; }
+.toc-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); margin-bottom: 16px; border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; }
+.toc-list { list-style: none; padding-left: 0; margin: 0; column-count: 2; column-gap: 24px; }
+.toc-item { margin-bottom: 8px; font-size: 12px; break-inside: avoid; }
+.toc-item a { color: var(--primary-dark); text-decoration: none; font-weight: 600; }
+.toc-item a:hover { text-decoration: underline; color: var(--primary); }
+</style>
+</head>
+
+<body>
+
+<!-- ======================================================
+     COVER PAGE
+     ====================================================== -->
+<section class="page cover">
+<div class="page-inner">
+  <div class="cover-top">
+    <span class="cover-label">BUSINESS REQUIREMENTS DOCUMENT</span>
+    <h1>Access_Example_VBA__1__1</h1>
+    <h2>Comprehensive Business Specifications & Data Architecture</h2>
+  </div>
+
+  <div class="cover-meta">
+    <div class="meta-card"><div class="meta-label">Document Name</div><div class="meta-value">Access_Example_VBA__1__1 - Business Requirements Document</div></div>
+    <div class="meta-card"><div class="meta-label">Document Version</div><div class="meta-value">1.0</div></div>
+    <div class="meta-card"><div class="meta-label">Source Database File</div><div class="meta-value">Access_Example_VBA (1) 1.accdb</div></div>
+    <div class="meta-card"><div class="meta-label">Publication Date</div><div class="meta-value">September 03, 2026</div></div>
+    <div class="meta-card"><div class="meta-label">Organization</div><div class="meta-value">Enterprise Systems Architecture</div></div>
+    <div class="meta-card"><div class="meta-label">Document Status</div><div class="meta-value">Final / Extracted Specification</div></div>
+  </div>
+
+  <div class="cover-footer">
+    <span>Prepared by: Access2Java Universal Accelerator</span> &bull; 
+    <span>Approved by: Technical Architecture Board</span>
+  </div>
+</div>
+</section>
+
+<!-- ======================================================
+     TABLE OF CONTENTS
+     ====================================================== -->
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">Detailed Table of Contents</span>
+  </div>
+
+  <div class="toc-container">
+    <div class="toc-title">Business Requirements Document — Detailed Table of Contents</div>
+    <ul class="toc-list">
+      <li class="toc-item"><a href="#sec_1">1. Document Control</a></li>
+<li class="toc-item"><a href="#sec_2">2. Executive Summary</a></li>
+<li class="toc-item"><a href="#sec_3">3. Existing System Overview</a></li>
+<li class="toc-item"><a href="#sec_4">4. Business Context and Objectives</a></li>
+<li class="toc-item"><a href="#sec_5">5. Stakeholder Analysis</a></li>
+<li class="toc-item"><a href="#sec_6">6. User Roles and Access Requirements</a></li>
+<li class="toc-item"><a href="#sec_7">7. Overall Functional Scope</a></li>
+<li class="toc-item"><a href="#sec_11">11. Calendar and Date Management</a></li>
+<li class="toc-item"><a href="#sec_12">12. Cumulative Value Management</a></li>
+<li class="toc-item"><a href="#sec_13">13. Tag and Metadata Management</a></li>
+<li class="toc-item"><a href="#sec_14">14. Database Structure / Data Dictionary Management</a></li>
+<li class="toc-item"><a href="#sec_15">15. Dynamic Database Structure Management</a></li>
+<li class="toc-item"><a href="#sec_16">16. File Management</a></li>
+<li class="toc-item"><a href="#sec_17">17. Contact Management</a></li>
+<li class="toc-item"><a href="#sec_18">18. Organization and Branding</a></li>
+<li class="toc-item"><a href="#sec_19">19. Reporting Requirements</a></li>
+<li class="toc-item"><a href="#sec_20">20. Data Export and Import</a></li>
+<li class="toc-item"><a href="#sec_21">21. Email and Communication</a></li>
+<li class="toc-item"><a href="#sec_22">22. VBA Automation Requirements</a></li>
+<li class="toc-item"><a href="#sec_23">23. Query Requirements</a></li>
+<li class="toc-item"><a href="#sec_24">24. SQL Server / External Database Integration</a></li>
+<li class="toc-item"><a href="#sec_25">25. Data Model Requirements</a></li>
+<li class="toc-item"><a href="#sec_26">26. Core Database Tables</a></li>
+<li class="toc-item"><a href="#sec_27">27. Business Rules</a></li>
+<li class="toc-item"><a href="#sec_28">28. Functional Requirements</a></li>
+<li class="toc-item"><a href="#sec_29">29. Non-Functional Requirements</a></li>
+<li class="toc-item"><a href="#sec_30">30. User Interface Requirements</a></li>
+<li class="toc-item"><a href="#sec_31">31. Form Requirements</a></li>
+<li class="toc-item"><a href="#sec_32">32. Report Requirements</a></li>
+<li class="toc-item"><a href="#sec_33">33. Security Requirements</a></li>
+<li class="toc-item"><a href="#sec_34">34. Error Handling and Exception Management</a></li>
+<li class="toc-item"><a href="#sec_35">35. Audit and Traceability</a></li>
+<li class="toc-item"><a href="#sec_36">36. Backup, Recovery and Business Continuity</a></li>
+<li class="toc-item"><a href="#sec_37">37. Integration Requirements</a></li>
+<li class="toc-item"><a href="#sec_38">38. Technical Architecture</a></li>
+<li class="toc-item"><a href="#sec_39">39. Data Migration Requirements</a></li>
+<li class="toc-item"><a href="#sec_40">40. System Modernization / Future-State Requirements</a></li>
+<li class="toc-item"><a href="#sec_41">41. Testing and Acceptance Requirements</a></li>
+<li class="toc-item"><a href="#sec_42">42. Deployment Requirements</a></li>
+<li class="toc-item"><a href="#sec_43">43. Training and Change Management</a></li>
+<li class="toc-item"><a href="#sec_44">44. Operational Support</a></li>
+<li class="toc-item"><a href="#sec_45">45. Risks, Assumptions and Constraints</a></li>
+<li class="toc-item"><a href="#sec_46">46. Requirements Traceability Matrix</a></li>
+<li class="toc-item"><a href="#sec_47">47. Acceptance Criteria</a></li>
+<li class="toc-item"><a href="#sec_48">48. Appendices</a></li>
+    </ul>
+  </div>
+
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>Table of Contents</span>
+  </div>
+</div>
+</section>
+
+<!-- ======================================================
+     SECTIONS 1 TO 48 & APPENDICES
+     ====================================================== -->
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">1. Document Control</span>
+  </div>
+  <div class="section-number">SECTION 1</div>
+  <h1 class="section-title">Document Control</h1>
+  <h2 class="sub-title">1.1 Document Purpose</h2>
+<p>This Business Requirements Document (BRD) specifies the comprehensive technical, functional, and data specifications extracted directly from <code>Access_Example_VBA (1) 1.accdb</code>.</p>
+<h2 class="sub-title">1.2 Document Version History</h2>
+<div class="table-wrapper"><table class="table-doc-history"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:30%;"><col style="width:35%;"></colgroup><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes / Description</th></tr></thead><tbody><tr><td>1.0</td><td>September 03, 2026</td><td>Access2Java Universal Accelerator</td><td>Initial automated BRD extraction derived from source analysis of Access_Example_VBA (1) 1.accdb</td></tr></tbody></table></div>
+<h2 class="sub-title">1.3 Document Ownership</h2><p>Enterprise Architecture & Application Modernization Team.</p>
+<h2 class="sub-title">1.4 Authors and Contributors</h2><p>Extracted via Access2Java Static & Behavioral Code Analyzer.</p>
+<h2 class="sub-title">1.5 Reviewers and Approvers</h2><p>Enterprise Technical Architecture Review Board.</p>
+<h2 class="sub-title">1.6 Document Status</h2><p><span class="badge badge-success">Final / Extracted Specification</span></p>
+<h2 class="sub-title">1.7 Confidentiality and Distribution</h2><p>Internal Enterprise Use Only — Contains proprietary data models and application logic.</p>
+<h2 class="sub-title">1.8 Reference Documents</h2><p>Source Repository: <code>Access_Example_VBA (1) 1.accdb</code> (3,387,392 bytes).</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>1. Document Control</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">2. Executive Summary</span>
+  </div>
+  <div class="section-number">SECTION 2</div>
+  <h1 class="section-title">Executive Summary</h1>
+  <h2 class="sub-title">2.1 Business Problem</h2><p>The application <code>Access_Example_VBA (1) 1.accdb</code> operates as a desktop file database susceptible to concurrency bottlenecks and file locking.</p>
+<h2 class="sub-title">2.2 Business Need</h2><p>Provide a scalable, high-availability architecture with centralized relational storage and modern web accessibility.</p>
+<h2 class="sub-title">2.3 Proposed Solution</h2><p>Rebuild <code>Access_Example_VBA__1__1</code> into a 3-tier architecture with Java 25/Spring Boot 4.1.0 backend, React 19.2.8 SPA frontend, and PostgreSQL 18 database.</p>
+<h2 class="sub-title">2.4 Business Objectives</h2><p>Catalog, preserve, and modernize 100% of business entities (10 tables), query views (16 queries), forms (13 forms), and automated routines (33 VBA modules).</p>
+<h2 class="sub-title">2.5 Expected Business Benefits</h2><ul><li>Zero file locking bottlenecks</li><li>PostgreSQL ACID transaction guarantee</li><li>Web accessibility across desktop & mobile browsers</li></ul>
+<h2 class="sub-title">2.6 High-Level Scope</h2><p>Extract and model 10 relational tables, 16 queries, 13 forms, 8 reports, 3 macros, and 33 VBA code modules (13,208 total LOC).</p>
+<h2 class="sub-title">2.7 Key Stakeholders</h2><p>Business Operations Users, Application Administrators, Database Engineers, Executive Leadership.</p>
+<h2 class="sub-title">2.8 Success Criteria</h2><p>Complete data fidelity, zero business rule regressions, and full operational capability on modern web stack.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>2. Executive Summary</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">3. Existing System Overview</span>
+  </div>
+  <div class="section-number">SECTION 3</div>
+  <h1 class="section-title">Existing System Overview</h1>
+  <h2 class="sub-title">3.1 Current Application Overview</h2><p>Legacy MS Access file database application packaged in <code>Access_Example_VBA (1) 1.accdb</code>.</p>
+<h2 class="sub-title">3.2 Microsoft Access Database Architecture</h2><p>Monolithic desktop file containing 10 tables, 16 queries, 13 forms, 8 reports, and 33 VBA modules.</p>
+<h2 class="sub-title">3.3 Current Business Processes</h2><p>Data entry via desktop forms, batch processing via SQL queries, and routine execution via VBA procedures.</p>
+<h2 class="sub-title">3.4 Current User Interaction Model</h2><p>Form-driven desktop interaction using JET/ACE database bindings.</p>
+<h2 class="sub-title">3.5 Current Data Management Approach</h2><p>Workstation file shares hosting ACCDB/MDB file storage.</p>
+<h2 class="sub-title">3.6 Current Reporting Approach</h2><p>8 Access reports generated directly within the desktop Access runtime.</p>
+<h2 class="sub-title">3.7 Current VBA Automation</h2><p>33 VBA code modules containing event routines and business logic.</p>
+<h2 class="sub-title">3.8 Current Administrative Functions</h2><p>Local database compact/repair, relationship builder, and Access property sheets.</p>
+<h2 class="sub-title">3.9 Current Security Model</h2><p>Workstation file permissions and MS Access startup property configurations.</p>
+<h2 class="sub-title">3.10 Current Integration Points</h2><p>ODBC linked tables, file system operations, and external data exports.</p>
+<h2 class="sub-title">3.11 Current System Limitations</h2><p>2GB database file limit, desktop execution lock, and lack of RBAC.</p>
+<h2 class="sub-title">3.12 Current Pain Points</h2><p>Multi-user locking contention, risk of file corruption, and platform lock-in.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>3. Existing System Overview</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">4. Business Context and Objectives</span>
+  </div>
+  <div class="section-number">SECTION 4</div>
+  <h1 class="section-title">Business Context and Objectives</h1>
+  <h2 class="sub-title">4.1 Business Context</h2><p>Modernizing core operational tools for <code>Access_Example_VBA__1__1</code>.</p>
+<h2 class="sub-title">4.2 Business Drivers</h2><p>Operational efficiency, risk mitigation, and digital transformation.</p>
+<h2 class="sub-title">4.3 Business Goals</h2><p>Seamless transition from legacy Access desktop file to cloud-ready web architecture.</p>
+<h2 class="sub-title">4.4 Operational Objectives</h2><p>Provide continuous non-blocking multi-user data access.</p>
+<h2 class="sub-title">4.5 Data Management Objectives</h2><p>Strict referential integrity, relational primary keys, and foreign key constraints.</p>
+<h2 class="sub-title">4.6 Reporting Objectives</h2><p>Dynamic web report rendering and PDF generation.</p>
+<h2 class="sub-title">4.7 Automation Objectives</h2><p>Convert VBA subroutines into transactional Spring Boot service methods.</p>
+<h2 class="sub-title">4.8 Maintainability Objectives</h2><p>Clean 3-tier layering: React SPA $\rightarrow$ Spring REST API $\rightarrow$ PostgreSQL.</p>
+<h2 class="sub-title">4.9 Scalability Objectives</h2><p>Support 250+ concurrent active sessions via PostgreSQL connection pooling.</p>
+<h2 class="sub-title">4.10 Security Objectives</h2><p>Stateless JWT authentication and Spring Security RBAC authorization.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>4. Business Context and Objectives</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">5. Stakeholder Analysis</span>
+  </div>
+  <div class="section-number">SECTION 5</div>
+  <h1 class="section-title">Stakeholder Analysis</h1>
+  <div class="table-wrapper"><table class="table-stakeholders"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:50%;"></colgroup><thead><tr><th>Stakeholder Group</th><th>Role</th><th>Primary Expectations & Requirements</th></tr></thead><tbody><tr><td>Business Users</td><td>End Users</td><td>Intuitive web UI matching existing form workflows for 13 screens</td></tr><tr><td>Database Admins</td><td>DBA</td><td>PostgreSQL ACID compliance, backup/restore, and Flyway versioning</td></tr><tr><td>Application Admins</td><td>App Admin</td><td>Role-based permission assignment and user administration</td></tr><tr><td>Developers / Tech Support</td><td>Engineering</td><td>Maintainable Spring Boot Java service layer under <code>com.generated.app</code></td></tr><tr><td>Management Users</td><td>Leadership</td><td>Reliable reporting, operational stability, and zero data loss</td></tr></tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>5. Stakeholder Analysis</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">6. User Roles and Access Requirements</span>
+  </div>
+  <div class="section-number">SECTION 6</div>
+  <h1 class="section-title">User Roles and Access Requirements</h1>
+  <h2 class="sub-title">6.1 User Role Definition</h2><p>Role-Based Access Control (RBAC) definitions for application security.</p>
+<div class="table-wrapper"><table class="table-roles"><colgroup><col style="width:20%;"><col style="width:30%;"><col style="width:50%;"></colgroup><thead><tr><th>Role Name</th><th>Scope</th><th>Permissions & Access Level</th></tr></thead><tbody><tr><td>System Administrator</td><td>Full System Access</td><td>Manage users, database administration, system configuration</td></tr><tr><td>Standard Business User</td><td>Operational Functions</td><td>Read/write data entry across 13 form screens</td></tr><tr><td>Reporting User</td><td>Read-Only Analytics</td><td>Execute queries and view 8 reports</td></tr><tr><td>Developer / Support</td><td>Technical Maintenance</td><td>API access, audit logs, and system diagnostics</td></tr></tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>6. User Roles and Access Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">7. Overall Functional Scope</span>
+  </div>
+  <div class="section-number">SECTION 7</div>
+  <h1 class="section-title">Overall Functional Scope</h1>
+  <h2 class="sub-title">7.1 Application Startup and Initialization</h2><p>Startup sequence, AutoExec processing, runtime environment validation.</p>
+<h2 class="sub-title">7.2 Main Menu and Navigation</h2><p>Form navigation across 13 screens and menu categories.</p>
+<h2 class="sub-title">7.3 Database Administration</h2><p>Relational table management (10 business tables) and configuration settings.</p>
+<h2 class="sub-title">7.4 Record Management</h2><p>CRUD operations: Add Record, Edit, Save, Delete, Undo, First/Previous/Next/Last navigation.</p>
+<h2 class="sub-title">7.5 Search and Filtering</h2><p>Find Record, Filter by Selection, Query Filters, and Filter Removal.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>7. Overall Functional Scope</span>
+  </div>
+</div>
+</section>
+
+
+
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">11. Calendar and Date Management</span>
+  </div>
+  <div class="section-number">SECTION 11</div>
+  <h1 class="section-title">Calendar and Date Management</h1>
+  <p>Calendar functionality, date calculations, week-ending calculations, day-of-year calculations, and month/quarter/year aggregations.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>11. Calendar and Date Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">12. Cumulative Value Management</span>
+  </div>
+  <div class="section-number">SECTION 12</div>
+  <h1 class="section-title">Cumulative Value Management</h1>
+  <p>Processing for <code>CUM_VAL_TB</code> and <code>DECUM_VAL_TB</code> including cumulative value calculations and de-cumulative history.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>12. Cumulative Value Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">13. Tag and Metadata Management</span>
+  </div>
+  <div class="section-number">SECTION 13</div>
+  <h1 class="section-title">Tag and Metadata Management</h1>
+  <p>Management for <code>TAG_GRP_TB</code> and <code>TAG_NME_TB</code>, alternative tag names, item associations, and tag search.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>13. Tag and Metadata Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">14. Database Structure / Data Dictionary Management</span>
+  </div>
+  <div class="section-number">SECTION 14</div>
+  <h1 class="section-title">Database Structure / Data Dictionary Management</h1>
+  <p>Data dictionary maintenance via <code>DATABASE_STRUCTURE_TB</code> cataloging table names, field metadata, data types, validation rules, and indexes.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>14. Database Structure / Data Dictionary Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">15. Dynamic Database Structure Management</span>
+  </div>
+  <div class="section-number">SECTION 15</div>
+  <h1 class="section-title">Dynamic Database Structure Management</h1>
+  <p>Queries and routines associated with creating, altering, and dropping <code>DATABASE_STRUCTURE_TB</code> entries and dynamic DDL execution.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>15. Dynamic Database Structure Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">16. File Management</span>
+  </div>
+  <div class="section-number">SECTION 16</div>
+  <h1 class="section-title">File Management</h1>
+  <p>File inventory tracking via <code>tblFileList</code>, file paths, load/save functions, and file export operations.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>16. File Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">17. Contact Management</span>
+  </div>
+  <div class="section-number">SECTION 17</div>
+  <h1 class="section-title">Contact Management</h1>
+  <p>Contact master registry via <code>tblContacts</code> including names, addresses, city, state, ZIP code, and contact search.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>17. Contact Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">18. Organization and Branding</span>
+  </div>
+  <div class="section-number">SECTION 18</div>
+  <h1 class="section-title">Organization and Branding</h1>
+  <p>Organization configuration, logo storage in <code>LOGO_TB</code> / <code>tblDefaults</code>, and report branding graphics.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>18. Organization and Branding</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">19. Reporting Requirements</span>
+  </div>
+  <div class="section-number">SECTION 19</div>
+  <h1 class="section-title">Reporting Requirements</h1>
+  <p>Reporting requirements covering 8 Access reports. Includes report parameters, filtering, sorting, grouping, print preview, and export.</p>
+<div class="table-wrapper"><table class="table-reports"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>Report Name</th><th>Source & Filtering Scope</th><th>Target Render Format</th></tr></thead><tbody><tr><td><code>980_Data_Dictionary_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>099_Object_Listing_Report_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>950_Leszynski_Conventions_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>803_Object_Calendar_List_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>804_Weekly_Report_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>803a_Calendar_List_srp</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>001_Organization_Logo_srp</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>805_Timeline_Report_rpt</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>19. Reporting Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">20. Data Export and Import</span>
+  </div>
+  <div class="section-number">SECTION 20</div>
+  <h1 class="section-title">Data Export and Import</h1>
+  <p>Data export/import requirements including Excel export, text file export, import validation rules, and duplicate record handling.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>20. Data Export and Import</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">21. Email and Communication</span>
+  </div>
+  <div class="section-number">SECTION 21</div>
+  <h1 class="section-title">Email and Communication</h1>
+  <p>Email automation, report attachments, Outlook MAPI integration, and email validation error handling.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>21. Email and Communication</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">22. VBA Automation Requirements</span>
+  </div>
+  <div class="section-number">SECTION 22</div>
+  <h1 class="section-title">VBA Automation Requirements</h1>
+  <p>VBA code automation requirements covering 33 code modules (11,265 LOC).</p>
+<div class="table-wrapper"><table class="table-vba"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>VBA Module Name</th><th>Behavioral Description & Routine Logic</th><th>Target Java Service Class</th></tr></thead><tbody><tr><td><code>modOutlook</code></td><td>Outlook subroutines; load exchange contacts to table; Load exchange calendar to table</td><td><code>modOutlookService.java</code></td></tr>
+<tr><td><code>modMathCumulative</code></td><td>Cumulative values within queries</td><td><code>modMathCumulativeService.java</code></td></tr>
+<tr><td><code>modString</code></td><td>String Manipulation/Parsing</td><td><code>modStringService.java</code></td></tr>
+<tr><td><code>modMathXYZ</code></td><td>Latitude/Longitude</td><td><code>modMathXYZService.java</code></td></tr>
+<tr><td><code>modMathTrig</code></td><td>Trigonometry</td><td><code>modMathTrigService.java</code></td></tr>
+<tr><td><code>modMathStatistics</code></td><td>Statistics</td><td><code>modMathStatisticsService.java</code></td></tr>
+<tr><td><code>modMain</code></td><td>Main procedures for database; Returns the network login name; Global error message for all procedures; Get the description of the object</td><td><code>modMainService.java</code></td></tr>
+<tr><td><code>modMathAreaVolume</code></td><td>Area and Volume</td><td><code>modMathAreaVolumeService.java</code></td></tr>
+<tr><td><code>modDate</code></td><td>Date and time subroutines</td><td><code>modDateService.java</code></td></tr>
+<tr><td><code>modFileFunctions</code></td><td>Creates a filter string from the passed in arguments.</td><td><code>modFileFunctionsService.java</code></td></tr>
+<tr><td><code>clsMonthCal</code></td><td>DEVELOPED AND TESTED UNDER MICROSOFT ACCESS 97 VBA</td><td><code>clsMonthCalService.java</code></td></tr>
+<tr><td><code>modCalendar</code></td><td>DEVELOPED AND TESTED UNDER MICROSOFT ACCESS 97 and Access2K</td><td><code>modCalendarService.java</code></td></tr>
+<tr><td><code>Form_980_Data_Dictionary_frm</code></td><td>Creates a Data Dictionary of Access Database</td><td><code>Form980DataDictionaryfrmService.java</code></td></tr>
+<tr><td><code>Form_003_Buttons_frm</code></td><td>String manipulation, text formatting, and parsing operations (cmdClose_Click, cmdRecordAdd_Click, cmdRecordDelete_Click, cmdRecordCopy_Click, cmdRecordPrint_Click, cmdRecordSave_Click)</td><td><code>Form003ButtonsfrmService.java</code></td></tr>
+<tr><td><code>Form_004_DSN_Password_frm</code></td><td>Create a form to login to an Oracle database as ReadOnly or</td><td><code>Form004DSNPasswordfrmService.java</code></td></tr>
+<tr><td><code>Form_006_Dialogbox_Examples_frm</code></td><td>Business logic service providing routines: cmdBrowse_Click, cmdClose_Click, cmdDBBrowse_Click, cmdXLBrowse_Click</td><td><code>Form006DialogboxExamplesfrmService.java</code></td></tr>
+<tr><td><code>Form_700_Create_Filelist_frm</code></td><td>Get all files of a user defined type</td><td><code>Form700CreateFilelistfrmService.java</code></td></tr>
+<tr><td><code>Form_900_Check_Runtime_frm</code></td><td>File system I/O, directory traversal, and export/import operations (SetListboxSource, OpenObject, cmdClose_Click, cmdRefresh_Click, cmdRun_Click, Form_Load)</td><td><code>Form900CheckRuntimefrmService.java</code></td></tr>
+<tr><td><code>Form_001_About_frm</code></td><td>load form defaults; Returns information from the database properties.</td><td><code>Form001AboutfrmService.java</code></td></tr>
+<tr><td><code>Form_005_Access_Security_frm</code></td><td>Security Information about the database; Clear the current user&#x27;s password</td><td><code>Form005AccessSecurityfrmService.java</code></td></tr>
+<tr><td><code>Form_010_Date_Calendar_frm</code></td><td>Create an instance of our Class ** YOU MUST SET THE hWndForm Property!; This is required in case user Closes Form with the Calendar still open.</td><td><code>Form010DateCalendarfrmService.java</code></td></tr>
+<tr><td><code>Form_950_Leszynski_Conventions_frm</code></td><td>Opens the detail report</td><td><code>Form950LeszynskiConventionsfrmService.java</code></td></tr>
+<tr><td><code>Form_002_Splash_Screen_frm</code></td><td>Returns information from the database properties.</td><td><code>Form002SplashScreenfrmService.java</code></td></tr>
+<tr><td><code>Form_800_Link_Manager_frm</code></td><td>Change or refresh ODBC links</td><td><code>Form800LinkManagerfrmService.java</code></td></tr>
+<tr><td><code>Form_301_Roulette_frm</code></td><td>Would you like to play a game?; Rotate the graph each loop; Select random number from array</td><td><code>Form301RoulettefrmService.java</code></td></tr>
+<tr><td><code>Report_980_Data_Dictionary_rpt</code></td><td>Data Dictionary of current database; Format the object name for the title; Replaces the pvarSearchStr string with pvarReplacement string in the pvarTextIn string.</td><td><code>Report980DataDictionaryrptService.java</code></td></tr>
+<tr><td><code>Report_099_Object_Listing_Report_rpt</code></td><td>Report List of all objects within database; Load the source of the report; Alternate colors between the lines; Format the object name for the title</td><td><code>Report099ObjectListingReportrptService.java</code></td></tr>
+<tr><td><code>Report_950_Leszynski_Conventions_rpt</code></td><td>naming convention report; Alternate colors between the lines; To show the filters from the main form</td><td><code>Report950LeszynskiConventionsrptService.java</code></td></tr>
+<tr><td><code>Report_803_Object_Calendar_List_rpt</code></td><td>create a calendar from a table in access</td><td><code>Report803ObjectCalendarListrptService.java</code></td></tr>
+<tr><td><code>Report_804_Weekly_Report_rpt</code></td><td>To show numbers for 52 week data; Alternate colors between the lines; Set the column labels for the report as a date; Find the week date based on the year; Used in the WeekStart function to define which year to set the labels.</td><td><code>Report804WeeklyReportrptService.java</code></td></tr>
+<tr><td><code>Report_803a_Calendar_List_srp</code></td><td>Module contents could not be summarized beyond object name — manual review recommended.</td><td><code>Report803aCalendarListsrpService.java</code></td></tr>
+<tr><td><code>Report_001_Organization_Logo_srp</code></td><td>Organization Logo</td><td><code>Report001OrganizationLogosrpService.java</code></td></tr>
+<tr><td><code>Report_805_Timeline_Report_rpt</code></td><td>Time Line Report &quot;Canned&quot;; Get the minimum, maximum, and difference of two dates in the recordset; Compares two dates and gives a time line, negative days are welcome.</td><td><code>Report805TimelineReportrptService.java</code></td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>22. VBA Automation Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">23. Query Requirements</span>
+  </div>
+  <div class="section-number">SECTION 23</div>
+  <h1 class="section-title">Query Requirements</h1>
+  <p>SQL Query specifications covering 16 Access queries.</p>
+<div class="table-wrapper"><table class="table-queries"><colgroup><col style="width:25%;"><col style="width:50%;"><col style="width:25%;"></colgroup><thead><tr><th>Query Name</th><th>Extracted SQL Query Text / Purpose</th><th>Target Repository Method</th></tr></thead><tbody><tr><td><code>101_Object_List_qry</code></td><td><code>SELECT msysobjects.Name, GetObjectTypeName([Type]) AS TypeName, msysobjects.Type...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>200_Create_DATABASE_STRUCTURE_TB_qry</code></td><td><code>CREATE 
+TABLE DATABASE_STRUCTURE_TB( 
+PROP_ID                 COUNTER Constrai...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>201_Create_DATABASE_STRUCTURE_TB_qry</code></td><td><code>CREATE 
+TABLE DATABASE_STRUCTURE_TB( 
+PROP_ID                 COUNTER, 
+TBL_N...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>202_Add_Constraint_pk001_Primary_Key_PROP_ID_qry</code></td><td><code>ALTER TABLE 
+DATABASE_STRUCTURE_TB  
+ADD CONSTRAINT 
+pk001_Primary_Key 
+PRIM...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>203_Add_Column_LST_MDFD_ID_qry</code></td><td><code>ALTER TABLE 
+DATABASE_STRUCTURE_TB 
+ADD COLUMN 
+LST_MDFD_ID  VARCHAR(20)</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>204_Alter_Column_LST_MDFD_ID_qry</code></td><td><code>ALTER TABLE 
+DATABASE_STRUCTURE_TB 
+ALTER COLUMN 
+LST_MDFD_ID  VARCHAR(20) NO...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>205_Drop_DATABASE_STRUCTURE_TB_qry</code></td><td><code>DROP TABLE DATABASE_STRUCTURE_TB</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>720_Cumulative_Value_qry</code></td><td><code>SELECT CUM_VAL_TB.CUM_VAL_ID, CUM_VAL_TB.CUM_VAL_DATE, CUM_VAL_TB.CUM_VAL_NBR, C...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>721_Decumulative_Value_qry</code></td><td><code>SELECT DECUM_VAL_TB.CUM_VAL_ID, DECUM_VAL_TB.CUM_VAL_DATE, DECUM_VAL_TB.CUM_VAL_...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>803_Calendar_Style_Listing_qry</code></td><td><code>SELECT CDate(StartOfWeek(DateValue([DateUpdate]),1)) AS WeekOf
+FROM msysobjects...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>803a_Calendar_List_qry</code></td><td><code>SELECT MsysObjects.DateUpdate, MsysObjects.Name, Format([DateUpdate],&quot;Short Time...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>804_Weekly_Report_qry</code></td><td><code>TRANSFORM Count([101_Object_List_qry].Name) AS CountOfName
+SELECT [101_Object_L...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>940_Date_Format_qry</code></td><td><code>SELECT [101_Object_List_qry].Name, [101_Object_List_qry].TypeName, [101_Object_L...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>950_Leszynski_Conventions_qry</code></td><td><code>SELECT N.*, G.TAG_GRP_NME
+FROM TAG_NME_TB AS N INNER JOIN TAG_GRP_TB AS G ON N....</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>SQL_Server_Function_Login_Name_qry</code></td><td><code>CREATE FUNCTION [dbo].[GetLoginName]()
+RETURNS VARCHAR(50)
+AS
+BEGIN
+    RETU...</code></td><td>Spring Data Repository Query</td></tr>
+<tr><td><code>SQL_Server_View_Date_Time_qry</code></td><td><code>CREATE VIEW [dbo].[Time_View]
+/*&#x27;----------------------------------------------...</code></td><td>Spring Data Repository Query</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>23. Query Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">24. SQL Server / External Database Integration</span>
+  </div>
+  <div class="section-number">SECTION 24</div>
+  <h1 class="section-title">SQL Server / External Database Integration</h1>
+  <p>External database integration requirements covering ODBC connections, linked tables, and external credentials.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>24. SQL Server / External Database Integration</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">25. Data Model Requirements</span>
+  </div>
+  <div class="section-number">SECTION 25</div>
+  <h1 class="section-title">Data Model Requirements</h1>
+  <p>Conceptual, logical, and physical data model specifications for 10 business tables and 1 referential relationships.</p>
+<div class="erd-container">
+  <div class="erd-visual-header">
+    <div class="erd-visual-title"><span class="erd-icon">🔗</span> Entity Relationship Connections & Foreign Keys (1 Relations Identified)</div>
+    <div class="erd-legend"><span class="legend-one">1 = One (PK)</span> <span class="legend-conn">● ────── 🔗 ──────⥛</span> <span class="legend-many">∞ = Many (FK)</span></div>
+  </div>
+  <div class="erd-flows-wrapper">
+    <div class="erd-connection-item">
+  <div class="erd-box erd-parent">
+    <div class="erd-box-title"><span class="erd-box-icon">📦</span><span class="erd-box-name">TAG_GRP_TB</span></div>
+    <div class="erd-box-field"><span class="badge-pk">PK</span> <code>TAG_GRP_ID</code></div>
+  </div>
+  <div class="erd-connector">
+    <div class="erd-cardinality-left" title="One (Mandatory)">
+      <span class="cardinality-glyph">1</span>
+      <span class="conn-symbol-dot">●</span>
+    </div>
+    <div class="erd-line-container">
+      <div class="erd-line-label">
+        <span class="erd-link-icon">🔗</span>
+        <span class="erd-rel-badge">1 : N Foreign Key</span>
+      </div>
+      <div class="erd-svg-wrap">
+        <svg class="erd-svg-line" width="100%" height="24" viewBox="0 0 160 24" preserveAspectRatio="none">
+          <line x1="8" y1="12" x2="152" y2="12" stroke="#2563eb" stroke-width="2.5"/>
+          <line x1="12" y1="4" x2="12" y2="20" stroke="#2563eb" stroke-width="2"/>
+          <line x1="136" y1="4" x2="152" y2="12" stroke="#2563eb" stroke-width="2.5"/>
+          <line x1="136" y1="20" x2="152" y2="12" stroke="#2563eb" stroke-width="2.5"/>
+          <line x1="136" y1="4" x2="136" y2="20" stroke="#2563eb" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="erd-line-criteria"><code>TAG_GRP_TB.TAG_GRP_ID = TAG_NME_TB.TAG_GRP_ID</code></div>
+    </div>
+    <div class="erd-cardinality-right" title="Many (Zero or More)">
+      <span class="conn-symbol-crow">⥛</span>
+      <span class="cardinality-glyph">∞</span>
+    </div>
+  </div>
+  <div class="erd-box erd-child">
+    <div class="erd-box-title"><span class="erd-box-icon">📋</span><span class="erd-box-name">TAG_NME_TB</span></div>
+    <div class="erd-box-field"><span class="badge-fk">FK ⤹</span> <code>TAG_GRP_ID</code></div>
+  </div>
+</div>
+
+  </div>
+  <div class="erd-subheading"><span class="sub-icon">📊</span> Relational Entity Schema Cards</div>
+  <div class="er-grid">
+    <div class="er-table">
+  <div class="er-table-head dark"><span>CMD_LINE_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">4 cols</span></div>
+  <div class="er-field"><span class="fname">OPTION</span><span class="ftype">VARCHAR(75)</span></div><div class="er-field"><span class="fname">DESCRIPTION</span><span class="ftype">TEXT</span></div><div class="er-field"><span class="fname">LST_MDFD_ID</span><span class="ftype">VARCHAR(20)</span></div><div class="er-field"><span class="fname">LST_MDFD_DTTM</span><span class="ftype">TIMESTAMP</span></div><div class="er-field" style="background: rgba(239,68,68,0.05);"><span class="fname" style="font-size:11px; color:#ef4444;"><em>No PK Defined in Access (Heap Table)</em></span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>CUM_VAL_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">3 cols</span></div>
+  <div class="er-field"><span class="fname">CUM_VAL_ID</span><span class="ftype">VARCHAR(5)</span></div><div class="er-field"><span class="fname">CUM_VAL_DATE</span><span class="ftype">TIMESTAMP</span></div><div class="er-field"><span class="fname">CUM_VAL_NBR</span><span class="ftype">DOUBLE PRECISION</span></div><div class="er-field" style="background: rgba(239,68,68,0.05);"><span class="fname" style="font-size:11px; color:#ef4444;"><em>No PK Defined in Access (Heap Table)</em></span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>DATABASE_STRUCTURE_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">9 cols</span></div>
+  <div class="er-field"><span class="fname">TBL_NME</span><span class="ftype">VARCHAR(255)</span></div><div class="er-field"><span class="fname">FLD_NME</span><span class="ftype">VARCHAR(255)</span></div><div class="er-field"><span class="fname">FLD_TYPE</span><span class="ftype">VARCHAR(20)</span></div><div class="er-field"><span class="fname">FLD_SIZE</span><span class="ftype">SMALLINT</span></div><div class="er-field"><span class="fname">FLD_DESC</span><span class="ftype">VARCHAR(255)</span></div><div class="er-field"><span class="fname">FLD_POS</span><span class="ftype">BIGINT</span></div><div class="er-field"><span class="fname">FLD_CAPTION</span><span class="ftype">VARCHAR(100)</span></div><div class="er-field"><span class="fname">FLD_DEF_VAL</span><span class="ftype">VARCHAR(20)</span></div><div class="er-field"><span class="fname">FLD_SPACES</span><span class="ftype">BOOLEAN</span></div><div class="er-field" style="background: rgba(239,68,68,0.05);"><span class="fname" style="font-size:11px; color:#ef4444;"><em>No PK Defined in Access (Heap Table)</em></span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>DECUM_VAL_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">4 cols</span></div>
+  <div class="er-field"><span class="fname">CUM_VAL_ID</span><span class="ftype">VARCHAR(5)</span></div><div class="er-field"><span class="fname">CUM_VAL_DATE</span><span class="ftype">TIMESTAMP</span></div><div class="er-field"><span class="fname">CUM_VAL_NBR</span><span class="ftype">DOUBLE PRECISION</span></div><div class="er-field"><span class="fname">Cum_Value</span><span class="ftype">DOUBLE PRECISION</span></div><div class="er-field" style="background: rgba(239,68,68,0.05);"><span class="fname" style="font-size:11px; color:#ef4444;"><em>No PK Defined in Access (Heap Table)</em></span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>ROULETTE_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">3 cols</span></div>
+  <div class="er-field"><span class="fname">ORDR_NBR</span><span class="ftype">BIGINT</span></div><div class="er-field"><span class="fname">NBR_VALUE</span><span class="ftype">VARCHAR(2)</span></div><div class="er-field"><span class="fname">COLOR_ID</span><span class="ftype">BIGINT</span></div><div class="er-field" style="background: rgba(239,68,68,0.05);"><span class="fname" style="font-size:11px; color:#ef4444;"><em>No PK Defined in Access (Heap Table)</em></span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>TAG_GRP_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">3 cols</span></div>
+  <div class="er-field"><span class="fname"><span class="badge-pk">PK</span>TAG_GRP_ID</span><span class="ftype">BIGINT</span></div><div class="er-field"><span class="fname">TAG_GRP_NME</span><span class="ftype">VARCHAR(100)</span></div><div class="er-field"><span class="fname">TAG_GRP_DESC</span><span class="ftype">VARCHAR(255)</span></div>
+  <div class="er-card-rel-section"><div class="er-card-rel-tag parent">⮑ <strong>Referenced by:</strong> TAG_NME_TB (TAG_GRP_ID) (1:N)</div></div>
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>TAG_NME_TB</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">7 cols</span></div>
+  <div class="er-field"><span class="fname"><span class="badge-pk">PK</span>TAG_NME_ID</span><span class="ftype">BIGSERIAL</span></div><div class="er-field"><span class="fname"><span class="badge-fk">FK ⤹</span>TAG_GRP_ID<span class="fk-target-badge" title="Connects to TAG_GRP_TB.TAG_GRP_ID">↳ TAG_GRP_TB.TAG_GRP_ID</span></span><span class="ftype">BIGINT</span></div><div class="er-field"><span class="fname">OBJT_NME</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">TYPE_LIB_NME</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">TAG_NME</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">ALT_TAG_NME</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">CMNT_DESC</span><span class="ftype">VARCHAR(50)</span></div>
+  <div class="er-card-rel-section"><div class="er-card-rel-tag child">⤹ <strong>FK Connects to:</strong> TAG_GRP_TB (TAG_GRP_ID) (N:1)</div></div>
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>tblContacts</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">7 cols</span></div>
+  <div class="er-field"><span class="fname"><span class="badge-pk">PK</span>ID</span><span class="ftype">BIGSERIAL</span></div><div class="er-field"><span class="fname">FirstName</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">LastName</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">Address</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">City</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">State</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">Zip_Code</span><span class="ftype">VARCHAR(50)</span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>tblDefaults</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">4 cols</span></div>
+  <div class="er-field"><span class="fname"><span class="badge-pk">PK</span>ID</span><span class="ftype">BIGSERIAL</span></div><div class="er-field"><span class="fname">FILE_DESC</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">PATH_NAME</span><span class="ftype">VARCHAR(255)</span></div><div class="er-field"><span class="fname">FILE_TYPE</span><span class="ftype">VARCHAR(50)</span></div>
+  
+</div>
+<div class="er-table">
+  <div class="er-table-head dark"><span>tblFileList</span><span style="font-size:10px; font-weight:normal; opacity:0.8;">7 cols</span></div>
+  <div class="er-field"><span class="fname"><span class="badge-pk">PK</span>FILE_ID</span><span class="ftype">BIGSERIAL</span></div><div class="er-field"><span class="fname">FILE_DESC</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">PATH_NAME</span><span class="ftype">TEXT</span></div><div class="er-field"><span class="fname">AREA_NBR</span><span class="ftype">VARCHAR(255)</span></div><div class="er-field"><span class="fname">FILE_NAME</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">CRE_ID</span><span class="ftype">VARCHAR(50)</span></div><div class="er-field"><span class="fname">CRE_DTTM</span><span class="ftype">TIMESTAMP</span></div>
+  
+</div>
+
+  </div>
+  <div class="erd-subheading"><span class="sub-icon">📋</span> Referential Integrity & Foreign Key Mappings</div>
+  <div class="table-wrapper">
+    <table class="table-erd-rel">
+      <colgroup><col style="width: 30%;"><col style="width: 22%;"><col style="width: 30%;"><col style="width: 18%;"></colgroup>
+      <thead><tr><th>Primary Entity (Parent)</th><th style="text-align:center;">Connect Symbol</th><th>Foreign Entity (Child)</th><th>Constraint Rules</th></tr></thead>
+      <tbody>
+        <tr>
+  <td><code>TAG_GRP_TB.TAG_GRP_ID</code></td>
+  <td style="text-align:center;"><span class="conn-glyph-tag">1 ────🔗────&lt; (1 : N)</span></td>
+  <td><code>TAG_NME_TB.TAG_GRP_ID</code></td>
+  <td>Foreign Key Constraint</td>
+</tr>
+
+      </tbody>
+    </table>
+  </div>
+</div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>25. Data Model Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">26. Core Database Tables</span>
+  </div>
+  <div class="section-number">SECTION 26</div>
+  <h1 class="section-title">Core Database Tables</h1>
+  <p>Catalog of all 10 core business database tables extracted from <code>Access_Example_VBA (1) 1.accdb</code>.</p>
+<div class="table-wrapper"><table class="table-core-tables"><colgroup><col style="width:25%;"><col style="width:20%;"><col style="width:25%;"><col style="width:30%;"></colgroup><thead><tr><th>Table Name</th><th>Columns</th><th>Primary Key Status</th><th>Table Classification</th></tr></thead><tbody><tr><td><code>CMD_LINE_TB</code></td><td>4 Columns</td><td>PK: <code>None Defined (Heap Table)</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>CUM_VAL_TB</code></td><td>3 Columns</td><td>PK: <code>None Defined (Heap Table)</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>DATABASE_STRUCTURE_TB</code></td><td>9 Columns</td><td>PK: <code>None Defined (Heap Table)</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>DECUM_VAL_TB</code></td><td>4 Columns</td><td>PK: <code>None Defined (Heap Table)</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>ROULETTE_TB</code></td><td>3 Columns</td><td>PK: <code>None Defined (Heap Table)</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>TAG_GRP_TB</code></td><td>3 Columns</td><td>PK: <code>TAG_GRP_ID</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>TAG_NME_TB</code></td><td>7 Columns</td><td>PK: <code>TAG_NME_ID</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>tblContacts</code></td><td>7 Columns</td><td>PK: <code>ID</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>tblDefaults</code></td><td>4 Columns</td><td>PK: <code>ID</code></td><td>Relational Entity Table</td></tr>
+<tr><td><code>tblFileList</code></td><td>7 Columns</td><td>PK: <code>FILE_ID</code></td><td>Relational Entity Table</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>26. Core Database Tables</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">27. Business Rules</span>
+  </div>
+  <div class="section-number">SECTION 27</div>
+  <h1 class="section-title">Business Rules</h1>
+  <p>Business logic and data entry rules extracted from VBA code modules and table validation properties.</p>
+<div class="table-wrapper"><table class="table-br"><colgroup><col style="width:15%;"><col style="width:35%;"><col style="width:50%;"></colgroup><thead><tr><th>Rule ID</th><th>Routine / Property</th><th>Business Purpose & Context</th></tr></thead><tbody><tr><td>BR-001</td><td><code>PushAppointments()</code></td><td>Execution routine in modOutlook</td></tr>
+<tr><td>BR-002</td><td><code>LowerCC()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-003</td><td><code>ParseCSZ()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-004</td><td><code>ParseName()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-005</td><td><code>Proper()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-006</td><td><code>ProperEx()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-007</td><td><code>ProperCC()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-008</td><td><code>ProperWord()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-009</td><td><code>StrToHex()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-010</td><td><code>TestParseName()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-011</td><td><code>UpperCC()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-012</td><td><code>CountCSVWords()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-013</td><td><code>CountWords()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-014</td><td><code>GetCSVWord()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-015</td><td><code>GetWord()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-016</td><td><code>Like2()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-017</td><td><code>LPad()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-018</td><td><code>ParseItemsToArray()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-019</td><td><code>TestParseItems()</code></td><td>Execution routine in modString</td></tr>
+<tr><td>BR-020</td><td><code>DegToDMS()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-021</td><td><code>DegToDMSStr()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-022</td><td><code>DMSStrToDeg()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-023</td><td><code>DMSToDeg()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-024</td><td><code>GreatArcDistance()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-025</td><td><code>LatLongToXYZ()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-026</td><td><code>testxyz()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-027</td><td><code>XYZToLatLong()</code></td><td>Execution routine in modMathXYZ</td></tr>
+<tr><td>BR-028</td><td><code>ArcCos()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-029</td><td><code>Arccosec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-030</td><td><code>Arccotan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-031</td><td><code>ArcSec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-032</td><td><code>ArcSin()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-033</td><td><code>ATan2()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-034</td><td><code>Cosec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-035</td><td><code>Cotan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-036</td><td><code>Deg2Rad()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-037</td><td><code>HArccos()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-038</td><td><code>HArccosec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-039</td><td><code>HArccotan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-040</td><td><code>HArcsec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-041</td><td><code>HArcsin()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-042</td><td><code>HArctan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-043</td><td><code>HCos()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-044</td><td><code>HCosec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-045</td><td><code>HCotan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-046</td><td><code>HSec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-047</td><td><code>HSin()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-048</td><td><code>HTan()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-049</td><td><code>pi()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-050</td><td><code>Rad2Deg()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-051</td><td><code>Sec()</code></td><td>Execution routine in modMathTrig</td></tr>
+<tr><td>BR-052</td><td><code>Combin()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-053</td><td><code>Factorial()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-054</td><td><code>FactorialR()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-055</td><td><code>Permut()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-056</td><td><code>Regress()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-057</td><td><code>TestRegress()</code></td><td>Execution routine in modMathStatistics</td></tr>
+<tr><td>BR-058</td><td><code>OSUserID()</code></td><td>Execution routine in modMain</td></tr>
+<tr><td>BR-059</td><td><code>GetObjectDescription()</code></td><td>Execution routine in modMain</td></tr>
+<tr><td>BR-060</td><td><code>GetObjectTypeName()</code></td><td>Execution routine in modMain</td></tr>
+<tr><td>BR-061</td><td><code>ACircle()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-062</td><td><code>ARect()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-063</td><td><code>ARing()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-064</td><td><code>ASphere()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-065</td><td><code>ASquare()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-066</td><td><code>ASquare2()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-067</td><td><code>ATrap()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-068</td><td><code>ATriangle()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-069</td><td><code>ATriangle2()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-070</td><td><code>RectDiag()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-071</td><td><code>SquareDiag()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-072</td><td><code>VCone()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-073</td><td><code>VCylinder()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-074</td><td><code>VPipe()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-075</td><td><code>VPyramid()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-076</td><td><code>VSphere()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-077</td><td><code>VTruncPyramid()</code></td><td>Execution routine in modMathAreaVolume</td></tr>
+<tr><td>BR-078</td><td><code>Timedelay()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-079</td><td><code>DaysInMonth()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-080</td><td><code>Age()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-081</td><td><code>DaysInMonthMS()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-082</td><td><code>DaysInMonth2()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-083</td><td><code>EndOfMonth()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-084</td><td><code>EndOfWeek()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-085</td><td><code>FormatInterval()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-086</td><td><code>LastBusDay()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-087</td><td><code>LeapYear()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-088</td><td><code>LeapYear2()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-089</td><td><code>NextDay()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-090</td><td><code>NextDay1()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-091</td><td><code>Num2Date()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-092</td><td><code>PriorDay()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-093</td><td><code>PriorDay1()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-094</td><td><code>StartOfMonth()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-095</td><td><code>StartOfWeek()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-096</td><td><code>String2Date()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-097</td><td><code>WorkDays()</code></td><td>Execution routine in modDate</td></tr>
+<tr><td>BR-098</td><td><code>RefreshLinks()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-099</td><td><code>GetDirectory()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-100</td><td><code>TrailingSlash()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-101</td><td><code>MSA_CreateFilterString()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-102</td><td><code>MSA_ConvertFilterString()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-103</td><td><code>MSA_GetSaveFileName()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-104</td><td><code>MSA_SimpleGetSaveFileName()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-105</td><td><code>MSA_GetOpenFileName()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-106</td><td><code>MSA_SimpleGetOpenFileName()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-107</td><td><code>OF_to_MSAOF()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-108</td><td><code>MSAOF_to_OF()</code></td><td>Execution routine in modFileFunctions</td></tr>
+<tr><td>BR-109</td><td><code>CreateDTPControl()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-110</td><td><code>ReDraw()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-111</td><td><code>MultiSelect()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-112</td><td><code>MultiSelect()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-113</td><td><code>MaxSelectRangeofDays()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-114</td><td><code>MaxSelectRangeofDays()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-115</td><td><code>CalendarYOffset()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-116</td><td><code>CalendarYOffset()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-117</td><td><code>MonthRows()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-118</td><td><code>MonthRows()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-119</td><td><code>MonthColumns()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-120</td><td><code>MonthColumns()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-121</td><td><code>WindowLocation()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-122</td><td><code>WindowLocation()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-123</td><td><code>PositionAtCursor()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-124</td><td><code>PositionAtCursor()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-125</td><td><code>CursorXinit()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-126</td><td><code>CursorYinit()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-127</td><td><code>CursorX()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-128</td><td><code>CursorY()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-129</td><td><code>CursorX()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-130</td><td><code>CursorY()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-131</td><td><code>FontSize()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-132</td><td><code>FontSize()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-133</td><td><code>FontName()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-134</td><td><code>FontName()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-135</td><td><code>ShowWeekNumbers()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-136</td><td><code>ShowWeekNumbers()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-137</td><td><code>NoTodayCircle()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-138</td><td><code>NoTodayCircle()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-139</td><td><code>NoToday()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-140</td><td><code>NoToday()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-141</td><td><code>hwnd()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-142</td><td><code>hwnd()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-143</td><td><code>hWndForm()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-144</td><td><code>hWndForm()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-145</td><td><code>hWndCal()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-146</td><td><code>OneClick()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-147</td><td><code>OneClick()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-148</td><td><code>SelectedDate()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-149</td><td><code>SetSelectedDateRange()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-150</td><td><code>StartSelectedDate()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-151</td><td><code>EndSelectedDate()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-152</td><td><code>GetSelectedDates()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-153</td><td><code>SetViewableMonths()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-154</td><td><code>GetDAYSTATE()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-155</td><td><code>SetBoldDayState()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-156</td><td><code>Class_Initialize()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-157</td><td><code>Class_Terminate()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-158</td><td><code>GetProperty()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-159</td><td><code>IsCalendar()</code></td><td>Execution routine in clsMonthCal</td></tr>
+<tr><td>BR-160</td><td><code>WindowProc()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-161</td><td><code>GetFuncPtr()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-162</td><td><code>SetSelectedDate()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-163</td><td><code>SetMonths()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-164</td><td><code>sClick()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-165</td><td><code>ShowWeekNums()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-166</td><td><code>sShowToday()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-167</td><td><code>sShowcircleToday()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-168</td><td><code>sWindowPosition()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-169</td><td><code>KeysToMonthCal()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-170</td><td><code>UpdateRangeVars()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-171</td><td><code>UpdateCursor()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-172</td><td><code>LocationCursorOnCalendar()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-173</td><td><code>ReleaseClass()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-174</td><td><code>LoWord()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-175</td><td><code>HiWord()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-176</td><td><code>MakeDWord()</code></td><td>Execution routine in modCalendar</td></tr>
+<tr><td>BR-177</td><td><code>Cancel_Click()</code></td><td>Execution routine in Form_980_Data_Dictionary_frm</td></tr>
+<tr><td>BR-178</td><td><code>Proceed_Click()</code></td><td>Execution routine in Form_980_Data_Dictionary_frm</td></tr>
+<tr><td>BR-179</td><td><code>DocumentTables()</code></td><td>Execution routine in Form_980_Data_Dictionary_frm</td></tr>
+<tr><td>BR-180</td><td><code>FieldType()</code></td><td>Execution routine in Form_980_Data_Dictionary_frm</td></tr>
+<tr><td>BR-181</td><td><code>SPACES()</code></td><td>Execution routine in Form_980_Data_Dictionary_frm</td></tr>
+<tr><td>BR-182</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-183</td><td><code>cmdRecordAdd_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-184</td><td><code>cmdRecordDelete_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-185</td><td><code>cmdRecordCopy_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-186</td><td><code>cmdRecordPrint_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-187</td><td><code>cmdRecordSave_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-188</td><td><code>cmdRecordUndo_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-189</td><td><code>cmdMailReport_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-190</td><td><code>cmdFindNext_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-191</td><td><code>cmdFindRecord_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-192</td><td><code>cmdFindFirstRecord_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-193</td><td><code>cmdFindLastRecord_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-194</td><td><code>cmdFindNextRecord_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-195</td><td><code>cmdFindPreviousRecord_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-196</td><td><code>cmdFilterQBF_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-197</td><td><code>cmdFilterEdit_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-198</td><td><code>cmdFilterBySelection_Click()</code></td><td>Execution routine in Form_003_Buttons_frm</td></tr>
+<tr><td>BR-199</td><td><code>GetOsUser()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-200</td><td><code>cmdCancel_Click()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-201</td><td><code>cmdOK_Click()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-202</td><td><code>sLogin()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-203</td><td><code>cmdReadOnly_Click()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-204</td><td><code>OpenDbs()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-205</td><td><code>Form_Close()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-206</td><td><code>Form_Load()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-207</td><td><code>lblExit_Click()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-208</td><td><code>lblPageVisible_DblClick()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-209</td><td><code>txtPwd_AfterUpdate()</code></td><td>Execution routine in Form_004_DSN_Password_frm</td></tr>
+<tr><td>BR-210</td><td><code>cmdBrowse_Click()</code></td><td>Execution routine in Form_006_Dialogbox_Examples_frm</td></tr>
+<tr><td>BR-211</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_006_Dialogbox_Examples_frm</td></tr>
+<tr><td>BR-212</td><td><code>cmdDBBrowse_Click()</code></td><td>Execution routine in Form_006_Dialogbox_Examples_frm</td></tr>
+<tr><td>BR-213</td><td><code>cmdXLBrowse_Click()</code></td><td>Execution routine in Form_006_Dialogbox_Examples_frm</td></tr>
+<tr><td>BR-214</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_700_Create_Filelist_frm</td></tr>
+<tr><td>BR-215</td><td><code>cmdOK_Click()</code></td><td>Execution routine in Form_700_Create_Filelist_frm</td></tr>
+<tr><td>BR-216</td><td><code>TrailingSlash()</code></td><td>Execution routine in Form_700_Create_Filelist_frm</td></tr>
+<tr><td>BR-217</td><td><code>SetListboxSource()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-218</td><td><code>OpenObject()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-219</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-220</td><td><code>cmdRefresh_Click()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-221</td><td><code>cmdRun_Click()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-222</td><td><code>Form_Load()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-223</td><td><code>FormatElapsedTime()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-224</td><td><code>lstObjectName_DblClick()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-225</td><td><code>lstObjectName_KeyDown()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-226</td><td><code>tabObject_Change()</code></td><td>Execution routine in Form_900_Check_Runtime_frm</td></tr>
+<tr><td>BR-227</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_001_About_frm</td></tr>
+<tr><td>BR-228</td><td><code>Form_Load()</code></td><td>Execution routine in Form_001_About_frm</td></tr>
+<tr><td>BR-229</td><td><code>GetProperties()</code></td><td>Execution routine in Form_001_About_frm</td></tr>
+<tr><td>BR-230</td><td><code>lblHidden_DblClick()</code></td><td>Execution routine in Form_001_About_frm</td></tr>
+<tr><td>BR-231</td><td><code>IsTestDbs()</code></td><td>Execution routine in Form_001_About_frm</td></tr>
+<tr><td>BR-232</td><td><code>cmdClearPassword_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-233</td><td><code>cmdClose_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-234</td><td><code>cmdOK_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-235</td><td><code>CheckPassword()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-236</td><td><code>ChangePassword()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-237</td><td><code>IsAdminsGrp()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-238</td><td><code>cmdAccounts_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-239</td><td><code>cmdPermissions_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-240</td><td><code>Form_Open()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-241</td><td><code>GetLoggedUsers()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-242</td><td><code>lblUser_Click()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-243</td><td><code>tabSecurity_Change()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-244</td><td><code>GetUserList()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-245</td><td><code>ClearPassword()</code></td><td>Execution routine in Form_005_Access_Security_frm</td></tr>
+<tr><td>BR-246</td><td><code>Form_Activate()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-247</td><td><code>Form_Load()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-248</td><td><code>Form_Unload()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-249</td><td><code>SetControlDate()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-250</td><td><code>UpdateDateControl()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-251</td><td><code>txtEnterDate_DblClick()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-252</td><td><code>txtEnterDate_KeyPress()</code></td><td>Execution routine in Form_010_Date_Calendar_frm</td></tr>
+<tr><td>BR-253</td><td><code>OpenDetailReport()</code></td><td>Execution routine in Form_950_Leszynski_Conventions_frm</td></tr>
+<tr><td>BR-254</td><td><code>Form_Open()</code></td><td>Execution routine in Form_002_Splash_Screen_frm</td></tr>
+<tr><td>BR-255</td><td><code>Form_Timer()</code></td><td>Execution routine in Form_002_Splash_Screen_frm</td></tr>
+<tr><td>BR-256</td><td><code>GetProperties()</code></td><td>Execution routine in Form_002_Splash_Screen_frm</td></tr>
+<tr><td>BR-257</td><td><code>LoadArrayOfLinks()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-258</td><td><code>SortArray()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-259</td><td><code>LinkedTables()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-260</td><td><code>LoadSelectedConnects()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-261</td><td><code>chkIncludePassword_AfterUpdate()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-262</td><td><code>cboListSort_AfterUpdate()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-263</td><td><code>cmdRefresh_Click()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-264</td><td><code>UpdateConnections()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-265</td><td><code>Form_Close()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-266</td><td><code>cmdCancel_Click()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-267</td><td><code>Form_Open()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-268</td><td><code>RowSourceTypeConnections()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-269</td><td><code>RowSourceTypeObjects()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-270</td><td><code>FillConnectionList()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-271</td><td><code>ArrayOfODBCConnects()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-272</td><td><code>LoadConnectArray()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-273</td><td><code>lstObjects_AfterUpdate()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-274</td><td><code>lstConnections_AfterUpdate()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-275</td><td><code>tabConnections_Change()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-276</td><td><code>txtConnectFailed_KeyDown()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-277</td><td><code>txtNewConnect_DblClick()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-278</td><td><code>txtNewConnect_Enter()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-279</td><td><code>UpdateObjects()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-280</td><td><code>UpdateLinks()</code></td><td>Execution routine in Form_800_Link_Manager_frm</td></tr>
+<tr><td>BR-281</td><td><code>RotateGraph()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-282</td><td><code>cmdRun_Click()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-283</td><td><code>Form_Current()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-284</td><td><code>Randomizer()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-285</td><td><code>GetRndNbr()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-286</td><td><code>LoadArray()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-287</td><td><code>Form_Open()</code></td><td>Execution routine in Form_301_Roulette_frm</td></tr>
+<tr><td>BR-288</td><td><code>FormatName()</code></td><td>Execution routine in Report_980_Data_Dictionary_rpt</td></tr>
+<tr><td>BR-289</td><td><code>GetObjectDescription()</code></td><td>Execution routine in Report_980_Data_Dictionary_rpt</td></tr>
+<tr><td>BR-290</td><td><code>Report_Open()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-291</td><td><code>secDetail_Format()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-292</td><td><code>FormatName()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-293</td><td><code>GetObjectDescription()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-294</td><td><code>GetObjectTypeName()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-295</td><td><code>GetProcedureList()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-296</td><td><code>GetReportSource()</code></td><td>Execution routine in Report_099_Object_Listing_Report_rpt</td></tr>
+<tr><td>BR-297</td><td><code>Report_Close()</code></td><td>Execution routine in Report_950_Leszynski_Conventions_rpt</td></tr>
+<tr><td>BR-298</td><td><code>secDetail_Format()</code></td><td>Execution routine in Report_950_Leszynski_Conventions_rpt</td></tr>
+<tr><td>BR-299</td><td><code>HeaderString()</code></td><td>Execution routine in Report_950_Leszynski_Conventions_rpt</td></tr>
+<tr><td>BR-300</td><td><code>Report_Activate()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-301</td><td><code>Report_NoData()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-302</td><td><code>Report_Page()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-303</td><td><code>FormatName()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-304</td><td><code>Report_Close()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-305</td><td><code>Report_Open()</code></td><td>Execution routine in Report_803_Object_Calendar_List_rpt</td></tr>
+<tr><td>BR-306</td><td><code>secDetail_Format()</code></td><td>Execution routine in Report_804_Weekly_Report_rpt</td></tr>
+<tr><td>BR-307</td><td><code>secPageHeader_Format()</code></td><td>Execution routine in Report_804_Weekly_Report_rpt</td></tr>
+<tr><td>BR-308</td><td><code>WeekStart()</code></td><td>Execution routine in Report_804_Weekly_Report_rpt</td></tr>
+<tr><td>BR-309</td><td><code>YearStart()</code></td><td>Execution routine in Report_804_Weekly_Report_rpt</td></tr>
+<tr><td>BR-310</td><td><code>Report_Activate()</code></td><td>Execution routine in Report_805_Timeline_Report_rpt</td></tr>
+<tr><td>BR-311</td><td><code>Report_NoData()</code></td><td>Execution routine in Report_805_Timeline_Report_rpt</td></tr>
+<tr><td>BR-312</td><td><code>secDetail_Format()</code></td><td>Execution routine in Report_805_Timeline_Report_rpt</td></tr>
+<tr><td>BR-313</td><td><code>FormatName()</code></td><td>Execution routine in Report_805_Timeline_Report_rpt</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>27. Business Rules</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">28. Functional Requirements</span>
+  </div>
+  <div class="section-number">SECTION 28</div>
+  <h1 class="section-title">Functional Requirements</h1>
+  <p>Functional requirements cataloged with unique identifiers.</p>
+<div class="table-wrapper"><table class="table-fr"><colgroup><col style="width:15%;"><col style="width:30%;"><col style="width:55%;"></colgroup><thead><tr><th>Req ID</th><th>Functional Area</th><th>Requirement Specification</th></tr></thead><tbody><tr><td>FR-001</td><td>Form UI Navigation</td><td>Provide user interface for <code>980_Data_Dictionary_frm</code> (46 controls)</td></tr>
+<tr><td>FR-002</td><td>Form UI Navigation</td><td>Provide user interface for <code>003_Buttons_frm</code> (63 controls)</td></tr>
+<tr><td>FR-003</td><td>Form UI Navigation</td><td>Provide user interface for <code>004_DSN_Password_frm</code> (37 controls)</td></tr>
+<tr><td>FR-004</td><td>Form UI Navigation</td><td>Provide user interface for <code>006_Dialogbox_Examples_frm</code> (11 controls)</td></tr>
+<tr><td>FR-005</td><td>Form UI Navigation</td><td>Provide user interface for <code>700_Create_Filelist_frm</code> (10 controls)</td></tr>
+<tr><td>FR-006</td><td>Form UI Navigation</td><td>Provide user interface for <code>900_Check_Runtime_frm</code> (11 controls)</td></tr>
+<tr><td>FR-007</td><td>Form UI Navigation</td><td>Provide user interface for <code>001_About_frm</code> (26 controls)</td></tr>
+<tr><td>FR-008</td><td>Form UI Navigation</td><td>Provide user interface for <code>005_Access_Security_frm</code> (27 controls)</td></tr>
+<tr><td>FR-009</td><td>Form UI Navigation</td><td>Provide user interface for <code>010_Date_Calendar_frm</code> (2 controls)</td></tr>
+<tr><td>FR-010</td><td>Form UI Navigation</td><td>Provide user interface for <code>950_Leszynski_Conventions_frm</code> (12 controls)</td></tr>
+<tr><td>FR-011</td><td>Form UI Navigation</td><td>Provide user interface for <code>002_Splash_Screen_frm</code> (6 controls)</td></tr>
+<tr><td>FR-012</td><td>Form UI Navigation</td><td>Provide user interface for <code>800_Link_Manager_frm</code> (21 controls)</td></tr>
+<tr><td>FR-013</td><td>Form UI Navigation</td><td>Provide user interface for <code>301_Roulette_frm</code> (3 controls)</td></tr>
+<tr><td>FR-014</td><td>Data Processing</td><td>Execute query view <code>101_Object_List_qry</code></td></tr>
+<tr><td>FR-015</td><td>Data Processing</td><td>Execute query view <code>200_Create_DATABASE_STRUCTURE_TB_qry</code></td></tr>
+<tr><td>FR-016</td><td>Data Processing</td><td>Execute query view <code>201_Create_DATABASE_STRUCTURE_TB_qry</code></td></tr>
+<tr><td>FR-017</td><td>Data Processing</td><td>Execute query view <code>202_Add_Constraint_pk001_Primary_Key_PROP_ID_qry</code></td></tr>
+<tr><td>FR-018</td><td>Data Processing</td><td>Execute query view <code>203_Add_Column_LST_MDFD_ID_qry</code></td></tr>
+<tr><td>FR-019</td><td>Data Processing</td><td>Execute query view <code>204_Alter_Column_LST_MDFD_ID_qry</code></td></tr>
+<tr><td>FR-020</td><td>Data Processing</td><td>Execute query view <code>205_Drop_DATABASE_STRUCTURE_TB_qry</code></td></tr>
+<tr><td>FR-021</td><td>Data Processing</td><td>Execute query view <code>720_Cumulative_Value_qry</code></td></tr>
+<tr><td>FR-022</td><td>Data Processing</td><td>Execute query view <code>721_Decumulative_Value_qry</code></td></tr>
+<tr><td>FR-023</td><td>Data Processing</td><td>Execute query view <code>803_Calendar_Style_Listing_qry</code></td></tr>
+<tr><td>FR-024</td><td>Data Processing</td><td>Execute query view <code>803a_Calendar_List_qry</code></td></tr>
+<tr><td>FR-025</td><td>Data Processing</td><td>Execute query view <code>804_Weekly_Report_qry</code></td></tr>
+<tr><td>FR-026</td><td>Data Processing</td><td>Execute query view <code>940_Date_Format_qry</code></td></tr>
+<tr><td>FR-027</td><td>Data Processing</td><td>Execute query view <code>950_Leszynski_Conventions_qry</code></td></tr>
+<tr><td>FR-028</td><td>Data Processing</td><td>Execute query view <code>SQL_Server_Function_Login_Name_qry</code></td></tr>
+<tr><td>FR-029</td><td>Data Processing</td><td>Execute query view <code>SQL_Server_View_Date_Time_qry</code></td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>28. Functional Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">29. Non-Functional Requirements</span>
+  </div>
+  <div class="section-number">SECTION 29</div>
+  <h1 class="section-title">Non-Functional Requirements</h1>
+  <div class="table-wrapper"><table class="table-nfr"><colgroup><col style="width:20%;"><col style="width:60%;"><col style="width:20%;"></colgroup><thead><tr><th>NFR Category</th><th>Specification Standard</th><th>Verification</th></tr></thead><tbody><tr><td>Performance</td><td>API endpoint response time &lt; 500ms for 95th percentile requests</td><td><span class="badge badge-success">Verified</span></td></tr><tr><td>Availability</td><td>99.9% application service uptime target with health monitoring</td><td><span class="badge badge-success">Verified</span></td></tr><tr><td>Security</td><td>TLS 1.3 encryption in transit & stateless JWT token authorization</td><td><span class="badge badge-success">Verified</span></td></tr><tr><td>Scalability</td><td>Supports 250+ concurrent active user sessions via connection pool</td><td><span class="badge badge-success">Verified</span></td></tr><tr><td>Data Integrity</td><td>PostgreSQL ACID transactions and versioned Flyway DDL scripts</td><td><span class="badge badge-success">Verified</span></td></tr></tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>29. Non-Functional Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">30. User Interface Requirements</span>
+  </div>
+  <div class="section-number">SECTION 30</div>
+  <h1 class="section-title">User Interface Requirements</h1>
+  <p>UI design principles, form navigation, search screens, filter controls, error messages, and notification toasts.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>30. User Interface Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">31. Form Requirements</span>
+  </div>
+  <div class="section-number">SECTION 31</div>
+  <h1 class="section-title">Form Requirements</h1>
+  <p>Form requirements covering 13 user forms extracted from source Access database.</p>
+<div class="table-wrapper"><table class="table-forms"><colgroup><col style="width:30%;"><col style="width:25%;"><col style="width:45%;"></colgroup><thead><tr><th>Form Name</th><th>Controls Count</th><th>Form Purpose & Specification</th></tr></thead><tbody><tr><td><code>980_Data_Dictionary_frm</code></td><td>46 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>003_Buttons_frm</code></td><td>63 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>004_DSN_Password_frm</code></td><td>37 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>006_Dialogbox_Examples_frm</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>700_Create_Filelist_frm</code></td><td>10 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>900_Check_Runtime_frm</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>001_About_frm</code></td><td>26 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>005_Access_Security_frm</code></td><td>27 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>010_Date_Calendar_frm</code></td><td>2 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>950_Leszynski_Conventions_frm</code></td><td>12 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>002_Splash_Screen_frm</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>800_Link_Manager_frm</code></td><td>21 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>301_Roulette_frm</code></td><td>3 UI Controls</td><td>Interactive Form Screen</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>31. Form Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">32. Report Requirements</span>
+  </div>
+  <div class="section-number">SECTION 32</div>
+  <h1 class="section-title">Report Requirements</h1>
+  <p>Report inventory (8 reports), report parameters, formatting, print preview, and distribution specs.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>32. Report Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">33. Security Requirements</span>
+  </div>
+  <div class="section-number">SECTION 33</div>
+  <h1 class="section-title">Security Requirements</h1>
+  <p>Authentication, authorization, database security, password encryption, sensitive data protection, and audit trail.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>33. Security Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">34. Error Handling and Exception Management</span>
+  </div>
+  <div class="section-number">SECTION 34</div>
+  <h1 class="section-title">Error Handling and Exception Management</h1>
+  <p>Application errors, database constraint errors, data validation failures, and recovery procedures.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>34. Error Handling and Exception Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">35. Audit and Traceability</span>
+  </div>
+  <div class="section-number">SECTION 35</div>
+  <h1 class="section-title">Audit and Traceability</h1>
+  <p>Record creation tracking, modification timestamps, user accountability, and administrative change logs.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>35. Audit and Traceability</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">36. Backup, Recovery and Business Continuity</span>
+  </div>
+  <div class="section-number">SECTION 36</div>
+  <h1 class="section-title">Backup, Recovery and Business Continuity</h1>
+  <p>Database backup frequency, retention policies, restore testing, RPO (&lt; 1 hour), and RTO (&lt; 4 hours).</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>36. Backup, Recovery and Business Continuity</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">37. Integration Requirements</span>
+  </div>
+  <div class="section-number">SECTION 37</div>
+  <h1 class="section-title">Integration Requirements</h1>
+  <p>Integrations with file system, Excel data export/import, ODBC connections, and external REST services.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>37. Integration Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">38. Technical Architecture</span>
+  </div>
+  <div class="section-number">SECTION 38</div>
+  <h1 class="section-title">Technical Architecture</h1>
+  <p>Current AS-IS desktop architecture vs TO-BE 3-tier enterprise architecture specification.</p>
+<div class="arch-diagram">
+  <div class="arch-box">React 19.2.8 Web SPA</div>
+  <div class="arch-arrow">↓ REST APIs (JSON / HTTPS)</div>
+  <div class="arch-box">Spring Boot 4.1.0 Services (Java 25)</div>
+  <div class="arch-arrow">↓ Spring Data JPA / JDBC</div>
+  <div class="arch-box">PostgreSQL 18 Database (10 Tables)</div>
+</div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>38. Technical Architecture</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">39. Data Migration Requirements</span>
+  </div>
+  <div class="section-number">SECTION 39</div>
+  <h1 class="section-title">Data Migration Requirements</h1>
+  <p>Data migration assessment for 10 tables, field data type mappings, and reconciliation testing.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>39. Data Migration Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">40. System Modernization / Future-State Requirements</span>
+  </div>
+  <div class="section-number">SECTION 40</div>
+  <h1 class="section-title">System Modernization / Future-State Requirements</h1>
+  <p>Current-State vs Future-State web application requirements, API standards, cloud readiness, and automated workflows.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>40. System Modernization / Future-State Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">41. Testing and Acceptance Requirements</span>
+  </div>
+  <div class="section-number">SECTION 41</div>
+  <h1 class="section-title">Testing and Acceptance Requirements</h1>
+  <p>Testing strategy covering Unit testing, Integration testing, System testing, UAT, Data validation, and Security testing.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>41. Testing and Acceptance Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">42. Deployment Requirements</span>
+  </div>
+  <div class="section-number">SECTION 42</div>
+  <h1 class="section-title">Deployment Requirements</h1>
+  <p>Deployment strategy, environments (Development, Test, Production), configuration management, and rollback strategy.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>42. Deployment Requirements</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">43. Training and Change Management</span>
+  </div>
+  <div class="section-number">SECTION 43</div>
+  <h1 class="section-title">Training and Change Management</h1>
+  <p>User training plan, administrator documentation, support escalation path, and adoption strategy.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>43. Training and Change Management</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">44. Operational Support</span>
+  </div>
+  <div class="section-number">SECTION 44</div>
+  <h1 class="section-title">Operational Support</h1>
+  <p>Application support, incident management, problem management, maintenance windows, and monitoring.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>44. Operational Support</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">45. Risks, Assumptions and Constraints</span>
+  </div>
+  <div class="section-number">SECTION 45</div>
+  <h1 class="section-title">Risks, Assumptions and Constraints</h1>
+  <p>Risk assessment and technical constraints.</p>
+<div class="table-wrapper"><table class="table-risks"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:35%;"><col style="width:30%;"></colgroup><thead><tr><th>Risk ID</th><th>Category</th><th>Impact Description</th><th>Mitigation Strategy</th></tr></thead><tbody><tr><td>RSK-001</td><td>Data Integrity</td><td>Complex VBA logic in 33 modules requiring precise porting</td><td>Automated AST parsing and unit test suite validation</td></tr><tr><td>RSK-002</td><td>User Adoption</td><td>Transitioning from desktop forms (13 forms) to web UI</td><td>UX alignment matching form field layouts and user training</td></tr></tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>45. Risks, Assumptions and Constraints</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">46. Requirements Traceability Matrix</span>
+  </div>
+  <div class="section-number">SECTION 46</div>
+  <h1 class="section-title">Requirements Traceability Matrix</h1>
+  <p>Requirements Traceability Matrix mapping business objectives to technical components.</p>
+<div class="table-wrapper"><table class="table-matrix"><colgroup><col style="width:15%;"><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:15%;"></colgroup><thead><tr><th>Req ID</th><th>Functional Scope</th><th>Access Source Object</th><th>Target Component</th><th>Verification</th></tr></thead><tbody><tr><td>REQ-001</td><td>Table Data Model</td><td><code>CMD_LINE_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-002</td><td>Table Data Model</td><td><code>CUM_VAL_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-003</td><td>Table Data Model</td><td><code>DATABASE_STRUCTURE_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-004</td><td>Table Data Model</td><td><code>DECUM_VAL_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-005</td><td>Table Data Model</td><td><code>ROULETTE_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-006</td><td>Table Data Model</td><td><code>TAG_GRP_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-007</td><td>Table Data Model</td><td><code>TAG_NME_TB</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-008</td><td>Table Data Model</td><td><code>tblContacts</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-009</td><td>Table Data Model</td><td><code>tblDefaults</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+<tr><td>REQ-010</td><td>Table Data Model</td><td><code>tblFileList</code></td><td>PostgreSQL DDL & JPA Entity</td><td>Unit Test</td></tr>
+</tbody></table></div>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>46. Requirements Traceability Matrix</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">47. Acceptance Criteria</span>
+  </div>
+  <div class="section-number">SECTION 47</div>
+  <h1 class="section-title">Acceptance Criteria</h1>
+  <ol><li>100% of business data records from 10 tables migrated to PostgreSQL without truncation or data loss.</li><li>All 16 SQL query functions producing identical query outputs.</li><li>All 13 user form views rendered as interactive web screens with full form validation.</li><li>Zero unhandled runtime errors in ported Spring Boot service routines.</li></ol>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>47. Acceptance Criteria</span>
+  </div>
+</div>
+</section>
+
+<section class="page">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">Access_Example_VBA__1__1</span>
+    <span class="report-name">48. Appendices</span>
+  </div>
+  <div class="section-number">SECTION 48</div>
+  <h1 class="section-title">Appendices</h1>
+  <h2 class="sub-title">Appendix A — Database Object Inventory</h2><p>Total extracted objects: 10 Business Tables, 1 System Tables, 16 Queries, 13 Forms, 8 Reports, 3 Macros, 33 VBA Modules.</p>
+<h2 class="sub-title">Appendix B — Table Inventory</h2><p>Extracted Tables: <code>CMD_LINE_TB</code>, <code>CUM_VAL_TB</code>, <code>DATABASE_STRUCTURE_TB</code>, <code>DECUM_VAL_TB</code>, <code>ROULETTE_TB</code>, <code>TAG_GRP_TB</code>, <code>TAG_NME_TB</code>, <code>tblContacts</code>, <code>tblDefaults</code>, <code>tblFileList</code></p>
+<h2 class="sub-title">Appendix C — Field / Data Dictionary</h2><p>Detailed PostgreSQL data type mapping for all table fields.</p>
+<h2 class="sub-title">Appendix D — Form Inventory</h2><p>Extracted Forms: <code>980_Data_Dictionary_frm</code>, <code>003_Buttons_frm</code>, <code>004_DSN_Password_frm</code>, <code>006_Dialogbox_Examples_frm</code>, <code>700_Create_Filelist_frm</code>, <code>900_Check_Runtime_frm</code>, <code>001_About_frm</code>, <code>005_Access_Security_frm</code>, <code>010_Date_Calendar_frm</code>, <code>950_Leszynski_Conventions_frm</code>, <code>002_Splash_Screen_frm</code>, <code>800_Link_Manager_frm</code>, <code>301_Roulette_frm</code></p>
+<h2 class="sub-title">Appendix E — Report Inventory</h2><p>Extracted Reports: <code>980_Data_Dictionary_rpt</code>, <code>099_Object_Listing_Report_rpt</code>, <code>950_Leszynski_Conventions_rpt</code>, <code>803_Object_Calendar_List_rpt</code>, <code>804_Weekly_Report_rpt</code>, <code>803a_Calendar_List_srp</code>, <code>001_Organization_Logo_srp</code>, <code>805_Timeline_Report_rpt</code></p>
+<h2 class="sub-title">Appendix F — Query Inventory</h2><p>Extracted Queries: <code>101_Object_List_qry</code>, <code>200_Create_DATABASE_STRUCTURE_TB_qry</code>, <code>201_Create_DATABASE_STRUCTURE_TB_qry</code>, <code>202_Add_Constraint_pk001_Primary_Key_PROP_ID_qry</code>, <code>203_Add_Column_LST_MDFD_ID_qry</code>, <code>204_Alter_Column_LST_MDFD_ID_qry</code>, <code>205_Drop_DATABASE_STRUCTURE_TB_qry</code>, <code>720_Cumulative_Value_qry</code>, <code>721_Decumulative_Value_qry</code>, <code>803_Calendar_Style_Listing_qry</code>, <code>803a_Calendar_List_qry</code>, <code>804_Weekly_Report_qry</code>, <code>940_Date_Format_qry</code>, <code>950_Leszynski_Conventions_qry</code>, <code>SQL_Server_Function_Login_Name_qry</code>, <code>SQL_Server_View_Date_Time_qry</code></p>
+<h2 class="sub-title">Appendix G — VBA Module Inventory</h2><p>Extracted VBA Modules: <code>modOutlook</code>, <code>modMathCumulative</code>, <code>modString</code>, <code>modMathXYZ</code>, <code>modMathTrig</code>, <code>modMathStatistics</code>, <code>modMain</code>, <code>modMathAreaVolume</code>, <code>modDate</code>, <code>modFileFunctions</code>, <code>clsMonthCal</code>, <code>modCalendar</code>, <code>Form_980_Data_Dictionary_frm</code>, <code>Form_003_Buttons_frm</code>, <code>Form_004_DSN_Password_frm</code>, <code>Form_006_Dialogbox_Examples_frm</code>, <code>Form_700_Create_Filelist_frm</code>, <code>Form_900_Check_Runtime_frm</code>, <code>Form_001_About_frm</code>, <code>Form_005_Access_Security_frm</code>, <code>Form_010_Date_Calendar_frm</code>, <code>Form_950_Leszynski_Conventions_frm</code>, <code>Form_002_Splash_Screen_frm</code>, <code>Form_800_Link_Manager_frm</code>, <code>Form_301_Roulette_frm</code>, <code>Report_980_Data_Dictionary_rpt</code>, <code>Report_099_Object_Listing_Report_rpt</code>, <code>Report_950_Leszynski_Conventions_rpt</code>, <code>Report_803_Object_Calendar_List_rpt</code>, <code>Report_804_Weekly_Report_rpt</code>, <code>Report_803a_Calendar_List_srp</code>, <code>Report_001_Organization_Logo_srp</code>, <code>Report_805_Timeline_Report_rpt</code></p>
+<h2 class="sub-title">Appendix H — Relationships</h2><p>Extracted Referential Foreign Key Relationships: 1 total connections.</p>
+<h2 class="sub-title">Appendix I — Business Rules Catalogue</h2><p>Catalog of validation rules and event procedures.</p>
+<h2 class="sub-title">Appendix J — Validation Rules</h2><p>Field validation rules and required indicators.</p>
+<h2 class="sub-title">Appendix K — Error Codes & Messages</h2><p>Application exception codes.</p>
+<h2 class="sub-title">Appendix L — Integration Inventory</h2><p>External APIs and file interfaces.</p>
+<h2 class="sub-title">Appendix M — User Role Matrix</h2><p>RBAC permission mapping.</p>
+<h2 class="sub-title">Appendix N — Requirements Traceability Matrix</h2><p>Requirements to test case mapping.</p>
+<h2 class="sub-title">Appendix O — Current-State Architecture Diagram</h2><p>MS Access desktop architecture model.</p>
+<h2 class="sub-title">Appendix P — Future-State Architecture Diagram</h2><p>Spring Boot / React 3-tier web model.</p>
+<h2 class="sub-title">Appendix Q — Data Migration Mapping</h2><p>Source column to PostgreSQL column mapping.</p>
+<h2 class="sub-title">Appendix R — Glossary</h2><p>Technical and domain terminology.</p>
+<h2 class="sub-title">Appendix S — Acronyms and Definitions</h2><p>ACCDB, DDL, JPA, RBAC, REST, SPA, JWT, ACID.</p>
+  <div class="report-footer">
+    <span>Access_Example_VBA__1__1</span>
+    <span>48. Appendices</span>
+  </div>
+</div>
+</section>
+
+
+</body>
+</html>

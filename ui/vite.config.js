@@ -7,11 +7,14 @@ const wsTarget = backendUrl.replace(/^http/, 'ws');
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: '0.0.0.0',
     port: parseInt(process.env.PORT || '3000', 10),
     proxy: {
       '/api': {
         target: backendUrl,
         changeOrigin: true,
+        timeout: 120000,
+        proxyTimeout: 120000,
       },
       '/ws': {
         target: wsTarget,

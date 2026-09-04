@@ -1,0 +1,17 @@
+Analyze the following project facts and metrics extracted from the MS Access application:
+
+Project Name: {project_name}
+Source File: {source_file}
+Source Size: {source_file_size} bytes
+Total Tables: {tables_count} ({tables_list})
+Total Queries: {queries_count} ({queries_list})
+Total Forms: {forms_count} ({forms_list})
+Total Reports: {reports_count} ({reports_list})
+Total Macros: {macros_count} ({macros_list})
+Total VBA Modules: {vba_modules_count} ({vba_list})
+Target Tech Stack: Spring Boot {spring_boot_version} (Java {java_version}), React {react_version}, PostgreSQL {postgres_version}
+
+Based on these actual verified project facts, generate detailed, professional business and technical descriptions for the Business Requirements Document (BRD) conforming to the JSON schema.
+Ensure descriptions accurately reference the extracted objects (forms, reports, queries, and tables) and explain their business purpose and modernization path.
+Do not hallucinate fake tables or forms not in the list.
+Output JSON only.

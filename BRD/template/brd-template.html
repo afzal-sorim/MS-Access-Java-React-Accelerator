@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{{PROJECT_NAME}} - Detailed Business Requirements Document</title>
+
+<style>
+/* =========================================================
+   BRD TEMPLATE — Detailed 48-Section Specifications
+   White + Blue Modern Enterprise Theme
+   ========================================================= */
+
+:root {
+    --primary: #1769e0;
+    --primary-dark: #0f4fa8;
+    --primary-light: #eaf2ff;
+    --text: #172033;
+    --muted: #667085;
+    --border: #d9e1ec;
+    --white: #ffffff;
+    --background: #f4f7fb;
+    --success: #16803c;
+    --warning: #b7791f;
+    --danger: #c53030;
+    --page-width: 100%;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; width: 100%; }
+body {
+    margin: 0;
+    padding: 20px 16px;
+    background: var(--background);
+    color: var(--text);
+    font-family: Inter, Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.page {
+    width: 100%;
+    max-width: 100%;
+    min-height: auto;
+    margin: 0 0 24px;
+    background: var(--white);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    position: relative;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.page-inner {
+    padding: 32px 3%;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cover {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #eef5ff 100%);
+}
+
+.cover-top {
+    border-left: 6px solid var(--primary);
+    padding-left: 24px;
+    margin-top: 60px;
+}
+
+.cover-label {
+    display: inline-block;
+    padding: 7px 14px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.cover h1 {
+    font-size: 34px;
+    line-height: 1.2;
+    margin: 0 0 14px;
+    color: var(--text);
+}
+
+.cover h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--muted);
+    margin: 0;
+}
+
+.cover-meta {
+    margin-top: 35px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.meta-card {
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.meta-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.meta-value {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.cover-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid var(--primary-light);
+}
+
+.report-logo {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.report-name {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.report-page-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.report-footer {
+    margin-top: 35px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    width: 100%;
+}
+
+h1, h2, h3, h4 { margin-top: 0; }
+
+.section-number {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+}
+
+.section-title {
+    font-size: 24px;
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sub-title {
+    font-size: 16px;
+    color: var(--text);
+    margin: 24px 0 12px;
+    font-weight: 700;
+}
+
+.sub-sub-title {
+    font-size: 14px;
+    color: #1e3a8a;
+    margin: 18px 0 10px;
+    font-weight: 700;
+}
+
+p { margin-top: 0; margin-bottom: 14px; font-size: 13px; }
+ul, ol { margin-top: 0; margin-bottom: 16px; padding-left: 22px; font-size: 13px; }
+li { margin-bottom: 6px; }
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin: 16px 0 22px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+th {
+    background: #edf4ff;
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-align: left;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.3px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+td {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    font-size: 11px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+tr:nth-child(even) td { background: #fafcff; }
+
+td code, th code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 10.5px;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 5px;
+    border-radius: 4px;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+}
+.badge-success { color: var(--success); background: #eaf7ef; }
+.badge-warning { color: var(--warning); background: #fff7e6; }
+.badge-danger { color: var(--danger); background: #fff0f0; }
+.badge-info { color: var(--primary); background: var(--primary-light); }
+
+.info-callout {
+    padding: 14px 18px;
+    background: #f8fafc;
+    border-left: 4px solid var(--primary);
+    border-radius: 4px;
+    margin: 16px 0;
+    font-size: 12.5px;
+}
+
+/* ERD & Connection Styles */
+.erd-container { width: 100%; margin: 15px 0 25px; }
+.erd-visual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    padding: 12px 18px;
+    border-radius: 8px 8px 0 0;
+    font-weight: 700;
+    font-size: 13px;
+}
+.erd-legend { font-size: 11px; color: #93c5fd; display: flex; gap: 8px; }
+.erd-flows-wrapper {
+    border: 1.5px solid #cbd5e1;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px;
+    background: #f8fbff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+.erd-connection-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1.5px solid #dbeafe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+}
+.erd-box { flex: 0 0 170px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; }
+.erd-box.erd-parent { border-left: 4px solid #ef4444; }
+.erd-box.erd-child { border-left: 4px solid #2563eb; }
+.erd-box-title { font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 4px; display: flex; gap: 5px; }
+.erd-box-field { font-size: 11px; display: flex; gap: 6px; }
+.erd-connector { flex: 1; display: flex; align-items: center; justify-content: center; padding: 0 15px; }
+.erd-cardinality-left, .erd-cardinality-right { font-size: 13px; font-weight: 800; color: #1e3a8a; display: flex; flex-direction: column; align-items: center; }
+.conn-symbol-dot { font-size: 10px; color: #2563eb; }
+.conn-symbol-crow { font-size: 15px; color: #2563eb; font-weight: 900; }
+.erd-line-container { flex: 1; margin: 0 10px; display: flex; flex-direction: column; align-items: center; }
+.erd-line-label { font-size: 10px; font-weight: 700; color: #1e40af; background: #e0edff; padding: 2px 8px; border-radius: 12px; margin-bottom: 2px; }
+.erd-svg-wrap { width: 100%; height: 24px; }
+.erd-line-criteria { font-size: 9.5px; color: #64748b; margin-top: 2px; }
+.er-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 18px 0; }
+.er-table { background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden; }
+.er-table-head { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; font-weight: 700; font-size: 13px; padding: 9px 12px; display: flex; justify-content: space-between; }
+.er-field { display: flex; justify-content: space-between; padding: 7px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
+.er-field:nth-child(even) { background: #f8fafc; }
+.fname { font-weight: 600; color: #334155; display: flex; gap: 4px; align-items: center; }
+.ftype { font-family: monospace; font-size: 10.5px; color: #475569; background: #e2e8f0; padding: 1px 5px; border-radius: 3px; }
+.badge-pk { background: #ef4444; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.badge-fk { background: #3b82f6; color: #fff; font-size: 9.5px; font-weight: 800; padding: 1px 4px; border-radius: 3px; }
+.fk-target-badge { font-size: 9px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 1px 4px; border-radius: 3px; margin-left: 4px; font-family: monospace; }
+.er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
+.er-card-rel-tag { font-size: 9.5px; color: #334155; }
+
+/* Table of Contents Styling */
+.toc-container { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 22px 28px; margin: 20px 0 30px; width: 100%; box-sizing: border-box; }
+.toc-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); margin-bottom: 16px; border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; }
+.toc-list { list-style: none; padding-left: 0; margin: 0; column-count: 3; column-gap: 24px; width: 100%; }
+.toc-item { margin-bottom: 8px; font-size: 12px; break-inside: avoid; }
+.toc-item a { color: var(--primary-dark); text-decoration: none; font-weight: 600; }
+.toc-item a:hover { text-decoration: underline; color: var(--primary); }
+
+/* Responsive Media Queries for 100% Width Fit-to-Screen */
+@media (max-width: 1200px) {
+    .toc-list { column-count: 2; }
+    .cover-meta { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 768px) {
+    body { padding: 10px 8px; }
+    .page-inner { padding: 20px 14px; }
+    .toc-list { column-count: 1; }
+    .cover-meta { grid-template-columns: 1fr; }
+    .erd-connection-item { flex-direction: column; gap: 8px; align-items: stretch; }
+    .erd-box { flex: 1 1 auto; width: 100%; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ======================================================
+     COVER PAGE
+     ====================================================== -->
+<section class="page cover">
+<div class="page-inner">
+  <div class="cover-top">
+    <span class="cover-label">BUSINESS REQUIREMENTS DOCUMENT</span>
+    <h1>{{PROJECT_NAME}}</h1>
+    <h2>Comprehensive Business Specifications & Data Architecture</h2>
+  </div>
+
+  <div class="cover-meta">
+    <div class="meta-card"><div class="meta-label">Document Name</div><div class="meta-value">{{DOCUMENT_NAME}}</div></div>
+    <div class="meta-card"><div class="meta-label">Document Version</div><div class="meta-value">{{DOCUMENT_VERSION}}</div></div>
+    <div class="meta-card"><div class="meta-label">Source Database File</div><div class="meta-value">{{SOURCE_APPLICATION}}</div></div>
+    <div class="meta-card"><div class="meta-label">Publication Date</div><div class="meta-value">{{DOCUMENT_DATE}}</div></div>
+    <div class="meta-card"><div class="meta-label">Organization</div><div class="meta-value">{{ORGANIZATION_NAME}}</div></div>
+    <div class="meta-card"><div class="meta-label">Document Status</div><div class="meta-value">{{DOCUMENT_STATUS}}</div></div>
+  </div>
+
+  <div class="cover-footer">
+    <span>Prepared by: {{PREPARED_BY}}</span> &bull; 
+    <span>Approved by: {{APPROVED_BY}}</span>
+  </div>
+</div>
+</section>
+
+<!-- ======================================================
+     TABLE OF CONTENTS
+     ====================================================== -->
+<section class="page" id="sec_toc">
+<div class="page-inner">
+  <div class="report-header">
+    <span class="report-logo">{{PROJECT_NAME}}</span>
+    <span class="report-name">Table of Contents</span>
+    <span class="report-page-num">TOC</span>
+  </div>
+
+  <div class="toc-container">
+    <div class="toc-title">Table of Contents</div>
+    <ul class="toc-list">
+      {{TABLE_OF_CONTENTS}}
+    </ul>
+  </div>
+
+  <div class="report-footer">
+    <span>{{PROJECT_NAME}}</span>
+    <span>Table of Contents</span>
+  </div>
+</div>
+</section>
+
+<!-- ======================================================
+     SECTIONS 1 TO 48 & APPENDICES
+     ====================================================== -->
+{{SECTION_1_DOCUMENT_CONTROL}}
+{{SECTION_2_EXECUTIVE_SUMMARY}}
+{{SECTION_3_EXISTING_SYSTEM}}
+{{SECTION_4_BUSINESS_CONTEXT}}
+{{SECTION_5_STAKEHOLDER_ANALYSIS}}
+{{SECTION_6_USER_ROLES}}
+{{SECTION_7_OVERALL_FUNCTIONAL_SCOPE}}
+{{SECTION_8_TRAP_MANAGEMENT}}
+{{SECTION_9_WORK_MANAGEMENT}}
+{{SECTION_10_LOCATION_MANAGEMENT}}
+{{SECTION_11_CALENDAR_MANAGEMENT}}
+{{SECTION_12_CUMULATIVE_VALUE}}
+{{SECTION_13_TAG_MANAGEMENT}}
+{{SECTION_14_DATA_DICTIONARY}}
+{{SECTION_15_DYNAMIC_STRUCTURE}}
+{{SECTION_16_FILE_MANAGEMENT}}
+{{SECTION_17_CONTACT_MANAGEMENT}}
+{{SECTION_18_BRANDING}}
+{{SECTION_19_REPORTING}}
+{{SECTION_20_DATA_EXPORT_IMPORT}}
+{{SECTION_21_EMAIL}}
+{{SECTION_22_VBA_AUTOMATION}}
+{{SECTION_23_QUERY_REQUIREMENTS}}
+{{SECTION_24_SQL_SERVER}}
+{{SECTION_25_DATA_MODEL}}
+{{SECTION_26_CORE_TABLES}}
+{{SECTION_27_BUSINESS_RULES}}
+{{SECTION_28_FUNCTIONAL_REQUIREMENTS}}
+{{SECTION_29_NON_FUNCTIONAL_REQUIREMENTS}}
+{{SECTION_30_UI_REQUIREMENTS}}
+{{SECTION_31_FORM_REQUIREMENTS}}
+{{SECTION_32_REPORT_REQUIREMENTS}}
+{{SECTION_33_SECURITY}}
+{{SECTION_34_ERROR_HANDLING}}
+{{SECTION_35_AUDIT_TRACEABILITY}}
+{{SECTION_36_BACKUP_RECOVERY}}
+{{SECTION_37_INTEGRATIONS}}
+{{SECTION_38_TECHNICAL_ARCHITECTURE}}
+{{SECTION_39_DATA_MIGRATION}}
+{{SECTION_40_SYSTEM_MODERNIZATION}}
+{{SECTION_41_TESTING_ACCEPTANCE}}
+{{SECTION_42_DEPLOYMENT}}
+{{SECTION_43_TRAINING}}
+{{SECTION_44_OPERATIONAL_SUPPORT}}
+{{SECTION_45_RISKS_CONSTRAINTS}}
+{{SECTION_46_TRACEABILITY_MATRIX}}
+{{SECTION_47_ACCEPTANCE_CRITERIA}}
+{{SECTION_48_APPENDICES}}
+
+</body>
+</html>
