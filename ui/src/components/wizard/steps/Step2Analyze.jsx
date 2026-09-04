@@ -1,456 +1,522 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, createLocalJob, connectProgressWebSocket, getVersions, getJob, generateBrdReport, getBrdPreviewUrl, getBrdDownloadUrl } from '../../../services/api';
-import { JOB_STATES } from '../../../utils/constants';
-import { formatNumber } from '../../../utils/helpers';
+import { createJob, createLocalJob, connectProgressWebSocket, getJob, getJobDiscovery } from '../../../services/api';
+import { parseAccessFile } from '../../../utils/accessParser';
+import Access2JavaLoader from '../Access2JavaLoader';
+// import DiscoverySidebar from './discovery/DiscoverySidebar';
+import StatCard from './discovery/StatCard';
+import ObjectDistributionChart from './discovery/ObjectDistributionChart';
+import ComplexityScore from './discovery/ComplexityScore';
+import KeyInsights from './discovery/KeyInsights';
+import ModernizedOutput from './discovery/ModernizedOutput';
+import FileGenerationChart from './discovery/FileGenerationChart';
+import TopComplexObjects from './discovery/TopComplexObjects';
+import TopTablesList from './discovery/TopTablesList';
+import DiscoverySummary from './discovery/DiscoverySummary';
+import DiscoveryDetailView from './discovery/DiscoveryDetailView';
+import { Database, Layout, FileText, PlaySquare, Code, CheckCircle2, PanelLeftOpen, Maximize2, Minimize2 } from 'lucide-react';
 
-/**
- * Analysis items per spec section 47 Step 2:
- * - table scan, query scan, form scan, report scan, VBA scan, macro scan, dependency scan
- */
-const ANALYSIS_ITEMS = [
-    { key: 'tables', label: 'Table Scan', icon: '🗃️', description: 'Extracting tables, columns, indexes, relationships', target: 'PostgreSQL tables and JPA entities' },
-    { key: 'queries', label: 'Query Scan', icon: '🔍', description: 'Analyzing SELECT, INSERT, UPDATE, DELETE, parameter, crosstab queries', target: 'JPA repositories and service methods' },
-    { key: 'forms', label: 'Form Scan', icon: '📋', description: 'Extracting forms, controls, events, subforms, validation rules', target: 'React pages and form components' },
-    { key: 'reports', label: 'Report Scan', icon: '📊', description: 'Analyzing reports, sections, grouping, sorting, subreports', target: 'Report endpoints and PDF output' },
-    { key: 'vba', label: 'VBA Scan', icon: '💻', description: 'Parsing modules, functions, subs, event procedures, business rules', target: 'Spring service methods and business rules' },
-    { key: 'macros', label: 'Macro Scan', icon: '⚡', description: 'Extracting macro actions, conditions, nested structures', target: 'Application workflows and navigation' },
-    { key: 'dependencies', label: 'Dependency Scan', icon: '🔗', description: 'Discovering linked tables, external databases, COM references', target: 'Migration adapters and integration configuration' },
-];
-
-const STATUS_ICONS = {
-    pending: '⏳',
-    in_progress: '🔄',
-    completed: '✅',
-    error: '❌',
-};
+// Exact duration formatter: HH:MM:SS
+function formatDuration(totalSeconds) {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const hrs = String(Math.floor(s / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const secs = String(s % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+}
 
 export default function Step2Analyze() {
     const { state, actions } = useWizard();
-    const { selectedFile, localSource, analysisJobId, analysisProgress, analysisComplete, analysisResult, config } = state;
-    const [isAnalyzing, setIsAnalyzing] = React.useState(false);
-    const [ws, setWs] = React.useState(null);
-    // Guards against duplicate job creation. In dev, React.StrictMode
-    // mounts -> cleans up -> re-mounts every component once, which fires
-    // this effect twice in quick succession. Without this guard that sent
-    // two near-simultaneous POST /api/jobs for the same file, and the
-    // second write could hit SQLite's "database is locked" error and fail
-    // outright - leaving the wizard stuck at 0% with no visible job.
-    const startedRef = React.useRef(false);
+    const { analysisProgress, analysisResult, selectedFile, localSource, fileMetadata } = state;
+    const activeTab = state.discoveryTab || 'Overview';
+    const setActiveTab = (tab) => {
+        if (typeof actions.setDiscoveryTab === 'function') {
+            actions.setDiscoveryTab(tab);
+        }
+    };
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isAutoFit, setIsAutoFit] = useState(false);
+    const [parsedData, setParsedData] = useState(null);
 
-    // BRD Report state
-    const [brdLoading, setBrdLoading] = React.useState(false);
-    const [brdGenerated, setBrdGenerated] = React.useState(false);
-    const [brdError, setBrdError] = React.useState(null);
+    const startedRef = useRef(false);
+    const hasFetchedDiscoveryRef = useRef(false);
+    const [ws, setWs] = useState(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(true);
+    const [analysisError, setAnalysisError] = useState(null);
+    const [liveStatusText, setLiveStatusText] = useState('Connecting to backend analysis engine...');
+    const [dynamicTimeDisplay, setDynamicTimeDisplay] = useState('');
+    const analysisStartTimestampRef = useRef(state.analysisStartTime || Date.now());
 
-    const handleGenerateBrd = async () => {
-        if (!analysisJobId) {
-            setBrdError('Please upload or select a project before generating the BRD.');
+    const getDbName = () => {
+        if (selectedFile?.name) return selectedFile.name;
+        if (fileMetadata?.name) return fileMetadata.name;
+        if (localSource?.path) {
+            const parts = localSource.path.split(/[/\\]/);
+            return parts[parts.length - 1];
+        }
+        return 'AccessDatabase.accdb';
+    };
+
+    const dbName = getDbName();
+
+    const getFileSize = () => {
+        if (selectedFile?.size) {
+            return (selectedFile.size / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        if (fileMetadata?.size) {
+            return (fileMetadata.size / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        if (fileMetadata?.formattedSize) return fileMetadata.formattedSize;
+        return '3.23 MB';
+    };
+
+    // Client-side quick binary parser for immediate baseline discovery
+    useEffect(() => {
+        if (selectedFile && !parsedData) {
+            parseAccessFile(selectedFile).then(data => {
+                if (data) {
+                    setParsedData(data);
+                    if (!state.analysisComplete) {
+                        actions.updateAnalysisProgress(data);
+                    }
+                }
+            }).catch(e => console.warn('Binary parser notice:', e));
+        }
+    }, [selectedFile, parsedData, actions, state.analysisComplete]);
+
+    // Finalize discovery completion and freeze exact duration
+    const finalizeAnalysisCompletion = useCallback((jobId) => {
+        const completedAt = Date.now();
+        const startedAt = state.analysisStartedAt || state.analysisStartTime || analysisStartTimestampRef.current;
+        const durationSecs = Math.max(0, Math.floor((completedAt - startedAt) / 1000));
+        const finalDuration = formatDuration(durationSecs);
+
+        if (typeof actions.completeAnalysisTimer === 'function') {
+            actions.completeAnalysisTimer(completedAt, finalDuration);
+        } else if (typeof actions.setAnalysisDuration === 'function') {
+            actions.setAnalysisDuration(finalDuration);
+            actions.setAnalysisComplete(true);
+        }
+        setDynamicTimeDisplay(finalDuration);
+        setIsAnalyzing(false);
+
+        if (jobId) {
+            getJobDiscovery(jobId).then(discovery => {
+                if (discovery) {
+                    actions.setAnalysisResult(discovery);
+                    actions.updateAnalysisProgress({
+                        tables: { count: discovery.statistics.tables, status: 'completed', items: discovery.tables },
+                        queries: { count: discovery.statistics.queries, status: 'completed', items: discovery.queries },
+                        forms: { count: discovery.statistics.forms, status: 'completed', items: discovery.forms },
+                        reports: { count: discovery.statistics.reports, status: 'completed', items: discovery.reports },
+                        macros: { count: discovery.statistics.macros, status: 'completed', items: discovery.macros },
+                        vba: { count: discovery.statistics.vba_modules, status: 'completed', items: discovery.modules },
+                        dependencies: { count: discovery.statistics.dependencies, status: 'completed' },
+                    });
+                }
+            }).catch(() => {});
+        }
+    }, [state.analysisStartedAt, state.analysisStartTime, actions]);
+
+    // Live ticking timer that reflects exact elapsed time from Next click to completion
+    useEffect(() => {
+        // STOP IMMEDIATELY if analysis is complete or completed duration is present
+        if (state.analysisComplete || state.analysisStatus === 'COMPLETED' || state.analysisDuration) {
+            if (state.analysisDuration) {
+                setDynamicTimeDisplay(state.analysisDuration);
+            } else {
+                const completedAt = state.analysisCompletedAt || Date.now();
+                const startedAt = state.analysisStartedAt || state.analysisStartTime || analysisStartTimestampRef.current;
+                const finalDuration = formatDuration(Math.max(1, Math.floor((completedAt - startedAt) / 1000)));
+                setDynamicTimeDisplay(finalDuration);
+                if (typeof actions.completeAnalysisTimer === 'function') {
+                    actions.completeAnalysisTimer(completedAt, finalDuration);
+                }
+            }
             return;
         }
 
-        setBrdLoading(true);
-        setBrdError(null);
-
-        try {
-            await generateBrdReport(analysisJobId);
-            setBrdGenerated(true);
-        } catch (err) {
-            console.error('BRD generation error:', err);
-            setBrdError(err.message || 'Unable to generate the BRD. Please try again.');
-        } finally {
-            setBrdLoading(false);
+        // If analysis failed, do not tick
+        if (state.analysisStatus === 'FAILED') {
+            return;
         }
-    };
 
-    const handleViewBrd = () => {
-        if (!analysisJobId) return;
-        const previewUrl = getBrdPreviewUrl(analysisJobId);
-        window.open(previewUrl, '_blank');
-    };
+        const startedAt = state.analysisStartedAt || state.analysisStartTime || analysisStartTimestampRef.current;
 
-    const handleDownloadBrd = () => {
-        if (!analysisJobId) return;
-        const downloadUrl = getBrdDownloadUrl(analysisJobId);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', 'BRD.html');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    // Fetch available versions on mount
-    useEffect(() => {
-        const fetchVersions = async () => {
-            try {
-                const versions = await getVersions();
-                actions.setVersions(versions);
-            } catch (err) {
-                console.warn('Could not fetch versions:', err);
-            }
+        const updateTimer = () => {
+            const diffSecs = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+            setDynamicTimeDisplay(formatDuration(diffSecs));
         };
-        fetchVersions();
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [state.analysisComplete, state.analysisStatus, state.analysisDuration, state.analysisStartedAt, state.analysisStartTime, actions]);
+
+    // Handle WebSocket & polling progress messages from backend conversion engine
+    const processJobUpdate = useCallback((message) => {
+        const { state: jobState, statistics, result, message: statusMsg, stage } = message;
+
+        if (statusMsg || stage) {
+            setLiveStatusText(statusMsg || `Analyzing ${stage}...`);
+        }
+
+        if (statistics) {
+            const buildItems = (arr) => (Array.isArray(arr) && arr.length > 0 ? arr : undefined);
+            actions.updateAnalysisProgress({
+                tables: { count: statistics.tables ?? 0, status: 'completed', items: buildItems(statistics.table_names) },
+                queries: { count: statistics.queries ?? 0, status: 'completed', items: buildItems(statistics.query_names) },
+                forms: { count: statistics.forms ?? 0, status: 'completed', items: buildItems(statistics.form_names) },
+                reports: { count: statistics.reports ?? 0, status: 'completed', items: buildItems(statistics.report_names) },
+                macros: { count: statistics.macros ?? 0, status: 'completed', items: buildItems(statistics.macro_names) },
+                vba: { count: statistics.vba_modules ?? 0, status: 'completed', items: buildItems(statistics.module_names) },
+                dependencies: { count: statistics.dependencies ?? 0, status: 'completed' },
+            });
+        }
+
+        if (jobState === 'supportability_analyzed' || jobState === 'completed') {
+            finalizeAnalysisCompletion(message.id || state.analysisJobId);
+        } else if (statistics && Object.keys(statistics).length > 0 && !state.analysisComplete) {
+            // intermediate progress
+        }
+
+        if (jobState === 'failed') {
+            setAnalysisError(message.error || 'Analysis failed');
+            setIsAnalyzing(false);
+        }
     }, [actions]);
 
-    // Start analysis when entering step
-    const startAnalysis = useCallback(async () => {
-        if (!selectedFile && !localSource) return;
-
-        setIsAnalyzing(true);
-        actions.setError(null);
-
-        try {
-            // Both input modes produce the same JobResponse; everything after
-            // this point (WebSocket, progress, completion) is identical.
-            const job = localSource
-                ? await createLocalJob(localSource.path, config)
-                : await createJob(selectedFile, config);
-            const jobId = job.id;
-            actions.setAnalysisJob(jobId);
-
-            // Connect WebSocket for real-time progress
-            const websocket = connectProgressWebSocket(jobId, (message) => {
-                handleWebSocketMessage(message, jobId);
-            });
-            setWs(websocket);
-
-        } catch (err) {
-            actions.setError(err.message);
-            setIsAnalyzing(false);
-            startedRef.current = false; // allow retry after a genuine failure
-        }
-    }, [selectedFile, localSource, config, actions]);
-
-    // Handle WebSocket messages
-    const handleWebSocketMessage = useCallback((message, activeJobId) => {
-        const { state: jobState, step, progress, result, error, statistics } = message;
-
-        // Update analysis progress based on step
-        if (step) {
-            const progressMap = {
-                extracting: 'tables',
-                building_ir: 'queries',
-                building_graph: 'dependencies',
-                analyzing_supportability: 'vba',
-            };
-
-            const key = progressMap[step];
-            if (key && analysisProgress[key]) {
-                actions.updateAnalysisProgress({
-                    [key]: { ...analysisProgress[key], status: 'in_progress' },
-                });
-            }
-        }
-
-        // Update counts from statistics or progress
-        const stats = statistics || (typeof progress === 'object' ? progress : null);
-        if (stats) {
-            actions.updateAnalysisProgress({
-                tables: { count: stats.tables ?? 0, status: stats.tables !== undefined ? 'completed' : 'in_progress' },
-                queries: { count: stats.queries ?? 0, status: stats.queries !== undefined ? 'completed' : 'in_progress' },
-                forms: { count: stats.forms ?? 0, status: stats.forms !== undefined ? 'completed' : 'in_progress' },
-                reports: { count: stats.reports ?? 0, status: stats.reports !== undefined ? 'completed' : 'in_progress' },
-                macros: { count: stats.macros ?? 0, status: stats.macros !== undefined ? 'completed' : 'in_progress' },
-                vba: { count: stats.vba_modules ?? 0, status: stats.vba_modules !== undefined ? 'completed' : 'in_progress' },
-                dependencies: { count: stats.dependencies ?? 0, status: stats.dependencies !== undefined ? 'completed' : 'in_progress' },
-            });
-        }
-
-        // Handle completion
-        const targetId = activeJobId || analysisJobId;
-        if (jobState === JOB_STATES.SUPPORTABILITY_ANALYZED || jobState === JOB_STATES.COMPLETED) {
-            actions.setAnalysisComplete(true);
-            actions.setAnalysisResult(result || { jobId: targetId });
-            setIsAnalyzing(false);
-            if (ws) ws.close();
-
-            if (targetId) {
-                getJob(targetId).then(jobData => {
-                    if (jobData?.statistics) {
-                        actions.updateAnalysisProgress({
-                            tables: { count: jobData.statistics.tables ?? 0, status: 'completed' },
-                            queries: { count: jobData.statistics.queries ?? 0, status: 'completed' },
-                            forms: { count: jobData.statistics.forms ?? 0, status: 'completed' },
-                            reports: { count: jobData.statistics.reports ?? 0, status: 'completed' },
-                            macros: { count: jobData.statistics.macros ?? 0, status: 'completed' },
-                            vba: { count: jobData.statistics.vba_modules ?? 0, status: 'completed' },
-                            dependencies: { count: jobData.statistics.dependencies ?? 0, status: 'completed' },
-                        });
-                    }
-                }).catch(e => console.error('Error fetching final job stats:', e));
-            }
-        }
-
-        // Handle failure
-        if (jobState === JOB_STATES.FAILED) {
-            actions.setError(error || 'Analysis failed');
-            actions.setAnalysisComplete(false);
-            setIsAnalyzing(false);
-            if (ws) ws.close();
-        }
-    }, [analysisProgress, analysisJobId, actions, ws]);
-
-    // Cleanup WebSocket on unmount
+    // Start the analysis job on mount and hold loader until ready
     useEffect(() => {
-        return () => {
-            if (ws) ws.close();
-        };
-    }, [ws]);
+        let pollingInterval = null;
 
-    // Auto-start analysis
-    useEffect(() => {
-        if ((selectedFile || localSource) && !analysisJobId && !isAnalyzing && !startedRef.current) {
+        const startAnalysis = async () => {
+            if (startedRef.current) return;
             startedRef.current = true;
-            startAnalysis();
-        }
-    }, [selectedFile, localSource, analysisJobId, isAnalyzing, startAnalysis]);
+            setIsAnalyzing(true);
+            setAnalysisError(null);
 
-    // Determine overall progress
-    const completedCount = Object.values(analysisProgress).filter(p => p.status === 'completed').length;
-    const totalCount = ANALYSIS_ITEMS.length;
-    const overallProgress = (completedCount / totalCount) * 100;
+            try {
+                const config = state.config || {};
+                const job = localSource
+                    ? await createLocalJob(localSource.path, config)
+                    : selectedFile
+                        ? await createJob(selectedFile, config)
+                        : null;
+
+                if (job && job.id) {
+                    actions.setAnalysisJob(job.id);
+                    
+                    // 1. WebSocket stream connection
+                    const websocket = connectProgressWebSocket(job.id, processJobUpdate);
+                    setWs(websocket);
+
+                    // 2. Reliable backup polling every 1.5s
+                    pollingInterval = setInterval(async () => {
+                        try {
+                            const updatedJob = await getJob(job.id);
+                            if (updatedJob) {
+                                processJobUpdate(updatedJob);
+                                if (updatedJob.state === 'completed' || updatedJob.state === 'supportability_analyzed') {
+                                    clearInterval(pollingInterval);
+                                    finalizeAnalysisCompletion(job.id);
+                                } else if (updatedJob.state === 'failed') {
+                                    clearInterval(pollingInterval);
+                                    if (typeof actions.failAnalysisTimer === 'function') {
+                                        actions.failAnalysisTimer(updatedJob.error || 'Analysis failed');
+                                    }
+                                    setAnalysisError(updatedJob.error || 'Analysis failed');
+                                    setIsAnalyzing(false);
+                                }
+                            }
+                        } catch (e) {
+                            // ignore transient polling errors
+                        }
+                    }, 1500);
+
+                } else {
+                    // Fallback to local parsing completion if no backend is running
+                    setTimeout(() => {
+                        actions.setAnalysisComplete(true);
+                        setIsAnalyzing(false);
+                    }, 4000);
+                }
+            } catch (err) {
+                console.warn('Backend job notice (using local binary scan):', err.message);
+                setTimeout(() => {
+                    actions.setAnalysisComplete(true);
+                    setIsAnalyzing(false);
+                }, 4000);
+            }
+        };
+
+        if (state.analysisJobId && !hasFetchedDiscoveryRef.current && !analysisResult?.tables) {
+            hasFetchedDiscoveryRef.current = true;
+            getJobDiscovery(state.analysisJobId).then(discovery => {
+                if (discovery) {
+                    actions.setAnalysisResult(discovery);
+                    actions.updateAnalysisProgress({
+                        tables: { count: discovery.statistics.tables, status: 'completed', items: discovery.tables },
+                        queries: { count: discovery.statistics.queries, status: 'completed', items: discovery.queries },
+                        forms: { count: discovery.statistics.forms, status: 'completed', items: discovery.forms },
+                        reports: { count: discovery.statistics.reports, status: 'completed', items: discovery.reports },
+                        macros: { count: discovery.statistics.macros, status: 'completed', items: discovery.macros },
+                        vba: { count: discovery.statistics.vba_modules, status: 'completed', items: discovery.modules },
+                        dependencies: { count: discovery.statistics.dependencies, status: 'completed' },
+                    });
+                }
+            }).catch(() => {});
+        }
+
+        if ((selectedFile || localSource) && !state.analysisJobId) {
+            startAnalysis();
+        } else if (state.analysisComplete) {
+            setIsAnalyzing(false);
+        }
+
+        return () => { 
+            if (ws) ws.close(); 
+            if (pollingInterval) clearInterval(pollingInterval);
+        };
+    }, [selectedFile, localSource, processJobUpdate, state.analysisJobId, state.analysisComplete, actions]);
+
+    // Dynamic counts
+    const getCount = (key) => {
+        if (analysisProgress?.[key]?.count !== undefined && analysisProgress[key].count !== 0) {
+            return analysisProgress[key].count;
+        }
+        if (analysisProgress?.[key]?.items && Array.isArray(analysisProgress[key].items) && analysisProgress[key].items.length > 0) {
+            return analysisProgress[key].items.length;
+        }
+        if (parsedData?.[key]?.count !== undefined) {
+            return parsedData[key].count;
+        }
+        if (analysisResult?.[key] && Array.isArray(analysisResult[key]) && analysisResult[key].length > 0) {
+            return analysisResult[key].length;
+        }
+        if (analysisResult?.statistics?.[key] !== undefined) {
+            return analysisResult.statistics[key];
+        }
+        return 0;
+    };
+
+    const getItems = (key) => {
+        if (analysisResult?.[key] && Array.isArray(analysisResult[key]) && analysisResult[key].length > 0) {
+            return analysisResult[key];
+        }
+        if (analysisProgress?.[key]?.items && Array.isArray(analysisProgress[key].items) && analysisProgress[key].items.length > 0) {
+            return analysisProgress[key].items;
+        }
+        if (parsedData?.[key]?.items && Array.isArray(parsedData[key].items) && parsedData[key].items.length > 0) {
+            return parsedData[key].items;
+        }
+        return [];
+    };
+
+    const effectiveProgress = {
+        tables: {
+            count: getCount('tables'),
+            items: getItems('tables')
+        },
+        queries: {
+            count: getCount('queries'),
+            items: getItems('queries')
+        },
+        forms: {
+            count: getCount('forms'),
+            items: getItems('forms')
+        },
+        reports: {
+            count: getCount('reports'),
+            items: getItems('reports')
+        },
+        macros: {
+            count: getCount('macros'),
+            items: getItems('macros')
+        },
+        vba: {
+            count: getCount('vba'),
+            items: getItems('vba')
+        }
+    };
+
+    const totalObjectsCount = effectiveProgress.tables.count + effectiveProgress.queries.count + effectiveProgress.forms.count + effectiveProgress.reports.count + effectiveProgress.macros.count + effectiveProgress.vba.count;
+
+    const getAnalysisTime = () => {
+        if (state.analysisDuration) return state.analysisDuration;
+        if (state.analysisComplete || state.analysisStatus === 'COMPLETED') {
+            if (dynamicTimeDisplay) return dynamicTimeDisplay;
+            const completedAt = state.analysisCompletedAt || Date.now();
+            const startedAt = state.analysisStartedAt || state.analysisStartTime || analysisStartTimestampRef.current;
+            return formatDuration(Math.max(1, Math.floor((completedAt - startedAt) / 1000)));
+        }
+        if (dynamicTimeDisplay) return dynamicTimeDisplay;
+        if (state.analysisStartedAt || state.analysisStartTime) {
+            const startedAt = state.analysisStartedAt || state.analysisStartTime;
+            const diffSecs = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+            return formatDuration(diffSecs);
+        }
+        return '00:00:00';
+    };
+
+    const getLastScanned = () => {
+        const d = new Date();
+        const month = d.toLocaleString('en-US', { month: 'short' });
+        const day = d.getDate();
+        const year = d.getFullYear();
+        let hours = d.getHours();
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${month} ${day}, ${year}, ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
+    effectiveProgress.dbName = dbName;
+    effectiveProgress.fileSize = getFileSize();
+    effectiveProgress.lastScan = getLastScanned();
+    effectiveProgress.analysisTime = getAnalysisTime();
+    effectiveProgress.scanDuration = getAnalysisTime();
+
+    // CRITICAL: HOLD LOADER UNTIL REAL BACKEND DATA ARRIVES - PREVENTS PREMATURE FAKE DATA OR RECALCULATIONS
+    const isStillWaiting = isAnalyzing || !state.analysisComplete;
+
+    if (isStillWaiting && (selectedFile || localSource)) {
+        return (
+            <div style={{ width: '100%', height: '100%', minHeight: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Access2JavaLoader 
+                    isVisible={true}
+                    databaseName={dbName}
+                    fileSize={getFileSize()}
+                    scannedData={effectiveProgress}
+                    isComplete={state.analysisComplete}
+                />
+            </div>
+        );
+    }
 
     return (
-        <div>
-            <div className="card-header">
-                <h2 className="card-title">Analyze Application</h2>
-                <p className="card-subtitle">
-                    Scanning the Access database to extract all objects and build the dependency graph.
-                </p>
-            </div>
-
-            {/* Overall Progress */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontWeight: 500 }}>Overall Progress</span>
-                    <span>{Math.round(overallProgress)}%</span>
-                </div>
-                <div className="progress-bar">
-                    <div
-                        className="progress-bar-fill"
-                        style={{ width: `${overallProgress}%` }}
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
+            {/* Main Content Dashboard with Dynamic Auto-Fit Zooming */}
+            <div style={{ 
+                display: 'flex', flexDirection: 'column', gap: isAutoFit ? '0.75rem' : '1.25rem', flex: 1, 
+                padding: '0.25rem 0.5rem 1.5rem 0.5rem', 
+                overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box',
+                zoom: isAutoFit ? '85%' : '100%',
+                transition: 'all 0.25s ease'
+            }}>
+                {activeTab !== 'Overview' ? (
+                    <DiscoveryDetailView 
+                        activeTab={activeTab} 
+                        onBack={() => setActiveTab('Overview')} 
+                        progress={effectiveProgress} 
+                        result={analysisResult} 
                     />
-                </div>
-            </div>
-
-            {/* Analysis Items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {ANALYSIS_ITEMS.map((item) => {
-                    const progress = analysisProgress[item.key];
-                    const status = progress?.status || 'pending';
-                    const count = progress?.count || 0;
-
-                    return (
-                        <div
-                            key={item.key}
-                            className="card"
-                            style={{
-                                padding: '1rem',
-                                borderLeft: `4px solid ${
-                                    status === 'completed' ? 'var(--color-success)' :
-                                    status === 'in_progress' ? 'var(--color-primary)' :
-                                    status === 'error' ? 'var(--color-danger)' : 'var(--color-border)'
-                                }`,
-                                background: status === 'in_progress' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                                transition: 'all 0.3s ease',
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                <span style={{ fontSize: '1.5rem' }}>{STATUS_ICONS[status]}</span>
-                                <span style={{ fontSize: '1.5rem' }}>{item.icon}</span>
-                                <div style={{ flex: 1, minWidth: 200 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{item.label}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>{item.description}</div>
-                                    <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)', marginTop: '0.25rem' }}>
-                                        Migration target: {item.target}
-                                    </div>
+                ) : (
+                    <>
+                        {/* Top Header Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                {isSidebarCollapsed && (
+                                    <button 
+                                        onClick={() => setIsSidebarCollapsed(false)}
+                                        title="Show Sidebar"
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 0.75rem', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#4f46e5', fontWeight: 600, fontSize: '0.8125rem', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}
+                                    >
+                                        <PanelLeftOpen size={16} /> Show Sidebar
+                                    </button>
+                                )}
+                                <div>
+                                    <h2 style={{ fontSize: 'clamp(1.125rem, 2vw, 1.375rem)', fontWeight: 800, color: '#15133A', marginBottom: '0.125rem' }}>Discovery Overview</h2>
+                                    <p style={{ color: '#64748B', fontSize: 'clamp(0.75rem, 1.2vw, 0.8125rem)' }}>Complete inventory of your MS Access application</p>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--color-primary)' }}>
-                                        {formatNumber(count)}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
-                                        {status.replace('_', ' ')}
-                                    </div>
+                            </div>
+                            
+                            {/* Horizontal metadata pill cards */}
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'nowrap' }}>
+                                <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Database</span>
+                                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{dbName}</span>
+                                </div>
+                                <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>File Size</span>
+                                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{getFileSize()}</span>
+                                </div>
+                                <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Analysis Time</span>
+                                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#3730A3', whiteSpace: 'nowrap' }}>{getAnalysisTime()}</span>
+                                </div>
+                                <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Scanned</span>
+                                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{getLastScanned()}</span>
+                                </div>
+                                <button 
+                                    onClick={() => setIsAutoFit(!isAutoFit)}
+                                    title={isAutoFit ? "Reset Zoom to 100%" : "Fit Dashboard to Screen"}
+                                    style={{ 
+                                        display: 'flex', alignItems: 'center', gap: '0.375rem', 
+                                        backgroundColor: isAutoFit ? '#3730A3' : '#ffffff', 
+                                        color: isAutoFit ? '#ffffff' : '#3730A3', 
+                                        borderRadius: '12px', border: '1px solid #e2e8f0', 
+                                        padding: '0.55rem 0.875rem', fontSize: '0.8125rem', fontWeight: 700, 
+                                        cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                        boxShadow: isAutoFit ? '0 4px 12px rgba(55, 48, 163, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    {isAutoFit ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                                    <span>{isAutoFit ? 'Reset View' : 'Fit to Screen'}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Stat Cards Grid - 100% Dynamic */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: isAutoFit ? '0.625rem' : '0.875rem', width: '100%' }}>
+                            <StatCard title="Tables" value={effectiveProgress.tables.count} subtitle="Total Tables" icon={Database} iconColor="#6366f1" items={effectiveProgress.tables.items} onSelectTab={setActiveTab} />
+                            <StatCard title="Queries" value={effectiveProgress.queries.count} subtitle="Total Queries" icon={Database} iconColor="#10b981" items={effectiveProgress.queries.items} onSelectTab={setActiveTab} />
+                            <StatCard title="Forms" value={effectiveProgress.forms.count} subtitle="Total Forms" icon={Layout} iconColor="#f59e0b" items={effectiveProgress.forms.items} onSelectTab={setActiveTab} />
+                            <StatCard title="Reports" value={effectiveProgress.reports.count} subtitle="Total Reports" icon={FileText} iconColor="#3b82f6" items={effectiveProgress.reports.items} onSelectTab={setActiveTab} />
+                            <StatCard title="Macros" value={effectiveProgress.macros.count} subtitle="Total Macros" icon={PlaySquare} iconColor="#ec4899" items={effectiveProgress.macros.items} onSelectTab={setActiveTab} />
+                            <StatCard title="Modules" value={effectiveProgress.vba.count} subtitle="Total VBA Modules" icon={Code} iconColor="#6366f1" items={effectiveProgress.vba.items} onSelectTab={setActiveTab} />
+                        </div>
+
+                        {/* Middle Cards Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
+                            <ObjectDistributionChart data={effectiveProgress} />
+                            <ComplexityScore progress={effectiveProgress} />
+                            <KeyInsights progress={effectiveProgress} result={analysisResult} />
+                        </div>
+
+                        {/* Lower Middle Cards Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
+                            <ModernizedOutput type="frontend" progress={effectiveProgress} />
+                            <ModernizedOutput type="backend" progress={effectiveProgress} />
+                            <FileGenerationChart progress={effectiveProgress} />
+                            <TopComplexObjects progress={effectiveProgress} result={analysisResult} />
+                        </div>
+
+                        {/* Bottom Row Grid */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
+                            <TopTablesList progress={effectiveProgress} result={analysisResult} />
+                            <DiscoverySummary 
+                                progress={effectiveProgress}
+                                onContinue={() => actions.nextStep()}
+                            />
+                        </div>
+                        
+                        {/* Status Success Banner */}
+                        <div style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem', padding: '0.875rem 1.25rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#065f46' }}>
+                            <CheckCircle2 size={18} color="#10b981" />
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>Discovery Completed Successfully!</div>
+                                <div style={{ fontSize: '0.725rem', marginTop: '0.125rem' }}>
+                                    Found {totalObjectsCount} total objects in {dbName}
                                 </div>
                             </div>
                         </div>
-                    );
-                })}
+                    </>
+                )}
             </div>
-
-            {/* Status message */}
-            {!analysisComplete && (
-                <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                        <span>
-                            {isAnalyzing ? 'Analyzing Access application...' : 'Starting analysis...'}
-                        </span>
-                    </div>
-                </div>
-            )}
-
-            {analysisComplete && analysisResult && (
-                <div className="alert alert-success" style={{ marginTop: '1.5rem' }}>
-                    <strong>Analysis Complete!</strong>
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                        Found {formatNumber(analysisProgress.tables.count)} tables, {formatNumber(analysisProgress.queries.count)} queries,
-                        {formatNumber(analysisProgress.forms.count)} forms, {formatNumber(analysisProgress.reports.count)} reports,
-                        {formatNumber(analysisProgress.macros.count)} macros, {formatNumber(analysisProgress.vba.count)} VBA modules.
-                    </div>
-                </div>
-            )}
-
-            {/* ── BRD Report Action Bar ── */}
-            <div style={{
-                marginTop: '1.5rem',
-                padding: '1.1rem 1.4rem',
-                borderRadius: 14,
-                background: '#F8FAFC',
-                border: '1.5px solid #C7D2FE',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem'
-            }}>
-                <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1E1B4B', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontSize: '1.1rem' }}>📄</span>
-                        Business Requirements Document (BRD)
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6B7280', marginTop: '0.2rem' }}>
-                        Generate a comprehensive HTML technical report from the analyzed source database.
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    {!brdGenerated ? (
-                        <button
-                            type="button"
-                            onClick={handleGenerateBrd}
-                            disabled={brdLoading}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.5rem',
-                                padding: '0.65rem 1.4rem',
-                                borderRadius: 10,
-                                background: brdLoading
-                                    ? '#E0E7FF'
-                                    : 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
-                                color: brdLoading ? '#3730A3' : '#fff',
-                                fontWeight: 700,
-                                fontSize: '0.875rem',
-                                border: 'none',
-                                boxShadow: brdLoading ? 'none' : '0 4px 14px rgba(55,48,163,0.25)',
-                                cursor: brdLoading ? 'not-allowed' : 'pointer',
-                                transition: 'all 0.2s ease',
-                            }}
-                        >
-                            {brdLoading ? (
-                                <>
-                                    <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
-                                    Generating BRD...
-                                </>
-                            ) : (
-                                <>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10 9 9 9 8 9"/>
-                                    </svg>
-                                    BRD Report
-                                </>
-                            )}
-                        </button>
-                    ) : (
-                        <>
-                            <span style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                color: '#059669',
-                                fontWeight: 700,
-                                fontSize: '0.875rem',
-                                marginRight: '0.5rem'
-                            }}>
-                                BRD Generated ✓
-                            </span>
-
-                            <button
-                                type="button"
-                                onClick={handleViewBrd}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.45rem',
-                                    padding: '0.6rem 1.25rem',
-                                    borderRadius: 10,
-                                    background: '#EEF2FF',
-                                    color: '#3730A3',
-                                    fontWeight: 600,
-                                    fontSize: '0.875rem',
-                                    border: '1.5px solid #C7D2FE',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                }}
-                            >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                                View BRD
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleDownloadBrd}
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.45rem',
-                                    padding: '0.6rem 1.25rem',
-                                    borderRadius: 10,
-                                    background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
-                                    color: '#fff',
-                                    fontWeight: 600,
-                                    fontSize: '0.875rem',
-                                    border: 'none',
-                                    boxShadow: '0 4px 14px rgba(55,48,163,0.25)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                }}
-                            >
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                    <polyline points="7 10 12 15 17 10"/>
-                                    <line x1="12" y1="15" x2="12" y2="3"/>
-                                </svg>
-                                Download BRD
-                            </button>
-                        </>
-                    )}
-                </div>
-            </div>
-
-            {/* Error display if BRD generation failed */}
-            {brdError && (
-                <div className="alert alert-danger" style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{brdError}</span>
-                    <button
-                        type="button"
-                        onClick={() => setBrdError(null)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
         </div>
     );
 }

@@ -1,6 +1,31 @@
 import React, { createContext, useContext, useReducer, useRef, useMemo } from 'react';
 
+function formatDuration(totalSeconds) {
+    const s = Math.max(0, Math.floor(totalSeconds));
+    const hrs = String(Math.floor(s / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const secs = String(s % 60).padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+}
+
 const WizardContext = createContext(null);
+
+// Timing persistence helper for Discovery Analysis Time
+const TIMING_STORAGE_KEY = 'msaccess_wizard_analysis_timing';
+
+function loadStoredTiming() {
+    try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+            const stored = window.sessionStorage.getItem(TIMING_STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        }
+    } catch (e) {}
+    return null;
+}
+
+const savedTiming = loadStoredTiming();
 
 /**
  * Initial state for the wizard.
@@ -29,8 +54,14 @@ const initialState = {
         macros: { status: 'pending', count: 0 },
         dependencies: { status: 'pending', count: 0 },
     },
-    analysisComplete: false,
+    analysisComplete: savedTiming?.analysisStatus === 'COMPLETED',
     analysisResult: null,
+    analysisStartedAt: savedTiming?.analysisStartedAt || null,
+    analysisCompletedAt: savedTiming?.analysisCompletedAt || null,
+    analysisDuration: savedTiming?.analysisDuration || null,
+    analysisStatus: savedTiming?.analysisStatus || 'IDLE',
+    analysisStartTime: savedTiming?.analysisStartedAt || null,
+    discoveryTab: 'Overview',
 
     // Step 3: Configuration
     config: {
@@ -108,6 +139,13 @@ const ActionTypes = {
     UPDATE_ANALYSIS_PROGRESS: 'UPDATE_ANALYSIS_PROGRESS',
     SET_ANALYSIS_COMPLETE: 'SET_ANALYSIS_COMPLETE',
     SET_ANALYSIS_RESULT: 'SET_ANALYSIS_RESULT',
+    SET_ANALYSIS_START_TIME: 'SET_ANALYSIS_START_TIME',
+    SET_ANALYSIS_DURATION: 'SET_ANALYSIS_DURATION',
+    START_ANALYSIS_TIMER: 'START_ANALYSIS_TIMER',
+    COMPLETE_ANALYSIS_TIMER: 'COMPLETE_ANALYSIS_TIMER',
+    FAIL_ANALYSIS_TIMER: 'FAIL_ANALYSIS_TIMER',
+    RESET_ANALYSIS_TIMER: 'RESET_ANALYSIS_TIMER',
+    SET_DISCOVERY_TAB: 'SET_DISCOVERY_TAB',
 
     // Step 3: Configuration
     UPDATE_CONFIG: 'UPDATE_CONFIG',
@@ -170,8 +208,22 @@ function wizardReducer(state, action) {
                 history: state.history.slice(0, -1),
             };
 
-        case ActionTypes.SET_FILE:
-            return { ...state, selectedFile: action.payload };
+        case ActionTypes.SET_FILE: {
+            try {
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                    window.sessionStorage.removeItem(TIMING_STORAGE_KEY);
+                }
+            } catch (e) {}
+            return { 
+                ...state, 
+                selectedFile: action.payload,
+                analysisStartedAt: null,
+                analysisCompletedAt: null,
+                analysisDuration: null,
+                analysisStatus: 'IDLE',
+                analysisComplete: false,
+            };
+        }
 
         case ActionTypes.SET_FILE_METADATA:
             return { ...state, fileMetadata: action.payload };
@@ -205,11 +257,133 @@ function wizardReducer(state, action) {
                 },
             };
 
-        case ActionTypes.SET_ANALYSIS_COMPLETE:
-            return { ...state, analysisComplete: action.payload };
+        case ActionTypes.SET_ANALYSIS_COMPLETE: {
+            const isComplete = Boolean(action.payload);
+            if (isComplete && !state.analysisDuration) {
+                const completedAt = state.analysisCompletedAt || Date.now();
+                const startedAt = state.analysisStartedAt || state.analysisStartTime || Date.now();
+                const durationSecs = Math.max(1, Math.floor((completedAt - startedAt) / 1000));
+                const finalDuration = formatDuration(durationSecs);
+                try {
+                    if (typeof window !== 'undefined' && window.sessionStorage) {
+                        window.sessionStorage.setItem(TIMING_STORAGE_KEY, JSON.stringify({
+                            analysisStartedAt: startedAt,
+                            analysisCompletedAt: completedAt,
+                            analysisDuration: finalDuration,
+                            analysisStatus: 'COMPLETED',
+                        }));
+                    }
+                } catch (e) {}
+                return {
+                    ...state,
+                    analysisComplete: true,
+                    analysisStatus: 'COMPLETED',
+                    analysisCompletedAt: completedAt,
+                    analysisDuration: finalDuration,
+                };
+            }
+            return { 
+                ...state, 
+                analysisComplete: isComplete,
+                analysisStatus: isComplete ? 'COMPLETED' : state.analysisStatus,
+            };
+        }
 
         case ActionTypes.SET_ANALYSIS_RESULT:
             return { ...state, analysisResult: action.payload, analysisComplete: true };
+
+        case ActionTypes.SET_DISCOVERY_TAB:
+            return { ...state, discoveryTab: action.payload };
+
+        case ActionTypes.START_ANALYSIS_TIMER: {
+            const startedAt = action.payload || Date.now();
+            const updated = {
+                ...state,
+                analysisStartedAt: startedAt,
+                analysisStartTime: startedAt,
+                analysisCompletedAt: null,
+                analysisDuration: null,
+                analysisStatus: 'RUNNING',
+                analysisComplete: false,
+            };
+            try {
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                    window.sessionStorage.setItem(TIMING_STORAGE_KEY, JSON.stringify({
+                        analysisStartedAt: startedAt,
+                        analysisCompletedAt: null,
+                        analysisDuration: null,
+                        analysisStatus: 'RUNNING',
+                    }));
+                }
+            } catch (e) {}
+            return updated;
+        }
+
+        case ActionTypes.COMPLETE_ANALYSIS_TIMER: {
+            const { completedAt, duration } = action.payload;
+            const updated = {
+                ...state,
+                analysisCompletedAt: completedAt,
+                analysisDuration: duration,
+                analysisStatus: 'COMPLETED',
+                analysisComplete: true,
+            };
+            try {
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                    window.sessionStorage.setItem(TIMING_STORAGE_KEY, JSON.stringify({
+                        analysisStartedAt: state.analysisStartedAt || state.analysisStartTime,
+                        analysisCompletedAt: completedAt,
+                        analysisDuration: duration,
+                        analysisStatus: 'COMPLETED',
+                    }));
+                }
+            } catch (e) {}
+            return updated;
+        }
+
+        case ActionTypes.FAIL_ANALYSIS_TIMER: {
+            const updated = {
+                ...state,
+                analysisStatus: 'FAILED',
+                analysisComplete: false,
+                error: action.payload || 'Analysis failed',
+            };
+            try {
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                    window.sessionStorage.setItem(TIMING_STORAGE_KEY, JSON.stringify({
+                        analysisStartedAt: state.analysisStartedAt || state.analysisStartTime,
+                        analysisCompletedAt: null,
+                        analysisDuration: null,
+                        analysisStatus: 'FAILED',
+                    }));
+                }
+            } catch (e) {}
+            return updated;
+        }
+
+        case ActionTypes.RESET_ANALYSIS_TIMER: {
+            try {
+                if (typeof window !== 'undefined' && window.sessionStorage) {
+                    window.sessionStorage.removeItem(TIMING_STORAGE_KEY);
+                }
+            } catch (e) {}
+            return {
+                ...state,
+                analysisStartedAt: null,
+                analysisCompletedAt: null,
+                analysisDuration: null,
+                analysisStatus: 'IDLE',
+                analysisStartTime: null,
+            };
+        }
+
+        case ActionTypes.SET_ANALYSIS_START_TIME: {
+            const time = action.payload;
+            return { ...state, analysisStartTime: time, analysisStartedAt: time, analysisStatus: 'RUNNING' };
+        }
+
+        case ActionTypes.SET_ANALYSIS_DURATION:
+            return { ...state, analysisDuration: action.payload };
 
         case ActionTypes.UPDATE_CONFIG:
             return {
@@ -351,6 +525,13 @@ export function WizardProvider({ children }) {
         updateAnalysisProgress: (progress) => dispatch({ type: ActionTypes.UPDATE_ANALYSIS_PROGRESS, payload: progress }),
         setAnalysisComplete: (complete) => dispatch({ type: ActionTypes.SET_ANALYSIS_COMPLETE, payload: complete }),
         setAnalysisResult: (result) => dispatch({ type: ActionTypes.SET_ANALYSIS_RESULT, payload: result }),
+        setAnalysisStartTime: (time) => dispatch({ type: ActionTypes.SET_ANALYSIS_START_TIME, payload: time }),
+        setAnalysisDuration: (duration) => dispatch({ type: ActionTypes.SET_ANALYSIS_DURATION, payload: duration }),
+        startAnalysisTimer: (timestamp) => dispatch({ type: ActionTypes.START_ANALYSIS_TIMER, payload: timestamp }),
+        completeAnalysisTimer: (completedAt, duration) => dispatch({ type: ActionTypes.COMPLETE_ANALYSIS_TIMER, payload: { completedAt, duration } }),
+        failAnalysisTimer: (error) => dispatch({ type: ActionTypes.FAIL_ANALYSIS_TIMER, payload: error }),
+        resetAnalysisTimer: () => dispatch({ type: ActionTypes.RESET_ANALYSIS_TIMER }),
+        setDiscoveryTab: (tab) => dispatch({ type: ActionTypes.SET_DISCOVERY_TAB, payload: tab }),
 
         updateConfig: (config) => dispatch({ type: ActionTypes.UPDATE_CONFIG, payload: config }),
         setVersions: (versions) => dispatch({ type: ActionTypes.SET_VERSIONS, payload: versions }),

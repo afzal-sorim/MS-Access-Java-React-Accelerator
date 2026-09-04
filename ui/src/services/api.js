@@ -196,6 +196,20 @@ export function downloadResult(jobId, projectName = 'ConvertedApplication') {
 }
 
 /**
+ * Get full real extracted discovery objects (tables, queries, forms, reports, macros, modules)
+ * Corresponds to GET /api/jobs/{job_id}/discovery
+ */
+export async function getJobDiscovery(jobId) {
+    const response = await fetch(`${API_BASE}/jobs/${jobId}/discovery`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch discovery objects');
+    }
+    return response.json();
+}
+
+/**
+ * List all jobs.
+ * Corresponds to GET /api/jobs
  * List all generated files for a job.
  */
 export async function listJobFiles(jobId) {
