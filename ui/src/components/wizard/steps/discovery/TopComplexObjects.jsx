@@ -78,8 +78,8 @@ const TopComplexObjects = ({ progress, result }) => {
 
     return (
         <div className="card" style={{ padding: '1.25rem 1.5rem', flex: 1, minWidth: '280px', borderRadius: '16px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#15133A', marginBottom: '0.25rem' }}>Top Complex Objects</h3>
-            <p style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '1rem' }}>Objects with highest complexity score</p>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#15133A', marginBottom: '0.25rem' }}>Overall Complexity Score</h3>
+            <p style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '1rem' }}>Complexity percentage by object category</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {items.slice(0, 4).map((item, i) => (
@@ -105,7 +105,7 @@ const TopComplexObjects = ({ progress, result }) => {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: item.color }}>
-                                {item.score}
+                                {item.score}/100
                             </span>
                             <ChevronRight size={14} color="#94a3b8" />
                         </div>
@@ -124,7 +124,7 @@ const TopComplexObjects = ({ progress, result }) => {
                     padding: '1.5rem', boxSizing: 'border-box'
                 }}>
                     <div style={{
-                        width: '100%', maxWidth: '640px', backgroundColor: '#ffffff', borderRadius: '24px',
+                        width: '100%', maxWidth: '1100px', backgroundColor: '#ffffff', borderRadius: '24px',
                         padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '1.5rem',
                         maxHeight: '85vh', overflowY: 'auto'
@@ -161,7 +161,7 @@ const TopComplexObjects = ({ progress, result }) => {
                                                 {isExpanded ? <ChevronDown size={16} color="#64748B" /> : <ChevronRight size={16} color="#64748B" />}
                                                 <span style={{ fontWeight: 700, fontSize: '0.875rem', color: '#15133A' }}>{item.name}</span>
                                             </div>
-                                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: selectedObj.color }}>{item.score} pts</span>
+                                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: selectedObj.color }}>{item.score}/100</span>
                                         </div>
 
                                         {isExpanded && (
