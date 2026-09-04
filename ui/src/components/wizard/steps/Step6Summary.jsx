@@ -650,7 +650,7 @@ export default function Step6Summary() {
     ];
 
     return (
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ width: '100%' }}>
 
             {/* ── HERO ── */}
             <div className="s6-hero">
