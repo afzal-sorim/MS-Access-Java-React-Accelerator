@@ -530,7 +530,7 @@ export default function Step2Analyze() {
                             </div>
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                 <button className="btn btn-primary" onClick={handleGenerateBrd} disabled={brdLoading || !state.analysisJobId}>
-                                    {brdLoading ? 'Generating...' : 'Generate BRD'}
+                                    {brdLoading ? 'Generating...' : 'View BRD'}
                                 </button>
                                 <a className="btn btn-secondary" href={state.analysisJobId ? getBrdDownloadUrl(state.analysisJobId) : '#'} target="_blank" rel="noreferrer" style={{ pointerEvents: state.analysisJobId ? 'auto' : 'none', opacity: state.analysisJobId ? 1 : 0.5 }}>
                                     Download BRD

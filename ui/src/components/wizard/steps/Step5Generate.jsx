@@ -3,6 +3,7 @@ import { useWizard } from '../../../context/WizardContext';
 import { createJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
+import { getGeneratedCounts } from '../../../utils/generatedCounts';
 import Step4Review from './Step4Review';
 
 /**
@@ -234,30 +235,33 @@ function ERDiagram({ schema }) {
 function SolutionSummary({ files, result, analysisProgress, onViewSchema }) {
     const { state } = useWizard();
     const { reviewData } = state;
-    const counts = {
-        java: 0,
-        react: 0,
-        sql: 0,
-        total: 0
-    };
 
     const countFiles = (nodes) => {
-        if (!nodes) return;
+        if (!Array.isArray(nodes)) return 0;
+        let count = 0;
         nodes.forEach(node => {
             if (node.type === 'file') {
-                counts.total++;
-                if (node.name.toLowerCase().endsWith('.java')) counts.java++;
-                if (node.name.toLowerCase().endsWith('.jsx') || node.name.toLowerCase().endsWith('.js') || node.name.toLowerCase().endsWith('.css')) counts.react++;
-                if (node.name.toLowerCase().endsWith('.sql')) counts.sql++;
+                count++;
             } else if (node.children) {
-                countFiles(node.children);
+                count += countFiles(node.children);
             }
         });
+        return count;
     };
 
-    if (files.backend) countFiles(files.backend);
-    if (files.frontend) countFiles(files.frontend);
-    if (files.database) countFiles(files.database);
+    const treeCounts = {
+        java: countFiles(files.backend),
+        react: countFiles(files.frontend),
+        sql: countFiles(files.database),
+    };
+    const generated = result?.generated || {};
+    const estimated = getGeneratedCounts(analysisProgress);
+    const counts = {
+        java: estimated.backend || treeCounts.java || (generated.backend_files ?? generated.backendFiles ?? 0),
+        react: estimated.frontend || treeCounts.react || (generated.frontend_files ?? generated.frontendFiles ?? 0),
+        sql: treeCounts.sql || (generated.database_file || generated.databaseFile ? 1 : 0),
+    };
+    counts.total = counts.java + counts.react + counts.sql;
 
     // Compute coverage from reviewData if result doesn't supply it
     const allReviewObjects = Object.values(reviewData || {}).flat();
@@ -287,7 +291,7 @@ function SolutionSummary({ files, result, analysisProgress, onViewSchema }) {
         'Vba Modules': statistics.vba_modules,
     }).filter(([, value]) => typeof value === 'number');
     const totalObjects = migratedObjects.reduce((total, [, value]) => total + value, 0);
-    const generatedFiles = result?.files_generated || result?.filesGenerated || counts.total;
+    const generatedFiles = estimated.total || result?.files_generated || result?.filesGenerated || generated.total_files || counts.total;
     const unitTests = result?.unit_tests_count ?? result?.unitTestsCount ?? 0;
     const dependencies = result?.dependency_count ?? result?.dependencyCount ?? statistics.dependencies ?? 0;
     const repairErrors = result?.repair_errors ?? result?.repairErrors ?? 0;
