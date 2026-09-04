@@ -308,6 +308,9 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
 
         job_dir = OUTPUT_DIR / job.id
         job_dir.mkdir(parents=True, exist_ok=True)
+        job.output_path = str(job_dir)
+        await job_repo.update(job)
+        await db.commit()
 
         # Helper to update job state and broadcast
         async def update_state(new_state: JobState, step: str = None, percentage: float = 0.0, description: str = ""):
@@ -667,6 +670,7 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
                 "reports": job.reports_count,
                 "macros": job.macros_count,
                 "vba_modules": job.vba_modules_count,
+                "dependencies": getattr(job, "dependencies_count", 0) or 0,
             },
             files_generated=total_files,
             unit_tests_count=sum(
@@ -1284,15 +1288,18 @@ async def list_job_files(job_id: str, db: AsyncSession = Depends(get_db)):
     """List all generated files for a job, grouped by category."""
     job_repo = JobRepository(db)
     job = await job_repo.get_simple(job_id)
-    if not job or not job.output_path:
-        raise HTTPException(status_code=404, detail="Job or output not found")
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
-    output_dir = Path(job.output_path)
+    output_dir = Path(job.output_path) if job.output_path else OUTPUT_DIR / job_id
+    output_dir = output_dir.resolve()
+    if not output_dir.exists():
+        return {}
 
     def get_file_tree(root_path: Path, current_path: Path):
         tree = []
-        try:
-            for item in sorted(current_path.iterdir()):
+        for item in sorted(current_path.iterdir(), key=lambda entry: entry.name.lower()):
+            try:
                 # Skip hidden files and certain directories
                 if item.name.startswith('.') or item.name in ('node_modules', 'target', 'bin', 'obj', '__pycache__'):
                     continue
@@ -1312,8 +1319,8 @@ async def list_job_files(job_id: str, db: AsyncSession = Depends(get_db)):
                         "type": "file",
                         "size": item.stat().st_size
                     })
-        except Exception:
-            pass
+            except (OSError, ValueError):
+                continue
         return tree
 
     # Organize by the requested categories: Frontend, Backend, Database
@@ -1333,11 +1340,11 @@ async def get_file_content(job_id: str, path: str, db: AsyncSession = Depends(ge
     """Get the content of a generated file."""
     job_repo = JobRepository(db)
     job = await job_repo.get_simple(job_id)
-    if not job or not job.output_path:
-        raise HTTPException(status_code=404, detail="Job or output not found")
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
 
     # Security check: ensure path is within output_path
-    output_dir = Path(job.output_path).resolve()
+    output_dir = (Path(job.output_path) if job.output_path else OUTPUT_DIR / job_id).resolve()
     target_path = (output_dir / path).resolve()
 
     if not str(target_path).startswith(str(output_dir)):
@@ -1425,9 +1432,40 @@ async def get_report(job_id: str, db: AsyncSession = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail="Report not available yet")
+
     report_path = Path(job.output_path) / "migration-report" / "migration-report.json"
     if not report_path.exists():
-        raise HTTPException(status_code=404, detail="Report not found")
+        support_repo = SupportabilityRepository(db)
+        supportability = await support_repo.get_by_job(job_id)
+        if not supportability:
+            raise HTTPException(status_code=404, detail="Report not available yet")
+
+        return JSONResponse(content={
+            "statistics": {
+                "tables": job.tables_count or 0,
+                "queries": job.queries_count or 0,
+                "forms": job.forms_count or 0,
+                "reports": job.reports_count or 0,
+                "macros": job.macros_count or 0,
+                "vba_modules": job.vba_modules_count or 0,
+            },
+            "coverage": {},
+            "supportability": [
+                {
+                    "object": item.object_name,
+                    "category": item.category,
+                    "status": item.status,
+                    "complexity": item.complexity,
+                    "risk": item.risk,
+                    "conversion": item.conversion,
+                    "confidence": item.confidence,
+                    "reason": item.reason,
+                }
+                for item in supportability
+            ],
+        })
 
     return JSONResponse(content=json.loads(report_path.read_text()))
 
@@ -1439,6 +1477,9 @@ async def get_report_html(job_id: str, db: AsyncSession = Depends(get_db)):
     job = await job_repo.get_simple(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail="HTML report not available yet")
 
     report_path = Path(job.output_path) / "migration-report" / "migration-report.html"
     if not report_path.exists():

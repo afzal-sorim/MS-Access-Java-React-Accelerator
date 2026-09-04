@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -132,6 +133,26 @@ def _safe(fn, default=None):
         return default
 
 
+def _start_access(win32com_client):
+    """Start Access with recovery for transient COM server startup failures."""
+    last_error = None
+    for attempt in range(3):
+        try:
+            return win32com_client.DispatchEx("Access.Application")
+        except Exception as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(1)
+
+    try:
+        return win32com_client.Dispatch("Access.Application")
+    except Exception as exc:
+        raise RuntimeError(
+            "Microsoft Access could not be started through COM. "
+            "Close any modal Access dialogs or running Access instances and retry."
+        ) from (last_error or exc)
+
+
 class AccessExtractor:
     """Drives MS Access via COM to produce a raw extraction payload."""
 
@@ -166,7 +187,9 @@ class AccessExtractor:
         pythoncom.CoInitialize()
         app = None
         try:
-            app = win32com.client.DispatchEx("Access.Application")
+            app = _start_access(win32com.client)
+            _safe(lambda: setattr(app, "DisplayAlerts", False))
+            _safe(lambda: setattr(app, "UserControl", False))
             app.Visible = False
             # 1 = msoAutomationSecurityLow: programmatically enables all content/macros
             # and suppresses security alert dialogs in the headless COM automation session.

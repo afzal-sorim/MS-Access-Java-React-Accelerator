@@ -6,7 +6,6 @@ import { parseAccessFile } from '../../utils/accessParser';
 import Step1SelectApplication from './steps/Step1SelectApplication';
 import Step2Analyze from './steps/Step2Analyze';
 import Step3Configure from './steps/Step3Configure';
-import Step4Review from './steps/Step4Review';
 import Step5Generate from './steps/Step5Generate';
 import Step6Summary from './steps/Step6Summary';
 import { 
@@ -78,9 +77,8 @@ export default function WizardContainer() {
             case 1: return <Step1SelectApplication />;
             case 2: return <Step2Analyze />;
             case 3: return <Step3Configure />;
-            case 4: return <Step4Review />;
-            case 5: return <Step5Generate />;
-            case 6: return <Step6Summary />;
+            case 4: return <Step5Generate />;
+            case 5: return <Step6Summary />;
             default: return <Step1SelectApplication />;
         }
     };
@@ -90,8 +88,7 @@ export default function WizardContainer() {
             case 1: return !!state.selectedFile || !!state.localSource;
             case 2: return state.analysisComplete;
             case 3: return true;
-            case 4: return true;
-            case 5: return state.generationComplete;
+            case 4: return state.generationComplete;
             default: return false;
         }
     };
@@ -533,60 +530,69 @@ export default function WizardContainer() {
                 }}>
                     {renderStepContent()}
                 </div>
+            </div>
 
-                {/* Bottom Navigation Row */}
-                {showNextButton && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        <button
-                            onClick={handleNext}
-                            disabled={!canProceed()}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.6rem',
-                                padding: '0.75rem 2.25rem',
-                                borderRadius: 12,
-                                background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
-                                color: '#fff',
-                                fontWeight: 700,
-                                fontSize: '0.9375rem',
-                                border: 'none',
-                                boxShadow: '0 6px 22px rgba(55,48,163,0.30)',
-                                cursor: canProceed() ? 'pointer' : 'not-allowed',
-                                opacity: canProceed() ? 1 : 0.45,
-                                transition: 'all 0.15s ease',
-                                letterSpacing: '0.01em',
-                            }}
-                            onMouseEnter={e => { if (canProceed()) { e.currentTarget.style.boxShadow = '0 8px 28px rgba(55,48,163,0.42)'; e.currentTarget.style.transform = 'translateY(-2px)'; } }}
-                            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 6px 22px rgba(55,48,163,0.30)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                        >
-                            Next
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                                <polyline points="12 5 19 12 12 19"/>
-                            </svg>
-                        </button>
-                    </div>
+            {/* ── Step Content Card ── */}
+            <div className="card-3d-lift" style={{
+                background: '#fff',
+                borderRadius: 20,
+                boxShadow: '0 4px 16px rgba(55,48,163,0.09)',
+                border: '1px solid #C7D2FE',
+                padding: '1rem 2rem',
+            }}>
+                {renderStepContent()}
+            </div>
+
+            {/* ── Bottom navigation: only Next button, right-aligned ── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {currentStep < 5 && (
+                    <button
+                        onClick={handleNext}
+                        disabled={!canProceed()}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.6rem',
+                            padding: '0.75rem 2.25rem',
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
+                            color: '#fff',
+                            fontWeight: 700,
+                            fontSize: '0.9375rem',
+                            border: 'none',
+                            boxShadow: '0 6px 22px rgba(55,48,163,0.30)',
+                            cursor: canProceed() ? 'pointer' : 'not-allowed',
+                            opacity: canProceed() ? 1 : 0.45,
+                            transition: 'all 0.15s ease',
+                            letterSpacing: '0.01em',
+                        }}
+                        onMouseEnter={e => { if (canProceed()) { e.currentTarget.style.boxShadow = '0 8px 28px rgba(55,48,163,0.42)'; e.currentTarget.style.transform = 'translateY(-2px)'; } }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 6px 22px rgba(55,48,163,0.30)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                    >
+                        Next
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
                 )}
 
-                {currentStep === 6 && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-                        <button
-                            onClick={actions.resetWizard}
-                            style={{
-                                display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                                padding: '0.75rem 2.25rem', borderRadius: 12,
-                                background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
-                                color: '#fff', fontWeight: 700, fontSize: '0.9375rem',
-                                border: 'none', boxShadow: '0 6px 22px rgba(55,48,163,0.30)', cursor: 'pointer',
-                            }}
-                        >
-                            Start New Conversion
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                            </svg>
-                        </button>
-                    </div>
+                {currentStep === 5 && (
+                    <button
+                        onClick={actions.resetWizard}
+                        style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
+                            padding: '0.75rem 2.25rem', borderRadius: 12,
+                            background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
+                            color: '#fff', fontWeight: 700, fontSize: '0.9375rem',
+                            border: 'none', boxShadow: '0 6px 22px rgba(55,48,163,0.30)', cursor: 'pointer',
+                        }}
+                    >
+                        Start New Conversion
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
                 )}
             </main>
 
