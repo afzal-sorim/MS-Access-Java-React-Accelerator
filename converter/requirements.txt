@@ -14,7 +14,7 @@ pydantic[email]>=2.7.0
 itsdangerous>=2.2.0
 # MongoDB async driver (for authentication user storage)
 motor>=3.3
-pymongo>=4.6
+pymongo>=4.9,<5
 # Postgres drivers - only needed if CONVERTER_DATABASE_URL points to PostgreSQL
 # asyncpg>=0.29
 # psycopg2-binary>=2.9

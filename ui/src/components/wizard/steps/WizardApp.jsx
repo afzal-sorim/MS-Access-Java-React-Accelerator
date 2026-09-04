@@ -16,7 +16,7 @@ export default function WizardApp() {
                 <header className="app-header">
                     {/* Left: Logo */}
                     <div className="app-logo">
-                        <Access2JavaLogo size="sm" />
+                        <Access2JavaLogo size="sm" header />
                     </div>
 
 

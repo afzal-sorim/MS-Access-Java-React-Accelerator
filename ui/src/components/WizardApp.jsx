@@ -18,7 +18,7 @@ export default function WizardApp() {
                 <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', background: '#ffffff', minHeight: '64px', padding: '0.65rem 2rem' }}>
                     {/* Left: Logo */}
                     <div className="app-logo">
-                        <Access2JavaLogo size="sm" />
+                        <Access2JavaLogo size="sm" header />
                     </div>
 
                     {/* Right: User profile card */}

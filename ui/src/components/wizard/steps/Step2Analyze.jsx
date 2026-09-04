@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, createLocalJob, connectProgressWebSocket, getJob, getJobDiscovery } from '../../../services/api';
+import { createJob, createLocalJob, connectProgressWebSocket, getJob, getJobDiscovery, generateBrdReport, getBrdPreviewUrl, getBrdDownloadUrl } from '../../../services/api';
 import { parseAccessFile } from '../../../utils/accessParser';
 import Access2JavaLoader from '../Access2JavaLoader';
 // import DiscoverySidebar from './discovery/DiscoverySidebar';
@@ -43,6 +43,8 @@ export default function Step2Analyze() {
     const [ws, setWs] = useState(null);
     const [isAnalyzing, setIsAnalyzing] = useState(true);
     const [analysisError, setAnalysisError] = useState(null);
+    const [brdLoading, setBrdLoading] = useState(false);
+    const [brdError, setBrdError] = useState(null);
     const [liveStatusText, setLiveStatusText] = useState('Connecting to backend analysis engine...');
     const [dynamicTimeDisplay, setDynamicTimeDisplay] = useState('');
     const analysisStartTimestampRef = useRef(state.analysisStartTime || Date.now());
@@ -58,6 +60,20 @@ export default function Step2Analyze() {
     };
 
     const dbName = getDbName();
+
+    const handleGenerateBrd = async () => {
+        if (!state.analysisJobId || brdLoading) return;
+        setBrdLoading(true);
+        setBrdError(null);
+        try {
+            await generateBrdReport(state.analysisJobId);
+            window.open(getBrdPreviewUrl(state.analysisJobId), '_blank', 'noopener,noreferrer');
+        } catch (error) {
+            setBrdError(error.message || 'Unable to generate the BRD report.');
+        } finally {
+            setBrdLoading(false);
+        }
+    };
 
     const getFileSize = () => {
         if (selectedFile?.size) {
@@ -156,6 +172,7 @@ export default function Step2Analyze() {
     // Handle WebSocket & polling progress messages from backend conversion engine
     const processJobUpdate = useCallback((message) => {
         const { state: jobState, statistics, result, message: statusMsg, stage } = message;
+        const normalizedJobState = String(jobState || '').toLowerCase();
 
         if (statusMsg || stage) {
             setLiveStatusText(statusMsg || `Analyzing ${stage}...`);
@@ -174,13 +191,13 @@ export default function Step2Analyze() {
             });
         }
 
-        if (jobState === 'supportability_analyzed' || jobState === 'completed') {
+        if (normalizedJobState === 'supportability_analyzed' || normalizedJobState === 'completed') {
             finalizeAnalysisCompletion(message.id || state.analysisJobId);
         } else if (statistics && Object.keys(statistics).length > 0 && !state.analysisComplete) {
             // intermediate progress
         }
 
-        if (jobState === 'failed') {
+        if (normalizedJobState === 'failed') {
             setAnalysisError(message.error || 'Analysis failed');
             setIsAnalyzing(false);
         }
@@ -217,10 +234,11 @@ export default function Step2Analyze() {
                             const updatedJob = await getJob(job.id);
                             if (updatedJob) {
                                 processJobUpdate(updatedJob);
-                                if (updatedJob.state === 'completed' || updatedJob.state === 'supportability_analyzed') {
+                                const normalizedJobState = String(updatedJob.state || '').toLowerCase();
+                                if (normalizedJobState === 'completed' || normalizedJobState === 'supportability_analyzed') {
                                     clearInterval(pollingInterval);
                                     finalizeAnalysisCompletion(job.id);
-                                } else if (updatedJob.state === 'failed') {
+                                } else if (normalizedJobState === 'failed') {
                                     clearInterval(pollingInterval);
                                     if (typeof actions.failAnalysisTimer === 'function') {
                                         actions.failAnalysisTimer(updatedJob.error || 'Analysis failed');
@@ -250,7 +268,7 @@ export default function Step2Analyze() {
             }
         };
 
-        if (state.analysisJobId && !hasFetchedDiscoveryRef.current && !analysisResult?.tables) {
+        if (state.analysisJobId && state.analysisComplete && !hasFetchedDiscoveryRef.current && !analysisResult?.tables) {
             hasFetchedDiscoveryRef.current = true;
             getJobDiscovery(state.analysisJobId).then(discovery => {
                 if (discovery) {
@@ -378,8 +396,7 @@ export default function Step2Analyze() {
     effectiveProgress.analysisTime = getAnalysisTime();
     effectiveProgress.scanDuration = getAnalysisTime();
 
-    // CRITICAL: HOLD LOADER UNTIL REAL BACKEND DATA ARRIVES - PREVENTS PREMATURE FAKE DATA OR RECALCULATIONS
-    const isStillWaiting = isAnalyzing || !state.analysisComplete;
+    const isStillWaiting = !state.analysisComplete && isAnalyzing;
 
     if (isStillWaiting && (selectedFile || localSource)) {
         return (
@@ -505,6 +522,22 @@ export default function Step2Analyze() {
                         </div>
                         
                         {/* Status Success Banner */}
+                        <div style={{ width: '100%', boxSizing: 'border-box', padding: '1rem 1.25rem', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#9a3412' }}>Business Requirements Document</div>
+                                <div style={{ fontSize: '0.75rem', color: '#7c2d12', marginTop: '0.2rem' }}>Generate a detailed report from the completed discovery analysis.</div>
+                                {brdError && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.35rem' }}>{brdError}</div>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                <button className="btn btn-primary" onClick={handleGenerateBrd} disabled={brdLoading || !state.analysisJobId}>
+                                    {brdLoading ? 'Generating...' : 'Generate BRD'}
+                                </button>
+                                <a className="btn btn-secondary" href={state.analysisJobId ? getBrdDownloadUrl(state.analysisJobId) : '#'} target="_blank" rel="noreferrer" style={{ pointerEvents: state.analysisJobId ? 'auto' : 'none', opacity: state.analysisJobId ? 1 : 0.5 }}>
+                                    Download BRD
+                                </a>
+                            </div>
+                        </div>
+
                         <div style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem', padding: '0.875rem 1.25rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#065f46' }}>
                             <CheckCircle2 size={18} color="#10b981" />
                             <div>

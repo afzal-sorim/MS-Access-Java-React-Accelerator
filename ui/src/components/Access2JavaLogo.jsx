@@ -13,7 +13,7 @@ import React from 'react';
  *
  * size: 'sm' | 'md' | 'lg'
  */
-export default function Access2JavaLogo({ size = 'md', compact = false }) {
+export default function Access2JavaLogo({ size = 'md', compact = false, header = false }) {
   const cfg = {
     //           iconH  textSize   numSize   textGap
     sm: { h: 38, t: '1.5rem',  n: '1.8rem',  gap: '2px' },
@@ -28,6 +28,31 @@ export default function Access2JavaLogo({ size = 'md', compact = false }) {
 
   const cupH  = c.h;
   const cupW  = cupH;
+
+  if (header) {
+    return (
+      <span style={{
+        display: 'block',
+        width: '220px',
+        height: '40px',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <img
+          src="/access2java-logo.png"
+          alt="access2Java"
+          style={{
+            position: 'absolute',
+            width: '324px',
+            maxWidth: 'none',
+            height: 'auto',
+            left: '-34px',
+            top: '-9px',
+          }}
+        />
+      </span>
+    );
+  }
 
   return (
     <div style={{

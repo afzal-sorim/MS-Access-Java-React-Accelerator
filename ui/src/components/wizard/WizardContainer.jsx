@@ -520,18 +520,6 @@ export default function WizardContainer() {
                     boxSizing: 'border-box'
                 }}
             >
-                {/* Step Content Container */}
-                <div style={{
-                    background: '#ffffff',
-                    width: '100%',
-                    flex: 1,
-                    minHeight: '650px',
-                    boxSizing: 'border-box'
-                }}>
-                    {renderStepContent()}
-                </div>
-            </div>
-
             {/* ── Step Content Card ── */}
             <div className="card-3d-lift" style={{
                 background: '#fff',
@@ -594,6 +582,8 @@ export default function WizardContainer() {
                         </svg>
                     </button>
                 )}
+            </div>
+
             </main>
 
             {/* ── Error Toast ── */}
