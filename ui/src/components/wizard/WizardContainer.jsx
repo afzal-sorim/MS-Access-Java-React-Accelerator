@@ -177,9 +177,9 @@ export default function WizardContainer() {
                                     <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: '#6366f1' }}>
                                         Workflow Pipeline
                                     </span>
-                                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15133A', marginTop: '0.2rem' }}>
+                                    {/* <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15133A', marginTop: '0.2rem' }}>
                                         Progress Stepper
-                                    </div>
+                                    </div> */}
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3730A3' }}>
