@@ -4737,6 +4737,43 @@ iframe {
     padding-top: 1rem;
     border-top: 1px dashed #e2e8f0;
 }
+.s6-intervention-expanded-desc {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 0.95rem;
+    margin-bottom: 0.95rem;
+}
+.s6-intervention-expanded-text {
+    font-size: 0.78rem;
+    color: #475569;
+    line-height: 1.55;
+    margin: 0;
+}
+.s6-intervention-count-pill {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #4f46e5;
+    background: #eef2ff;
+    padding: 0.08rem 0.45rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+}
+.s6-expand-toggle-btn {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #4f46e5;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    padding: 0.22rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.s6-expand-toggle-btn:hover {
+    background: #e0e7ff;
+    color: #3730a3;
+}
 .s6-intervention-section {
     margin-top: 0.85rem;
 }
