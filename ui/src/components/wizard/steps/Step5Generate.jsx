@@ -577,8 +577,8 @@ function FileExplorer({ jobId, generationComplete }) {
             display: 'grid',
                     gridTemplateColumns: 'minmax(280px, 320px) minmax(0, 1fr)',
             gap: '0',
-            marginTop: '1.5rem',
-            height: '650px',
+            marginTop: 0,
+            height: '100%',
             border: '1px solid var(--color-border)',
             borderRadius: '16px',
             overflow: 'hidden',
@@ -620,7 +620,7 @@ function FileExplorer({ jobId, generationComplete }) {
                     style={{
                         width: '100%',
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: '0.75rem',
                         padding: '0.75rem 1rem',
                         marginBottom: '1rem',
@@ -811,7 +811,7 @@ export default function Step5Generate() {
     const { state, actions } = useWizard();
     const { selectedFile, localSource, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
     const [isGenerating, setIsGenerating] = useState(false);
-    const [activeTab, setActiveTab] = useState('review');
+    const [explorerOpen, setExplorerOpen] = useState(false);
     const wsRef = useRef(null);
     const startedRef = useRef(false);
 
@@ -1062,32 +1062,41 @@ export default function Step5Generate() {
         <div>
             <div className="card-header" style={{ marginBottom: '0' }}>
                 <p className="card-subtitle">
-                    {activeTab === 'review' 
-                        ? 'Review your Access database objects and how they map to the new architecture.' 
-                        : 'Track generation progress and explore your modernized solution files.'}
+                    Review your Access database objects and how they map to the new architecture.
                 </p>
             </div>
 
-            {/* ── Toggle Tab Bar ── */}
-            <div style={{
-                display: 'flex',
-                gap: '0',
-                marginBottom: '1.5rem',
-                background: '#f1f5f9',
-                borderRadius: '12px',
-                padding: '4px',
-                border: '1px solid #e2e8f0',
-            }}>
-                {[
-                    { key: 'review', label: 'Map & Review Objects', icon: '📋' },
-                    { key: 'explorer', label: 'Solution Explorer', icon: '🏗️' },
-                ].map(tab => (
-                    <button
-                        key={tab.key}
-                        disabled={tab.disabled}
-                        onClick={() => !tab.disabled && setActiveTab(tab.key)}
+            <Step4Review
+                onOpenExplorer={() => setExplorerOpen(true)}
+                onOpenErDiagram={() => setExplorerOpen(true)}
+            />
+
+            {explorerOpen && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Solution Explorer"
+                    onClick={() => setExplorerOpen(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '75vw',
+                        height: '100vh',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                        overflow: 'auto',
+                        background: 'rgba(15, 23, 42, 0.22)',
+                    }}
+                >
+                    <div
+                        onClick={(event) => event.stopPropagation()}
                         style={{
-                            flex: 1,
+                            width: 'min(1500px, 94vw)',
+                            height: 'min(820px, calc(100vh - 2rem))',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1172,15 +1181,28 @@ export default function Step5Generate() {
                                 Download Project ZIP
                             </button>
                             <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    actions.setStep(5);
-                                }}
+                                type="button"
+                                onClick={() => setExplorerOpen(false)}
+                                aria-label="Close Solution Explorer"
+                                title="Close Solution Explorer"
+                                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#475569', cursor: 'pointer', padding: '0.35rem 0.6rem', fontSize: '1rem' }}
                             >
-                                View Summary →
+                                X
                             </button>
                         </div>
-                    )}
+                        <div style={{ flex: 1, minHeight: 0 }}>
+                            {(generationJobId || analysisJobId) ? (
+                                <FileExplorer
+                                    jobId={generationJobId || analysisJobId}
+                                    generationComplete={generationComplete}
+                                />
+                            ) : (
+                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#64748b' }}>
+                                    Analysis is still starting. Please try again when a job is available.
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
