@@ -577,8 +577,8 @@ function FileExplorer({ jobId, generationComplete }) {
             display: 'grid',
                     gridTemplateColumns: 'minmax(280px, 320px) minmax(0, 1fr)',
             gap: '0',
-            marginTop: '1.5rem',
-            height: '650px',
+            marginTop: 0,
+            height: '100%',
             border: '1px solid var(--color-border)',
             borderRadius: '16px',
             overflow: 'hidden',
@@ -620,7 +620,7 @@ function FileExplorer({ jobId, generationComplete }) {
                     style={{
                         width: '100%',
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: '0.75rem',
                         padding: '0.75rem 1rem',
                         marginBottom: '1rem',
@@ -811,7 +811,7 @@ export default function Step5Generate() {
     const { state, actions } = useWizard();
     const { selectedFile, localSource, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
     const [isGenerating, setIsGenerating] = useState(false);
-    const [activeTab, setActiveTab] = useState('review');
+    const [explorerOpen, setExplorerOpen] = useState(false);
     const wsRef = useRef(null);
     const startedRef = useRef(false);
 
@@ -1062,122 +1062,74 @@ export default function Step5Generate() {
         <div>
             <div className="card-header" style={{ marginBottom: '0' }}>
                 <p className="card-subtitle">
-                    {activeTab === 'review' 
-                        ? 'Review your Access database objects and how they map to the new architecture.' 
-                        : 'Track generation progress and explore your modernized solution files.'}
+                    Review your Access database objects and how they map to the new architecture.
                 </p>
             </div>
 
-            {/* ── Toggle Tab Bar ── */}
-            <div style={{
-                display: 'flex',
-                gap: '0',
-                marginBottom: '1.5rem',
-                background: '#f1f5f9',
-                borderRadius: '12px',
-                padding: '4px',
-                border: '1px solid #e2e8f0',
-            }}>
-                {[
-                    { key: 'review', label: 'Map & Review Objects', icon: '📋' },
-                    { key: 'explorer', label: 'Solution Explorer', icon: '🏗️' },
-                ].map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+            <Step4Review
+                onOpenExplorer={() => setExplorerOpen(true)}
+                onOpenErDiagram={() => setExplorerOpen(true)}
+            />
+
+            {explorerOpen && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Solution Explorer"
+                    onClick={() => setExplorerOpen(false)}
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '75vw',
+                        height: '100vh',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '1.5rem',
+                        overflow: 'auto',
+                        background: 'rgba(15, 23, 42, 0.22)',
+                    }}
+                >
+                    <div
+                        onClick={(event) => event.stopPropagation()}
                         style={{
-                            flex: 1,
+                            width: 'min(1500px, 94vw)',
+                            height: 'min(820px, calc(100vh - 2rem))',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            padding: '0.7rem 1.25rem',
-                            border: 'none',
-                            borderRadius: '10px',
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            transition: 'all 0.2s ease',
-                            background: activeTab === tab.key
-                                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                                : 'transparent',
-                            color: activeTab === tab.key ? '#fff' : '#64748b',
-                            boxShadow: activeTab === tab.key
-                                ? '0 4px 12px rgba(79, 70, 229, 0.3)'
-                                : 'none',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            background: '#fff',
+                            borderRadius: '14px',
+                            boxShadow: '0 24px 80px rgba(15, 23, 42, 0.35)',
                         }}
                     >
-                        <span style={{ fontSize: '1rem' }}>{tab.icon}</span>
-                        <span>{tab.label}</span>
-                        {tab.key === 'explorer' && !generationComplete && (
-                            <span style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                background: '#f59e0b',
-                                animation: 'pulse 1.5s ease-in-out infinite',
-                                marginLeft: '0.25rem',
-                            }} />
-                        )}
-                        {tab.key === 'explorer' && generationComplete && (
-                            <span style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                background: '#10b981',
-                                marginLeft: '0.25rem',
-                            }} />
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.4; }
-                }
-            `}</style>
-
-            {/* ── Tab Content ── */}
-            {activeTab === 'review' && (
-                <Step4Review />
-            )}
-
-            {activeTab === 'explorer' && (
-                <div>
-                   
-
-                    {/* Solution Explorer */}
-                    {(generationJobId || analysisJobId) && (
-                        <FileExplorer jobId={generationJobId || analysisJobId} generationComplete={generationComplete} />
-                    )}
-
-                    {!generationComplete && (
-                        <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                                <span>
-                                    {isGenerating ? 'Generating project...' : 'Starting generation...'}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {generationComplete && generationResult && (
-                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
+                            <strong style={{ color: '#1e293b' }}>Solution Explorer</strong>
                             <button
-                                className="btn btn-primary"
-                                onClick={() => downloadResult(generationJobId, config.project_name)}
+                                type="button"
+                                onClick={() => setExplorerOpen(false)}
+                                aria-label="Close Solution Explorer"
+                                title="Close Solution Explorer"
+                                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#475569', cursor: 'pointer', padding: '0.35rem 0.6rem', fontSize: '1rem' }}
                             >
-                                Download Project ZIP
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    actions.setStep(5);
-                                }}
-                            >
-                                View Summary →
+                                X
                             </button>
                         </div>
-                    )}
+                        <div style={{ flex: 1, minHeight: 0 }}>
+                            {(generationJobId || analysisJobId) ? (
+                                <FileExplorer
+                                    jobId={generationJobId || analysisJobId}
+                                    generationComplete={generationComplete}
+                                />
+                            ) : (
+                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#64748b' }}>
+                                    Analysis is still starting. Please try again when a job is available.
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 

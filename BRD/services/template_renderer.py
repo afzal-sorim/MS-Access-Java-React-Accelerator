@@ -384,8 +384,14 @@ def render_brd_template(
     # -------------------------------------------------------------
     # 20. DATA EXPORT AND IMPORT
     # -------------------------------------------------------------
+    export_import_rows = [
+        f'<tr><td>Excel / spreadsheet</td><td>{reports_count} report(s), {queries_count} query object(s), and {tables_count} business table(s) are available as export sources.</td><td>Validate columns, data types, and duplicate keys before import.</td></tr>',
+        f'<tr><td>Delimited text</td><td>Backend analysis identified {tables_count} business table(s) and {queries_count} query object(s) suitable for delimited export.</td><td>Validate encoding, delimiters, nulls, and required fields.</td></tr>',
+        f'<tr><td>Duplicate handling</td><td>{len(relationships)} relationship(s) were extracted for referential consistency checks.</td><td>Reject or report duplicate keys before persistence.</td></tr>',
+    ]
     c20 = (
-        f'<p>Data export/import requirements including Excel export, text file export, import validation rules, and duplicate record handling.</p>'
+        f'<p>Data export/import requirements derived from {tables_count} business table(s), {queries_count} query object(s), {reports_count} report(s), and {len(relationships)} relationship(s) discovered by backend analysis.</p>\n'
+        f'<div class="table-wrapper"><table class="table-export-import"><thead><tr><th>Channel</th><th>Detected source data</th><th>Validation requirement</th></tr></thead><tbody>{"".join(export_import_rows)}</tbody></table></div>'
     )
     add_section("SECTION_20_DATA_EXPORT_IMPORT", "20", "Data Export and Import", c20)
 
@@ -608,8 +614,16 @@ def render_brd_template(
     # -------------------------------------------------------------
     # 30. USER INTERFACE REQUIREMENTS
     # -------------------------------------------------------------
+    ui_rows = []
+    for form in forms:
+        ui_rows.append(
+            f'<tr><td><code>{esc(form.get("name", "Form"))}</code></td><td>{esc(form.get("record_source", "Unbound Dialog"))}</td><td>{form.get("controls_count", 0)}</td><td>{esc(form.get("events_summary", "Standard UI actions"))}</td></tr>'
+        )
+    if not ui_rows:
+        ui_rows.append('<tr><td colspan="4"><em>No form objects were returned by backend analysis.</em></td></tr>')
     c30 = (
-        f'<p>UI design principles, form navigation, search screens, filter controls, error messages, and notification toasts.</p>'
+        f'<p>UI requirements derived from {forms_count} form(s) returned by backend analysis. Each row preserves the source form binding and interaction metadata.</p>\n'
+        f'<div class="table-wrapper"><table class="table-ui"><thead><tr><th>Form</th><th>Record source</th><th>Controls</th><th>Detected events</th></tr></thead><tbody>{"".join(ui_rows)}</tbody></table></div>'
     )
     add_section("SECTION_30_UI_REQUIREMENTS", "30", "User Interface Requirements", c30)
 
@@ -637,16 +651,34 @@ def render_brd_template(
     # -------------------------------------------------------------
     # 32. REPORT REQUIREMENTS
     # -------------------------------------------------------------
+    report_requirement_rows = []
+    for report in reports:
+        groups = report.get("groups") or []
+        group_names = [g.get("expression") for g in groups if isinstance(g, dict) and g.get("expression")]
+        summary_fields = report.get("summary_fields") or []
+        report_requirement_rows.append(
+            f'<tr><td><code>{esc(report.get("name", "Report"))}</code></td><td>{esc(report.get("record_source", "Unbound Report"))}</td><td>{esc(", ".join(group_names) or "Sequential listing")}</td><td>{esc(", ".join(summary_fields[:4]) or "None detected")}</td></tr>'
+        )
+    if not report_requirement_rows:
+        report_requirement_rows.append('<tr><td colspan="4"><em>No report objects were returned by backend analysis.</em></td></tr>')
     c32 = (
-        f'<p>Report inventory ({reports_count} reports), report parameters, formatting, print preview, and distribution specs.</p>'
+        f'<p>Report requirements derived from the {reports_count} report object(s) returned by backend analysis.</p>\n'
+        f'<div class="table-wrapper"><table class="table-report-requirements"><thead><tr><th>Report</th><th>Record source</th><th>Grouping</th><th>Summary fields</th></tr></thead><tbody>{"".join(report_requirement_rows)}</tbody></table></div>'
     )
     add_section("SECTION_32_REPORT_REQUIREMENTS", "32", "Report Requirements", c32)
 
     # -------------------------------------------------------------
     # 33. SECURITY REQUIREMENTS
     # -------------------------------------------------------------
+    security_rows = [
+        f'<tr><td>Access object exposure</td><td>{tables_count} business table(s), {queries_count} query object(s), and {len(runtime_objects)} runtime object(s) require authorization in the target application.</td></tr>',
+        f'<tr><td>Data integrity</td><td>Enforce the {len(relationships)} extracted relationship(s) and validate required fields before writes.</td></tr>',
+        f'<tr><td>Detected external access</td><td>{"SQL Server / ODBC indicators detected" if feature_flags.get("has_sql_server") else "No SQL Server / ODBC indicators detected"}; credentials must remain outside generated source and reports.</td></tr>',
+        f'<tr><td>Auditability</td><td>Protect and audit changes to the {tables_count} analyzed business table(s), including actor, timestamp, and operation.</td></tr>',
+    ]
     c33 = (
-        f'<p>Authentication, authorization, database security, password encryption, sensitive data protection, and audit trail.</p>'
+        f'<p>Security requirements grounded in the analyzed source inventory. Authentication and authorization remain target-system controls; the values below describe the data that must be protected.</p>\n'
+        f'<div class="table-wrapper"><table class="table-security"><thead><tr><th>Control area</th><th>Backend-derived requirement</th></tr></thead><tbody>{"".join(security_rows)}</tbody></table></div>'
     )
     add_section("SECTION_33_SECURITY", "33", "Security Requirements", c33)
 
@@ -656,7 +688,13 @@ def render_brd_template(
     c34 = (
         f'<p>Application errors, database constraint errors, data validation failures, and recovery procedures.</p>'
     )
-    add_section("SECTION_34_ERROR_HANDLING", "34", "Error Handling and Exception Management", c34)
+    add_section(
+        "SECTION_34_ERROR_HANDLING",
+        "34",
+        "Error Handling and Exception Management",
+        c34,
+        bool(facts.get("error_handling_requirements")),
+    )
 
     # -------------------------------------------------------------
     # 35. AUDIT AND TRACEABILITY
@@ -664,7 +702,13 @@ def render_brd_template(
     c35 = (
         f'<p>Record creation tracking, modification timestamps, user accountability, and administrative change logs.</p>'
     )
-    add_section("SECTION_35_AUDIT_TRACEABILITY", "35", "Audit and Traceability", c35)
+    add_section(
+        "SECTION_35_AUDIT_TRACEABILITY",
+        "35",
+        "Audit and Traceability",
+        c35,
+        bool(facts.get("audit_requirements")),
+    )
 
     # -------------------------------------------------------------
     # 36. BACKUP, RECOVERY & BUSINESS CONTINUITY
@@ -672,13 +716,26 @@ def render_brd_template(
     c36 = (
         f'<p>Database backup frequency, retention policies, restore testing, RPO (&lt; 1 hour), and RTO (&lt; 4 hours).</p>'
     )
-    add_section("SECTION_36_BACKUP_RECOVERY", "36", "Backup, Recovery and Business Continuity", c36)
+    add_section(
+        "SECTION_36_BACKUP_RECOVERY",
+        "36",
+        "Backup, Recovery and Business Continuity",
+        c36,
+        bool(facts.get("backup_requirements")),
+    )
 
     # -------------------------------------------------------------
     # 37. INTEGRATION REQUIREMENTS
     # -------------------------------------------------------------
+    integration_rows = [
+        f'<tr><td>File and spreadsheet exchange</td><td>Export/import workflows are required for the {tables_count} business table(s) and {reports_count} report(s) identified by analysis.</td><td>Detected from report/table inventory</td></tr>',
+        f'<tr><td>External database</td><td>{"Support linked tables, ODBC connectivity, and credential isolation." if feature_flags.get("has_sql_server") else "No ODBC or SQL Server indicators were detected in the analyzed objects."}</td><td>{"Detected" if feature_flags.get("has_sql_server") else "Not detected"}</td></tr>',
+        f'<tr><td>Email / Outlook</td><td>{"Support report attachments and Outlook/MAPI communication." if feature_flags.get("has_outlook") else "No Outlook or email automation indicators were detected."}</td><td>{"Detected" if feature_flags.get("has_outlook") else "Not detected"}</td></tr>',
+        f'<tr><td>Runtime-generated data</td><td>{len(runtime_objects)} runtime object(s) were discovered and must be represented in integration contracts where applicable.</td><td>Backend inventory</td></tr>',
+    ]
     c37 = (
-        f'<p>Integrations with file system, Excel data export/import, ODBC connections, and external REST services.</p>'
+        f'<p>Integration requirements derived from backend feature detection and the extracted source inventory.</p>\n'
+        f'<div class="table-wrapper"><table class="table-integrations"><thead><tr><th>Integration</th><th>Requirement</th><th>Detection</th></tr></thead><tbody>{"".join(integration_rows)}</tbody></table></div>'
     )
     add_section("SECTION_37_INTEGRATIONS", "37", "Integration Requirements", c37)
 
@@ -686,13 +743,15 @@ def render_brd_template(
     # 38. TECHNICAL ARCHITECTURE
     # -------------------------------------------------------------
     c38 = (
-        f'<p>Architectural breakdown of the uploaded database application <code>{esc(source_file)}</code>.</p>\n'
+        f'<p>Technical flow derived from the uploaded database application <code>{esc(source_file)}</code> and the backend-discovered object inventory.</p>\n'
         f'<div class="arch-diagram">\n'
-        f'  <div class="arch-box">User Interface Layer ({forms_count} Access Forms)</div>\n'
-        f'  <div class="arch-arrow">↓ Event Handlers & Control Bindings</div>\n'
-        f'  <div class="arch-box">Business Logic Layer ({vba_count} VBA Code Modules & {macros_count} Macros)</div>\n'
-        f'  <div class="arch-arrow">↓ SQL Query Engine & DAO Layer</div>\n'
-        f'  <div class="arch-box">Data Storage Layer ({tables_count} Business Tables & {queries_count} Queries)</div>\n'
+        f'  <div class="arch-node"><div class="arch-node-title">1. User Interface Layer</div><div class="arch-node-detail">{forms_count} Access form(s), including controls, record sources, and user events.</div></div>\n'
+        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
+        f'  <div class="arch-node"><div class="arch-node-title">2. Application and Business Logic</div><div class="arch-node-detail">{vba_count} VBA module(s), {macros_count} macro(s), and {len(runtime_objects)} runtime object(s) handling application behavior.</div></div>\n'
+        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
+        f'  <div class="arch-node"><div class="arch-node-title">3. Query and Data Access</div><div class="arch-node-detail">{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s), and {len(relationships)} relationship(s) supporting retrieval and integrity.</div></div>\n'
+        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
+        f'  <div class="arch-node"><div class="arch-node-title">4. Data Storage Layer</div><div class="arch-node-detail">{tables_count} business table(s), {system_tables_count} system table(s), and {sum(len(table.get("columns") or []) for table in tables)} analyzed field(s).</div></div>\n'
         f'</div>'
     )
     add_section("SECTION_38_TECHNICAL_ARCHITECTURE", "38", "Technical Architecture", c38)
@@ -700,26 +759,115 @@ def render_brd_template(
     # -------------------------------------------------------------
     # 39. DATA ARCHITECTURE & SPECIFICATIONS
     # -------------------------------------------------------------
-    c39 = (
-        f'<p>Data specifications for all {tables_count} business tables, primary keys, foreign key constraints, and field validation properties extracted from <code>{esc(source_file)}</code>.</p>'
+    c39_rows = []
+    for table in tables:
+        table_name = table.get("name", "Table")
+        columns = table.get("columns") or []
+        if not columns:
+            c39_rows.append(
+                f'<tr><td><code>{esc(table_name)}</code></td><td colspan="7"><em>No column metadata returned by backend analysis.</em></td></tr>'
+            )
+            continue
+        for column in columns:
+            column_name = column.get("name", "Field")
+            key_flags = []
+            if column.get("is_pk"):
+                key_flags.append("PK")
+            if column.get("is_fk"):
+                key_flags.append("FK")
+            key_text = ", ".join(key_flags) or "-"
+            c39_rows.append(
+                f'<tr><td><code>{esc(table_name)}</code></td><td><code>{esc(column_name)}</code></td>'
+                f'<td>{esc(column.get("access_type") or column.get("type") or "Unknown")}</td>'
+                f'<td><code>{esc(column.get("pg_type") or "Unknown")}</code></td>'
+                f'<td>{key_text}</td><td>{esc(column.get("fk_target") or "-")}</td>'
+                f'<td>{esc(column.get("size") or "-")}</td><td>{esc(column.get("description") or column.get("validation_rule") or "-")}</td></tr>\n'
+            )
+
+    c39_relationship_rows = []
+    for relationship in relationships:
+        parent_table = relationship.get("parent_table", "Parent")
+        child_table = relationship.get("child_table", "Child")
+        parent_columns = ", ".join(relationship.get("parent_columns") or []) or "-"
+        child_columns = ", ".join(relationship.get("child_columns") or []) or "-"
+        integrity = "Enforced" if relationship.get("enforce_integrity") else "Not specified"
+        if relationship.get("inferred"):
+            integrity += " (inferred)"
+        c39_relationship_rows.append(
+            f'<tr><td><code>{esc(parent_table)}</code></td><td><code>{esc(parent_columns)}</code></td>'
+            f'<td><code>{esc(child_table)}</code></td><td><code>{esc(child_columns)}</code></td>'
+            f'<td>{esc(integrity)}</td><td>{"Yes" if relationship.get("cascade_update") else "No"}</td><td>{"Yes" if relationship.get("cascade_delete") else "No"}</td></tr>\n'
+        )
+
+    c39_schema = (
+        f'<div class="table-wrapper"><table class="table-data-architecture"><thead><tr>'
+        f'<th>Table</th><th>Field</th><th>Access Type</th><th>PostgreSQL Type</th><th>Key</th><th>FK Target</th><th>Size</th><th>Validation / Description</th>'
+        f'</tr></thead><tbody>{"".join(c39_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_39_DATA_MIGRATION", "39", "Data Architecture and Specifications", c39)
+    if c39_relationship_rows:
+        c39_schema += (
+            f'<h2 class="sub-title">Referential Relationships</h2>'
+            f'<div class="table-wrapper"><table class="table-data-relationships"><thead><tr>'
+            f'<th>Parent Table</th><th>Parent Field</th><th>Child Table</th><th>Child Field</th><th>Integrity</th><th>Cascade Update</th><th>Cascade Delete</th>'
+            f'</tr></thead><tbody>{"".join(c39_relationship_rows)}</tbody></table></div>'
+        )
+    c39 = (
+        f'<p>Schema specification extracted from <code>{esc(source_file)}</code>: {tables_count} business table(s), {sum(len(table.get("columns") or []) for table in tables)} field(s), and {len(relationships)} referential relationship(s).</p>\n'
+        f'{c39_schema}'
+    )
+    add_section(
+        "SECTION_39_DATA_MIGRATION",
+        "39",
+        "Data Architecture and Specifications",
+        c39,
+        bool(c39_rows or c39_relationship_rows),
+    )
 
     # -------------------------------------------------------------
     # 40. SYSTEM OPERATIONAL REQUIREMENTS
     # -------------------------------------------------------------
+    source_size = facts.get("source_file_size") or 0
+    operational_rows = [
+        f'<tr><td>Source and storage</td><td><code>{esc(source_file)}</code> ({source_size:,} bytes)</td><td>Preserve the source snapshot, isolate generated artifacts, and track the analyzed version.</td></tr>',
+        f'<tr><td>Data integrity</td><td>{tables_count} business table(s), {len(relationships)} relationship(s), and {sum(len(table.get("columns") or []) for table in tables)} field(s)</td><td>Enforce primary keys, foreign keys, required fields, type mappings, and transaction boundaries.</td></tr>',
+        f'<tr><td>Query processing</td><td>{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s), and {facts.get("dependency_edges", 0)} dependency edge(s)</td><td>Validate query results, parameters, joins, filters, and execution plans after migration.</td></tr>',
+        f'<tr><td>User workflow</td><td>{forms_count} form(s), {reports_count} report(s), and {macros_count} macro(s)</td><td>Monitor form navigation, validation events, report generation, and automated workflows.</td></tr>',
+        f'<tr><td>Business logic</td><td>{vba_count} VBA module(s), {facts.get("vba_loc", 0):,} VBA line(s), and {len(runtime_objects)} runtime object(s)</td><td>Log failures, preserve routine behavior, and provide recovery for failed operations.</td></tr>',
+    ]
     c40 = (
-        f'<p>System operational requirements, database integrity rules, workstation environment specifications, and file maintenance protocols for <code>{esc(source_file)}</code>.</p>'
+        f'<p>Operational context derived from backend analysis of <code>{esc(source_file)}</code>. The requirements below map the discovered inventory to migration, runtime, monitoring, and maintenance responsibilities.</p>\n'
+        f'<div class="table-wrapper"><table class="table-operational"><thead><tr><th>Operational area</th><th>Backend evidence</th><th>Requirement</th></tr></thead><tbody>{"".join(operational_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_40_SYSTEM_MODERNIZATION", "40", "System Operational Requirements", c40)
+    add_section(
+        "SECTION_40_SYSTEM_MODERNIZATION",
+        "40",
+        "System Operational Requirements",
+        c40,
+        total_discovered_objects > 0,
+    )
 
     # -------------------------------------------------------------
     # 41. TESTING & ACCEPTANCE
     # -------------------------------------------------------------
+    testing_rows = [
+        f'<tr><td>Schema and migration</td><td>{tables_count} table(s), {sum(len(table.get("columns") or []) for table in tables)} field(s), {len(relationships)} relationship(s)</td><td>Compare names, types, keys, null handling, and relationship behavior with the extracted source model.</td></tr>',
+        f'<tr><td>Query fidelity</td><td>{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s)</td><td>Execute representative filters, joins, parameters, aggregates, and empty-result cases.</td></tr>',
+        f'<tr><td>UI workflow</td><td>{forms_count} form(s) and {sum(form.get("controls_count", 0) for form in forms)} detected control(s)</td><td>Verify navigation, validation, record create/update/delete, search, and error states.</td></tr>',
+        f'<tr><td>Reporting</td><td>{reports_count} report(s)</td><td>Compare record sources, grouping, summary fields, formatting, export, and print/PDF output.</td></tr>',
+        f'<tr><td>Automation and logic</td><td>{vba_count} VBA module(s), {macros_count} macro(s), {len(runtime_objects)} runtime object(s)</td><td>Run translated workflows and compare outputs, side effects, failure handling, and audit events.</td></tr>',
+        f'<tr><td>Dependency and regression</td><td>{len(facts.get("dependency_nodes", []))} dependency node(s), {facts.get("dependency_edges", 0)} edge(s), {len(facts.get("cycles", []))} cycle(s)</td><td>Test high-impact dependencies first and re-run regression tests after schema or service changes.</td></tr>',
+    ]
     c41 = (
-        f'<p>Testing and validation strategy covering schema verification, query output fidelity, form interaction testing, and VBA routine execution validation.</p>'
+        f'<p>Acceptance strategy based on the objects and relationships returned by backend analysis. Each test area below has a measurable source scope and a corresponding verification activity.</p>\n'
+        f'<div class="table-wrapper"><table class="table-testing"><thead><tr><th>Test area</th><th>Source scope</th><th>Acceptance check</th></tr></thead><tbody>{"".join(testing_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_41_TESTING_ACCEPTANCE", "41", "Testing and Acceptance Requirements", c41)
+    add_section(
+        "SECTION_41_TESTING_ACCEPTANCE",
+        "41",
+        "Testing and Acceptance Requirements",
+        c41,
+        total_discovered_objects > 0,
+    )
 
     # -------------------------------------------------------------
     # 42. DEPLOYMENT REQUIREMENTS
@@ -727,7 +875,13 @@ def render_brd_template(
     c42 = (
         f'<p>Deployment environment requirements, file distribution protocols, configuration management, and database integrity backup standards.</p>'
     )
-    add_section("SECTION_42_DEPLOYMENT", "42", "Deployment Requirements", c42)
+    add_section(
+        "SECTION_42_DEPLOYMENT",
+        "42",
+        "Deployment Requirements",
+        c42,
+        bool(facts.get("deployment_requirements")),
+    )
 
     # -------------------------------------------------------------
     # 43. TRAINING AND CHANGE MANAGEMENT
@@ -735,15 +889,56 @@ def render_brd_template(
     c43 = (
         f'<p>User operational guidance, administrative documentation, support escalation path, and system adoption guidelines.</p>'
     )
-    add_section("SECTION_43_TRAINING", "43", "Training and Change Management", c43)
+    add_section(
+        "SECTION_43_TRAINING",
+        "43",
+        "Training and Change Management",
+        c43,
+        bool(facts.get("training_requirements")),
+    )
 
     # -------------------------------------------------------------
     # 44. OPERATIONAL SUPPORT
     # -------------------------------------------------------------
+    supportability_items = facts.get("supportability_items", []) or []
+    support_status_counts = {}
+    support_category_counts = {}
+    for item in supportability_items:
+        status = item.get("status") or "Unknown"
+        category = item.get("category") or "Uncategorized"
+        support_status_counts[status] = support_status_counts.get(status, 0) + 1
+        support_category_counts[category] = support_category_counts.get(category, 0) + 1
+
+    support_summary_rows = []
+    for status, count in sorted(support_status_counts.items()):
+        support_summary_rows.append(
+            f'<tr><td>{esc(status)}</td><td>{count}</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr>'
+        )
+    support_inventory_rows = []
+    for item in supportability_items:
+        confidence = item.get("confidence")
+        confidence_text = f"{confidence:.0%}" if isinstance(confidence, (int, float)) else "-"
+        support_inventory_rows.append(
+            f'<tr><td><code>{esc(item.get("object_name") or "Unknown object")}</code></td>'
+            f'<td>{esc(item.get("category") or "-")}</td><td>{esc(item.get("status") or "-")}</td>'
+            f'<td>{esc(item.get("complexity") or "-")}</td><td>{esc(item.get("risk") or "-")}</td>'
+            f'<td>{esc(item.get("conversion") or "-")}</td><td>{confidence_text}</td>'
+            f'<td>{esc(item.get("reason") or "-")}</td></tr>\n'
+        )
     c44 = (
-        f'<p>Application maintenance, database compact & repair protocols, operational incident management, and monitoring.</p>'
+        f'<p>Operational support inventory derived from {len(supportability_items)} backend supportability result(s). The tables below identify conversion status, risk, complexity, confidence, and the reason each source object requires support attention.</p>\n'
+        f'<h2 class="sub-title">Supportability Summary</h2>\n'
+        f'<div class="table-wrapper"><table class="table-support-summary"><thead><tr><th>Status</th><th>Count</th><th>Operational interpretation</th></tr></thead><tbody>{"".join(support_summary_rows)}</tbody></table></div>\n'
+        f'<h2 class="sub-title">Object Support Inventory</h2>\n'
+        f'<div class="table-wrapper"><table class="table-support-inventory"><thead><tr><th>Object</th><th>Category</th><th>Status</th><th>Complexity</th><th>Risk</th><th>Conversion</th><th>Confidence</th><th>Reason</th></tr></thead><tbody>{"".join(support_inventory_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_44_OPERATIONAL_SUPPORT", "44", "Operational Support", c44)
+    add_section(
+        "SECTION_44_OPERATIONAL_SUPPORT",
+        "44",
+        "Operational Support",
+        c44,
+        bool(supportability_items),
+    )
 
     # -------------------------------------------------------------
     # 45. RISKS, ASSUMPTIONS & CONSTRAINTS
@@ -757,7 +952,13 @@ def render_brd_template(
         f'<tr><td>RSK-002</td><td>Form Complexity</td><td>Multi-control interactive form layouts across {forms_count} form screens</td><td>Comprehensive control inventory and record source mapping</td></tr>'
         f'</tbody></table></div>'
     )
-    add_section("SECTION_45_RISKS_CONSTRAINTS", "45", "Risks, Assumptions and Constraints", c45)
+    add_section(
+        "SECTION_45_RISKS_CONSTRAINTS",
+        "45",
+        "Risks, Assumptions and Constraints",
+        c45,
+        total_discovered_objects > 0,
+    )
 
     # -------------------------------------------------------------
     # 46. REQUIREMENTS TRACEABILITY MATRIX
@@ -774,7 +975,13 @@ def render_brd_template(
         f'<thead><tr><th>Req ID</th><th>Functional Scope</th><th>Access Source Object</th><th>Specification Status</th><th>Verification</th></tr></thead>'
         f'<tbody>{"".join(c46_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_46_TRACEABILITY_MATRIX", "46", "Requirements Traceability Matrix", c46)
+    add_section(
+        "SECTION_46_TRACEABILITY_MATRIX",
+        "46",
+        "Requirements Traceability Matrix",
+        c46,
+        bool(c46_rows),
+    )
 
     # -------------------------------------------------------------
     # 47. ACCEPTANCE CRITERIA
@@ -787,7 +994,13 @@ def render_brd_template(
         f'<li>All {vba_count} VBA code modules ({facts.get("vba_loc", 0):,} LOC) cataloged with deep behavioral procedure specifications.</li>'
         f'</ol>'
     )
-    add_section("SECTION_47_ACCEPTANCE_CRITERIA", "47", "Acceptance Criteria", c47)
+    add_section(
+        "SECTION_47_ACCEPTANCE_CRITERIA",
+        "47",
+        "Acceptance Criteria",
+        c47,
+        total_discovered_objects > 0,
+    )
 
     # -------------------------------------------------------------
     # 48. APPENDICES (Appendices A to S — Deep & Non-Generic Breakdown)
@@ -1078,7 +1291,13 @@ def render_brd_template(
     c48 = (
         app_a_html + app_b_html + app_c_html + app_d_html + app_e_html + app_f_html + app_g_html + app_h_html + app_i_html + app_j_html + app_k_html + app_l_html + app_m_html + app_n_html + app_o_s_html
     )
-    add_section("SECTION_48_APPENDICES", "48", "Appendices", c48)
+    add_section(
+        "SECTION_48_APPENDICES",
+        "48",
+        "Appendices",
+        c48,
+        total_discovered_objects > 0,
+    )
 
     # -------------------------------------------------------------
     # BUILD DYNAMIC TABLE OF CONTENTS
