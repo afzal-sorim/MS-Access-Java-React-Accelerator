@@ -52,7 +52,7 @@ body {
 
 .page {
     width: min(var(--page-width), 100%);
-    min-height: var(--page-height);
+    min-height: 0;
     margin: 0;
     background: var(--white);
     border: 1px solid #d4dcda;
@@ -88,10 +88,10 @@ body {
 }
 
 .page-inner {
-    padding: 38px 28px;
+    padding: 38px 42px;
     display: flex;
     flex-direction: column;
-    min-height: 100%;
+    min-height: 0;
     width: 100%;
     box-sizing: border-box;
 }
@@ -102,6 +102,11 @@ body {
     flex-direction: column;
     justify-content: space-between;
     background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #eef5ff 100%);
+}
+
+.cover {
+    break-after: page;
+    page-break-after: always;
 }
 
 .cover-top {
@@ -385,6 +390,57 @@ td code, th code {
 .er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
 .er-card-rel-tag { font-size: 9.5px; color: #334155; }
 
+/* Technical architecture flow */
+.arch-diagram {
+    width: 100%;
+    max-width: 700px;
+    margin: 24px auto 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.arch-node {
+    width: min(100%, 560px);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--primary);
+    border-radius: 6px;
+    background: #f8fbfb;
+    overflow: hidden;
+    break-inside: avoid;
+}
+.arch-node:nth-of-type(4n + 1) { border-left-color: #0faaa3; }
+.arch-node:nth-of-type(4n + 2) { border-left-color: #2563eb; }
+.arch-node:nth-of-type(4n + 3) { border-left-color: #7c3aed; }
+.arch-node:nth-of-type(4n + 4) { border-left-color: #c2410c; }
+.arch-node-title {
+    padding: 11px 16px 4px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+.arch-node-detail {
+    padding: 0 16px 11px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.arch-connector {
+    position: relative;
+    width: 2px;
+    height: 30px;
+    background: var(--primary);
+}
+.arch-connector::after {
+    content: "";
+    position: absolute;
+    left: -4px;
+    bottom: 0;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    transform: rotate(45deg);
+}
+
 /* Table of Contents Styling */
 .toc-container { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 22px 28px; margin: 20px 0 30px; width: 100%; box-sizing: border-box; }
 .toc-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); margin-bottom: 16px; border-bottom: 2px solid var(--primary-light); padding-bottom: 8px; }
@@ -428,18 +484,11 @@ td code, th code {
 
     .page {
         width: 210mm;
-        min-height: 297mm;
+        min-height: 0;
         margin: 0;
         border: 0;
         border-radius: 0;
         box-shadow: none;
-        break-after: page;
-        page-break-after: always;
-    }
-
-    .page:last-child {
-        break-after: auto;
-        page-break-after: auto;
     }
 
     .page::before,
@@ -513,16 +562,11 @@ td code, th code {
 <li class="toc-item"><a href="#sec_31">31. Form Requirements</a></li>
 <li class="toc-item"><a href="#sec_32">32. Report Requirements</a></li>
 <li class="toc-item"><a href="#sec_33">33. Security Requirements</a></li>
-<li class="toc-item"><a href="#sec_34">34. Error Handling and Exception Management</a></li>
-<li class="toc-item"><a href="#sec_35">35. Audit and Traceability</a></li>
-<li class="toc-item"><a href="#sec_36">36. Backup, Recovery and Business Continuity</a></li>
 <li class="toc-item"><a href="#sec_37">37. Integration Requirements</a></li>
 <li class="toc-item"><a href="#sec_38">38. Technical Architecture</a></li>
 <li class="toc-item"><a href="#sec_39">39. Data Architecture and Specifications</a></li>
 <li class="toc-item"><a href="#sec_40">40. System Operational Requirements</a></li>
 <li class="toc-item"><a href="#sec_41">41. Testing and Acceptance Requirements</a></li>
-<li class="toc-item"><a href="#sec_42">42. Deployment Requirements</a></li>
-<li class="toc-item"><a href="#sec_43">43. Training and Change Management</a></li>
 <li class="toc-item"><a href="#sec_44">44. Operational Support</a></li>
 <li class="toc-item"><a href="#sec_45">45. Risks, Assumptions and Constraints</a></li>
 <li class="toc-item"><a href="#sec_46">46. Requirements Traceability Matrix</a></li>
@@ -737,7 +781,8 @@ td code, th code {
   </div>
   <div class="section-number">SECTION 20</div>
   <h1 class="section-title">Data Export and Import</h1>
-  <p>Data export/import requirements including Excel export, text file export, import validation rules, and duplicate record handling.</p>
+  <p>Data export/import requirements derived from 14 business table(s), 19 query object(s), 8 report(s), and 16 relationship(s) discovered by backend analysis.</p>
+<div class="table-wrapper"><table class="table-export-import"><thead><tr><th>Channel</th><th>Detected source data</th><th>Validation requirement</th></tr></thead><tbody><tr><td>Excel / spreadsheet</td><td>8 report(s), 19 query object(s), and 14 business table(s) are available as export sources.</td><td>Validate columns, data types, and duplicate keys before import.</td></tr><tr><td>Delimited text</td><td>Backend analysis identified 14 business table(s) and 19 query object(s) suitable for delimited export.</td><td>Validate encoding, delimiters, nulls, and required fields.</td></tr><tr><td>Duplicate handling</td><td>16 relationship(s) were extracted for referential consistency checks.</td><td>Reject or report duplicate keys before persistence.</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 20 &bull; Data Export and Import</span>
@@ -1812,7 +1857,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 30</div>
   <h1 class="section-title">User Interface Requirements</h1>
-  <p>UI design principles, form navigation, search screens, filter controls, error messages, and notification toasts.</p>
+  <p>UI requirements derived from 13 form(s) returned by backend analysis. Each row preserves the source form binding and interaction metadata.</p>
+<div class="table-wrapper"><table class="table-ui"><thead><tr><th>Form</th><th>Record source</th><th>Controls</th><th>Detected events</th></tr></thead><tbody><tr><td><code>Raporty</code></td><td>Unbound Dialog</td><td>12</td><td>Standard UI actions</td></tr><tr><td><code>Produkty</code></td><td>Produkty</td><td>22</td><td>Standard UI actions</td></tr><tr><td><code>Formularze</code></td><td>Unbound Dialog</td><td>7</td><td>OnActivate</td></tr><tr><td><code>Klienci</code></td><td>Klienci</td><td>26</td><td>Standard UI actions</td></tr><tr><td><code>Narzędzia</code></td><td>Unbound Dialog</td><td>13</td><td>OnActivate</td></tr><tr><td><code>Adresy podformularz</code></td><td>Adresy</td><td>16</td><td>Standard UI actions</td></tr><tr><td><code>Produkty w koszyku podformularz</code></td><td>SELECT [Produkty w koszyku].[id_klienta], [Produkty w koszyku].[nazwa], [Produkty w koszyku].[opis], [Produkty w koszyku].[cena] FROM [Produkty w koszyku]; </td><td>4</td><td>Standard UI actions</td></tr><tr><td><code>Produkty_Kategorie podformularz</code></td><td>SELECT [Produkty_Kategorie].[id_produktu], [Produkty_Kategorie].[id_kategorii] FROM Produkty_Kategorie; </td><td>3</td><td>Standard UI actions</td></tr><tr><td><code>Obniżka Ceny</code></td><td>Unbound Dialog</td><td>14</td><td>Standard UI actions</td></tr><tr><td><code>BazaDanych</code></td><td>Unbound Dialog</td><td>7</td><td>OnActivate</td></tr><tr><td><code>Generator</code></td><td>Unbound Dialog</td><td>12</td><td>OnActivate</td></tr><tr><td><code>Magazyn</code></td><td>Stan_Magazynu</td><td>11</td><td>Standard UI actions</td></tr><tr><td><code>Menu</code></td><td>Unbound Dialog</td><td>5</td><td>OnActivate</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 30 &bull; User Interface Requirements</span>
@@ -1860,7 +1906,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 32</div>
   <h1 class="section-title">Report Requirements</h1>
-  <p>Report inventory (8 reports), report parameters, formatting, print preview, and distribution specs.</p>
+  <p>Report requirements derived from the 8 report object(s) returned by backend analysis.</p>
+<div class="table-wrapper"><table class="table-report-requirements"><thead><tr><th>Report</th><th>Record source</th><th>Grouping</th><th>Summary fields</th></tr></thead><tbody><tr><td><code>Produkty z niskim stanem</code></td><td>Produkty z niskim stanem</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Miasta z największą ilością zamówień</code></td><td>Miasta z największą ilością zamówień</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Wydatki wg wieku</code></td><td>Wydatki wg wieku</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Ilosc klientów wg płci</code></td><td>Ilosc klientów wg płci</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Diagram relacji</code></td><td>Unbound Report</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Klienci wydający najwięcej</code></td><td>Klienci wydający najwięcej</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Produkty generujące największe przychody</code></td><td>Produkty generujące największe przychody</td><td>Sequential listing</td><td>None detected</td></tr><tr><td><code>Zamówienia</code></td><td>Zamowienia klientow</td><td>Sequential listing</td><td>=Sum([cena_jednostkowa]*[ilosc])</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 32 &bull; Report Requirements</span>
@@ -1877,7 +1924,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 33</div>
   <h1 class="section-title">Security Requirements</h1>
-  <p>Authentication, authorization, database security, password encryption, sensitive data protection, and audit trail.</p>
+  <p>Security requirements grounded in the analyzed source inventory. Authentication and authorization remain target-system controls; the values below describe the data that must be protected.</p>
+<div class="table-wrapper"><table class="table-security"><thead><tr><th>Control area</th><th>Backend-derived requirement</th></tr></thead><tbody><tr><td>Access object exposure</td><td>14 business table(s), 19 query object(s), and 0 runtime object(s) require authorization in the target application.</td></tr><tr><td>Data integrity</td><td>Enforce the 16 extracted relationship(s) and validate required fields before writes.</td></tr><tr><td>Detected external access</td><td>No SQL Server / ODBC indicators detected; credentials must remain outside generated source and reports.</td></tr><tr><td>Auditability</td><td>Protect and audit changes to the 14 analyzed business table(s), including actor, timestamp, and operation.</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 33 &bull; Security Requirements</span>
@@ -1885,56 +1933,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
 </div>
 </section>
 
-<section class="page" id="sec_34">
-<div class="page-inner">
-  <div class="report-header">
-    <span class="report-logo">Online_Shop</span>
-    <span class="report-name">34. Error Handling and Exception Management</span>
-    <span class="report-page-num">Section Page 34</span>
-  </div>
-  <div class="section-number">SECTION 34</div>
-  <h1 class="section-title">Error Handling and Exception Management</h1>
-  <p>Application errors, database constraint errors, data validation failures, and recovery procedures.</p>
-  <div class="report-footer">
-    <span>Online_Shop</span>
-    <span>Section 34 &bull; Error Handling and Exception Management</span>
-  </div>
-</div>
-</section>
 
-<section class="page" id="sec_35">
-<div class="page-inner">
-  <div class="report-header">
-    <span class="report-logo">Online_Shop</span>
-    <span class="report-name">35. Audit and Traceability</span>
-    <span class="report-page-num">Section Page 35</span>
-  </div>
-  <div class="section-number">SECTION 35</div>
-  <h1 class="section-title">Audit and Traceability</h1>
-  <p>Record creation tracking, modification timestamps, user accountability, and administrative change logs.</p>
-  <div class="report-footer">
-    <span>Online_Shop</span>
-    <span>Section 35 &bull; Audit and Traceability</span>
-  </div>
-</div>
-</section>
 
-<section class="page" id="sec_36">
-<div class="page-inner">
-  <div class="report-header">
-    <span class="report-logo">Online_Shop</span>
-    <span class="report-name">36. Backup, Recovery and Business Continuity</span>
-    <span class="report-page-num">Section Page 36</span>
-  </div>
-  <div class="section-number">SECTION 36</div>
-  <h1 class="section-title">Backup, Recovery and Business Continuity</h1>
-  <p>Database backup frequency, retention policies, restore testing, RPO (&lt; 1 hour), and RTO (&lt; 4 hours).</p>
-  <div class="report-footer">
-    <span>Online_Shop</span>
-    <span>Section 36 &bull; Backup, Recovery and Business Continuity</span>
-  </div>
-</div>
-</section>
 
 <section class="page" id="sec_37">
 <div class="page-inner">
@@ -1945,7 +1945,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 37</div>
   <h1 class="section-title">Integration Requirements</h1>
-  <p>Integrations with file system, Excel data export/import, ODBC connections, and external REST services.</p>
+  <p>Integration requirements derived from backend feature detection and the extracted source inventory.</p>
+<div class="table-wrapper"><table class="table-integrations"><thead><tr><th>Integration</th><th>Requirement</th><th>Detection</th></tr></thead><tbody><tr><td>File and spreadsheet exchange</td><td>Export/import workflows are required for the 14 business table(s) and 8 report(s) identified by analysis.</td><td>Detected from report/table inventory</td></tr><tr><td>External database</td><td>No ODBC or SQL Server indicators were detected in the analyzed objects.</td><td>Not detected</td></tr><tr><td>Email / Outlook</td><td>No Outlook or email automation indicators were detected.</td><td>Not detected</td></tr><tr><td>Runtime-generated data</td><td>0 runtime object(s) were discovered and must be represented in integration contracts where applicable.</td><td>Backend inventory</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 37 &bull; Integration Requirements</span>
@@ -1962,13 +1963,15 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 38</div>
   <h1 class="section-title">Technical Architecture</h1>
-  <p>Architectural breakdown of the uploaded database application <code>Online Shop.accdb</code>.</p>
+  <p>Technical flow derived from the uploaded database application <code>Online Shop.accdb</code> and the backend-discovered object inventory.</p>
 <div class="arch-diagram">
-  <div class="arch-box">User Interface Layer (13 Access Forms)</div>
-  <div class="arch-arrow">↓ Event Handlers & Control Bindings</div>
-  <div class="arch-box">Business Logic Layer (9 VBA Code Modules & 0 Macros)</div>
-  <div class="arch-arrow">↓ SQL Query Engine & DAO Layer</div>
-  <div class="arch-box">Data Storage Layer (14 Business Tables & 19 Queries)</div>
+  <div class="arch-node"><div class="arch-node-title">1. User Interface Layer</div><div class="arch-node-detail">13 Access form(s), including controls, record sources, and user events.</div></div>
+  <div class="arch-connector" aria-hidden="true"></div>
+  <div class="arch-node"><div class="arch-node-title">2. Application and Business Logic</div><div class="arch-node-detail">9 VBA module(s), 0 macro(s), and 0 runtime object(s) handling application behavior.</div></div>
+  <div class="arch-connector" aria-hidden="true"></div>
+  <div class="arch-node"><div class="arch-node-title">3. Query and Data Access</div><div class="arch-node-detail">19 query object(s), 64 SQL line(s), and 16 relationship(s) supporting retrieval and integrity.</div></div>
+  <div class="arch-connector" aria-hidden="true"></div>
+  <div class="arch-node"><div class="arch-node-title">4. Data Storage Layer</div><div class="arch-node-detail">14 business table(s), 1 system table(s), and 52 analyzed field(s).</div></div>
 </div>
   <div class="report-footer">
     <span>Online_Shop</span>
@@ -1986,7 +1989,76 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 39</div>
   <h1 class="section-title">Data Architecture and Specifications</h1>
-  <p>Data specifications for all 14 business tables, primary keys, foreign key constraints, and field validation properties extracted from <code>Online Shop.accdb</code>.</p>
+  <p>Schema specification extracted from <code>Online Shop.accdb</code>: 14 business table(s), 52 field(s), and 16 referential relationship(s).</p>
+<div class="table-wrapper"><table class="table-data-architecture"><thead><tr><th>Table</th><th>Field</th><th>Access Type</th><th>PostgreSQL Type</th><th>Key</th><th>FK Target</th><th>Size</th><th>Validation / Description</th></tr></thead><tbody><tr><td><code>Adresy</code></td><td><code>id_adresu</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK, FK</td><td>przykladowe_adresy.id_adresu</td><td>4</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>id_klienta</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Klienci.id_klienta</td><td>4</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>kraj</code></td><td>Short Text</td><td><code>VARCHAR(32)</code></td><td>-</td><td>-</td><td>32</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>miasto</code></td><td>Short Text</td><td><code>VARCHAR(64)</code></td><td>-</td><td>-</td><td>64</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>kod_pocztowy</code></td><td>Short Text</td><td><code>VARCHAR(10)</code></td><td>-</td><td>-</td><td>10</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>ulica</code></td><td>Short Text</td><td><code>VARCHAR(64)</code></td><td>-</td><td>-</td><td>64</td><td>-</td></tr>
+<tr><td><code>Adresy</code></td><td><code>nr_domu</code></td><td>Short Text</td><td><code>VARCHAR(16)</code></td><td>-</td><td>-</td><td>16</td><td>-</td></tr>
+<tr><td><code>imiona_damskie</code></td><td><code>id</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>imiona_damskie</code></td><td><code>imie</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>imiona_meskie</code></td><td><code>id</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>imiona_meskie</code></td><td><code>imie</code></td><td>Short Text</td><td><code>VARCHAR(11)</code></td><td>-</td><td>-</td><td>11</td><td>-</td></tr>
+<tr><td><code>Kategorie</code></td><td><code>id_kategorii</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>Kategorie</code></td><td><code>nazwa</code></td><td>Short Text</td><td><code>VARCHAR(128)</code></td><td>-</td><td>-</td><td>128</td><td>-</td></tr>
+<tr><td><code>Klienci</code></td><td><code>id_klienta</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>Klienci</code></td><td><code>imie</code></td><td>Short Text</td><td><code>VARCHAR(48)</code></td><td>-</td><td>-</td><td>48</td><td>-</td></tr>
+<tr><td><code>Klienci</code></td><td><code>nazwisko</code></td><td>Short Text</td><td><code>VARCHAR(48)</code></td><td>-</td><td>-</td><td>48</td><td>-</td></tr>
+<tr><td><code>Klienci</code></td><td><code>data_urodzenia</code></td><td>Date/Time</td><td><code>TIMESTAMP</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>Klienci</code></td><td><code>plec</code></td><td>Short Text</td><td><code>VARCHAR(1)</code></td><td>-</td><td>-</td><td>1</td><td>K lub M</td></tr>
+<tr><td><code>Klienci</code></td><td><code>pesel</code></td><td>Short Text</td><td><code>VARCHAR(11)</code></td><td>-</td><td>-</td><td>11</td><td>-</td></tr>
+<tr><td><code>Koszyk</code></td><td><code>id_klienta</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Klienci.id_klienta</td><td>4</td><td>-</td></tr>
+<tr><td><code>Koszyk</code></td><td><code>id_produktu</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Stan_Magazynu.id_produktu</td><td>4</td><td>-</td></tr>
+<tr><td><code>nazwiska_damskie</code></td><td><code>id</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>nazwiska_damskie</code></td><td><code>nazwisko</code></td><td>Short Text</td><td><code>VARCHAR(12)</code></td><td>-</td><td>-</td><td>12</td><td>-</td></tr>
+<tr><td><code>nazwiska_meskie</code></td><td><code>id</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>nazwiska_meskie</code></td><td><code>nazwisko</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>id_produktu</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK, FK</td><td>Stan_Magazynu.id_produktu</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>nazwa</code></td><td>Short Text</td><td><code>VARCHAR(128)</code></td><td>-</td><td>-</td><td>128</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>opis</code></td><td>Long Text</td><td><code>TEXT</code></td><td>-</td><td>-</td><td>-</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>cena</code></td><td>Currency</td><td><code>NUMERIC(19,4)</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>gwarancja</code></td><td>Integer (Short)</td><td><code>INTEGER</code></td><td>-</td><td>-</td><td>2</td><td>-</td></tr>
+<tr><td><code>Produkty</code></td><td><code>dostepny</code></td><td>Yes/No</td><td><code>BOOLEAN</code></td><td>-</td><td>-</td><td>1</td><td>-</td></tr>
+<tr><td><code>Produkty_Kategorie</code></td><td><code>id_produktu</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Stan_Magazynu.id_produktu</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty_Kategorie</code></td><td><code>id_kategorii</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Kategorie.id_kategorii</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty_zamowienia</code></td><td><code>id_zamowienia</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Zamowienia.id_zamowienia</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty_zamowienia</code></td><td><code>id_produktu</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Stan_Magazynu.id_produktu</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty_zamowienia</code></td><td><code>ilosc</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>-</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>Produkty_zamowienia</code></td><td><code>cena_jednostkowa</code></td><td>Currency</td><td><code>NUMERIC(19,4)</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>id_adresu</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>PK, FK</td><td>Adresy.id_adresu</td><td>4</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>id_klienta</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Klienci.id_klienta</td><td>4</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>kraj</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>miasto</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>kod_pocztowy</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>ulica</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>nr_domu</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>PK, FK</td><td>Produkty.id_produktu</td><td>4</td><td>-</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>ilosc</code></td><td>Double</td><td><code>DOUBLE PRECISION</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>id_zamowienia</code></td><td>Long Integer</td><td><code>BIGSERIAL</code></td><td>PK</td><td>-</td><td>4</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>id_klienta</code></td><td>Long Integer</td><td><code>BIGINT</code></td><td>FK</td><td>Klienci.id_klienta</td><td>4</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>data</code></td><td>Date/Time</td><td><code>TIMESTAMP</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>cena</code></td><td>Currency</td><td><code>NUMERIC(19,4)</code></td><td>-</td><td>-</td><td>8</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>kod_promocyjny</code></td><td>Short Text</td><td><code>VARCHAR(16)</code></td><td>-</td><td>-</td><td>16</td><td>-</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>notatki</code></td><td>Short Text</td><td><code>VARCHAR(255)</code></td><td>-</td><td>-</td><td>255</td><td>-</td></tr>
+</tbody></table></div><h2 class="sub-title">Referential Relationships</h2><div class="table-wrapper"><table class="table-data-relationships"><thead><tr><th>Parent Table</th><th>Parent Field</th><th>Child Table</th><th>Child Field</th><th>Integrity</th><th>Cascade Update</th><th>Cascade Delete</th></tr></thead><tbody><tr><td><code>Kategorie</code></td><td><code>id_kategorii</code></td><td><code>Produkty_Kategorie</code></td><td><code>id_kategorii</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Klienci</code></td><td><code>id_klienta</code></td><td><code>Adresy</code></td><td><code>id_klienta</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Klienci</code></td><td><code>id_klienta</code></td><td><code>Koszyk</code></td><td><code>id_klienta</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Produkty</code></td><td><code>id_produktu</code></td><td><code>Koszyk</code></td><td><code>id_produktu</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Produkty</code></td><td><code>id_produktu</code></td><td><code>Produkty_Kategorie</code></td><td><code>id_produktu</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Produkty</code></td><td><code>id_produktu</code></td><td><code>Produkty_zamowienia</code></td><td><code>id_produktu</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Produkty</code></td><td><code>id_produktu</code></td><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Zamowienia</code></td><td><code>id_zamowienia</code></td><td><code>Produkty_zamowienia</code></td><td><code>id_zamowienia</code></td><td>Enforced</td><td>No</td><td>No</td></tr>
+<tr><td><code>Adresy</code></td><td><code>id_adresu</code></td><td><code>przykladowe_adresy</code></td><td><code>id_adresu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Klienci</code></td><td><code>id_klienta</code></td><td><code>przykladowe_adresy</code></td><td><code>id_klienta</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Klienci</code></td><td><code>id_klienta</code></td><td><code>Zamowienia</code></td><td><code>id_klienta</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td><code>id_adresu</code></td><td><code>Adresy</code></td><td><code>id_adresu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td><code>Koszyk</code></td><td><code>id_produktu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td><code>Produkty</code></td><td><code>id_produktu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td><code>Produkty_Kategorie</code></td><td><code>id_produktu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td><code>id_produktu</code></td><td><code>Produkty_zamowienia</code></td><td><code>id_produktu</code></td><td>Enforced (inferred)</td><td>No</td><td>No</td></tr>
+</tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 39 &bull; Data Architecture and Specifications</span>
@@ -2003,7 +2075,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 40</div>
   <h1 class="section-title">System Operational Requirements</h1>
-  <p>System operational requirements, database integrity rules, workstation environment specifications, and file maintenance protocols for <code>Online Shop.accdb</code>.</p>
+  <p>Operational context derived from backend analysis of <code>Online Shop.accdb</code>. The requirements below map the discovered inventory to migration, runtime, monitoring, and maintenance responsibilities.</p>
+<div class="table-wrapper"><table class="table-operational"><thead><tr><th>Operational area</th><th>Backend evidence</th><th>Requirement</th></tr></thead><tbody><tr><td>Source and storage</td><td><code>Online Shop.accdb</code> (3,145,728 bytes)</td><td>Preserve the source snapshot, isolate generated artifacts, and track the analyzed version.</td></tr><tr><td>Data integrity</td><td>14 business table(s), 16 relationship(s), and 52 field(s)</td><td>Enforce primary keys, foreign keys, required fields, type mappings, and transaction boundaries.</td></tr><tr><td>Query processing</td><td>19 query object(s), 64 SQL line(s), and [{'from': 'Ilosc klientów wg płci', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Ilosc klientów wg płci', 'to': 'Ilosc klientów wg płci', 'type': 'depends_on'}, {'from': 'Ilosc produktów wg dostepnosci', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny_Krzyżowa', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny_Krzyżowa', 'to': 'Kategorie wg lat zamówień ceny', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień_Krzyżowa', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień_Krzyżowa', 'to': 'Kategorie wg lat zamówień', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Klienci wydający najwięcej', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Adresy', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Miasta z największą ilością zamówień', 'type': 'depends_on'}, {'from': 'NieuzywaneKategorie', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'NieuzywaneKategorie', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Produkty generujące największe przychody', 'type': 'depends_on'}, {'from': 'Produkty w koszyku', 'to': 'Koszyk', 'type': 'depends_on'}, {'from': 'Produkty w koszyku', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty w przedziale cenowym', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty w przedziale cenowym', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Produkty z niskim stanem', 'type': 'depends_on'}, {'from': 'Usuń nieużywane kategorie', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Utwórz kategorię', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Utwórz tabelę wieku klientów', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Wydatki wg wieku', 'type': 'depends_on'}, {'from': 'Zamowienia klientow', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Zamowienia klientow', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Zmień dostępność produktów', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Klienci', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Adresy podformularz', 'to': 'Adresy', 'type': 'depends_on'}, {'from': 'Magazyn', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Zamówienia', 'to': 'Zamowienia klientow', 'type': 'depends_on'}, {'from': 'Form_Formularze.Form_Activate', 'to': 'Form_Formularze', 'type': 'depends_on'}, {'from': 'Form_Klienci.Polecenie58_Click', 'to': 'Form_Klienci', 'type': 'depends_on'}, {'from': 'Form_Klienci.Polecenie58_Click', 'to': 'Koszyk', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Form_Activate', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.displayValues', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Polecenie45_Click', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Polecenie46_Click', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.CenaProduktu', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.CenaProduktu', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.resetInput', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.Lista35_AfterUpdate', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.obnizka_AfterUpdate', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.zastosuj_Click', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.zastosuj_Click', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Form_BazaDanych.Form_Activate', 'to': 'Form_BazaDanych', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomDate', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomGender', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'imiona_damskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'imiona_meskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'nazwiska_damskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'nazwiska_meskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomNumber', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomPESEL', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.debug_del_Click', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.Form_Activate', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomOrders', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomAddress', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomAddress', 'to': 'przykladowe_adresy', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomCustomer', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.Polecenie52_Click', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Magazyn.error_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.error_Click', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Magazyn.kwerenda_niedostepn_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.lista_AfterUpdate', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.lista_AfterUpdate', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Magazyn.ustaw_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.ustaw_Click', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Menu.Form_Activate', 'to': 'Form_Menu', 'type': 'depends_on'}] dependency edge(s)</td><td>Validate query results, parameters, joins, filters, and execution plans after migration.</td></tr><tr><td>User workflow</td><td>13 form(s), 8 report(s), and 0 macro(s)</td><td>Monitor form navigation, validation events, report generation, and automated workflows.</td></tr><tr><td>Business logic</td><td>9 VBA module(s), 426 VBA line(s), and 0 runtime object(s)</td><td>Log failures, preserve routine behavior, and provide recovery for failed operations.</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 40 &bull; System Operational Requirements</span>
@@ -2020,7 +2093,8 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 41</div>
   <h1 class="section-title">Testing and Acceptance Requirements</h1>
-  <p>Testing and validation strategy covering schema verification, query output fidelity, form interaction testing, and VBA routine execution validation.</p>
+  <p>Acceptance strategy based on the objects and relationships returned by backend analysis. Each test area below has a measurable source scope and a corresponding verification activity.</p>
+<div class="table-wrapper"><table class="table-testing"><thead><tr><th>Test area</th><th>Source scope</th><th>Acceptance check</th></tr></thead><tbody><tr><td>Schema and migration</td><td>14 table(s), 52 field(s), 16 relationship(s)</td><td>Compare names, types, keys, null handling, and relationship behavior with the extracted source model.</td></tr><tr><td>Query fidelity</td><td>19 query object(s), 64 SQL line(s)</td><td>Execute representative filters, joins, parameters, aggregates, and empty-result cases.</td></tr><tr><td>UI workflow</td><td>13 form(s) and 152 detected control(s)</td><td>Verify navigation, validation, record create/update/delete, search, and error states.</td></tr><tr><td>Reporting</td><td>8 report(s)</td><td>Compare record sources, grouping, summary fields, formatting, export, and print/PDF output.</td></tr><tr><td>Automation and logic</td><td>9 VBA module(s), 0 macro(s), 0 runtime object(s)</td><td>Run translated workflows and compare outputs, side effects, failure handling, and audit events.</td></tr><tr><td>Dependency and regression</td><td>85 dependency node(s), [{'from': 'Ilosc klientów wg płci', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Ilosc klientów wg płci', 'to': 'Ilosc klientów wg płci', 'type': 'depends_on'}, {'from': 'Ilosc produktów wg dostepnosci', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny_Krzyżowa', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień ceny_Krzyżowa', 'to': 'Kategorie wg lat zamówień ceny', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień_Krzyżowa', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Kategorie wg lat zamówień_Krzyżowa', 'to': 'Kategorie wg lat zamówień', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Klienci wydający najwięcej', 'to': 'Klienci wydający najwięcej', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Adresy', 'type': 'depends_on'}, {'from': 'Miasta z największą ilością zamówień', 'to': 'Miasta z największą ilością zamówień', 'type': 'depends_on'}, {'from': 'NieuzywaneKategorie', 'to': 'Produkty_Kategorie', 'type': 'depends_on'}, {'from': 'NieuzywaneKategorie', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Produkty generujące największe przychody', 'to': 'Produkty generujące największe przychody', 'type': 'depends_on'}, {'from': 'Produkty w koszyku', 'to': 'Koszyk', 'type': 'depends_on'}, {'from': 'Produkty w koszyku', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty w przedziale cenowym', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty w przedziale cenowym', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Produkty z niskim stanem', 'to': 'Produkty z niskim stanem', 'type': 'depends_on'}, {'from': 'Usuń nieużywane kategorie', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Utwórz kategorię', 'to': 'Kategorie', 'type': 'depends_on'}, {'from': 'Utwórz tabelę wieku klientów', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Zamowienia', 'type': 'depends_on'}, {'from': 'Wydatki wg wieku', 'to': 'Wydatki wg wieku', 'type': 'depends_on'}, {'from': 'Zamowienia klientow', 'to': 'Produkty_zamowienia', 'type': 'depends_on'}, {'from': 'Zamowienia klientow', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Zmień dostępność produktów', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Produkty', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Klienci', 'to': 'Klienci', 'type': 'depends_on'}, {'from': 'Adresy podformularz', 'to': 'Adresy', 'type': 'depends_on'}, {'from': 'Magazyn', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Zamówienia', 'to': 'Zamowienia klientow', 'type': 'depends_on'}, {'from': 'Form_Formularze.Form_Activate', 'to': 'Form_Formularze', 'type': 'depends_on'}, {'from': 'Form_Klienci.Polecenie58_Click', 'to': 'Form_Klienci', 'type': 'depends_on'}, {'from': 'Form_Klienci.Polecenie58_Click', 'to': 'Koszyk', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Form_Activate', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.displayValues', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Polecenie45_Click', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Narzędzia.Polecenie46_Click', 'to': 'Form_Narzędzia', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.CenaProduktu', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.CenaProduktu', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.resetInput', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.Lista35_AfterUpdate', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.obnizka_AfterUpdate', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.zastosuj_Click', 'to': 'Form_Obniżka Ceny', 'type': 'depends_on'}, {'from': 'Form_Obniżka Ceny.zastosuj_Click', 'to': 'Produkty', 'type': 'depends_on'}, {'from': 'Form_BazaDanych.Form_Activate', 'to': 'Form_BazaDanych', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomDate', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomGender', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'imiona_damskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomName', 'to': 'imiona_meskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'nazwiska_damskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomSurname', 'to': 'nazwiska_meskie', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomNumber', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.RandomPESEL', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.debug_del_Click', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.Form_Activate', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomOrders', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomAddress', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomAddress', 'to': 'przykladowe_adresy', 'type': 'depends_on'}, {'from': 'Form_Generator.AddRandomCustomer', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Generator.Polecenie52_Click', 'to': 'Form_Generator', 'type': 'depends_on'}, {'from': 'Form_Magazyn.error_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.error_Click', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Magazyn.kwerenda_niedostepn_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.lista_AfterUpdate', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.lista_AfterUpdate', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Magazyn.ustaw_Click', 'to': 'Form_Magazyn', 'type': 'depends_on'}, {'from': 'Form_Magazyn.ustaw_Click', 'to': 'Stan_Magazynu', 'type': 'depends_on'}, {'from': 'Form_Menu.Form_Activate', 'to': 'Form_Menu', 'type': 'depends_on'}] edge(s), 8 cycle(s)</td><td>Test high-impact dependencies first and re-run regression tests after schema or service changes.</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 41 &bull; Testing and Acceptance Requirements</span>
@@ -2028,39 +2102,7 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
 </div>
 </section>
 
-<section class="page" id="sec_42">
-<div class="page-inner">
-  <div class="report-header">
-    <span class="report-logo">Online_Shop</span>
-    <span class="report-name">42. Deployment Requirements</span>
-    <span class="report-page-num">Section Page 42</span>
-  </div>
-  <div class="section-number">SECTION 42</div>
-  <h1 class="section-title">Deployment Requirements</h1>
-  <p>Deployment environment requirements, file distribution protocols, configuration management, and database integrity backup standards.</p>
-  <div class="report-footer">
-    <span>Online_Shop</span>
-    <span>Section 42 &bull; Deployment Requirements</span>
-  </div>
-</div>
-</section>
 
-<section class="page" id="sec_43">
-<div class="page-inner">
-  <div class="report-header">
-    <span class="report-logo">Online_Shop</span>
-    <span class="report-name">43. Training and Change Management</span>
-    <span class="report-page-num">Section Page 43</span>
-  </div>
-  <div class="section-number">SECTION 43</div>
-  <h1 class="section-title">Training and Change Management</h1>
-  <p>User operational guidance, administrative documentation, support escalation path, and system adoption guidelines.</p>
-  <div class="report-footer">
-    <span>Online_Shop</span>
-    <span>Section 43 &bull; Training and Change Management</span>
-  </div>
-</div>
-</section>
 
 <section class="page" id="sec_44">
 <div class="page-inner">
@@ -2071,7 +2113,75 @@ SELECT [Nazwa nowej kategorii] AS Wyr1;
   </div>
   <div class="section-number">SECTION 44</div>
   <h1 class="section-title">Operational Support</h1>
-  <p>Application maintenance, database compact & repair protocols, operational incident management, and monitoring.</p>
+  <p>Operational support inventory derived from 64 backend supportability result(s). The tables below identify conversion status, risk, complexity, confidence, and the reason each source object requires support attention.</p>
+<h2 class="sub-title">Supportability Summary</h2>
+<div class="table-wrapper"><table class="table-support-summary"><thead><tr><th>Status</th><th>Count</th><th>Operational interpretation</th></tr></thead><tbody><tr><td>FAILED_EXTRACTION</td><td>2</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr><tr><td>SUPPORTED</td><td>41</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr><tr><td>SUPPORTED_WITH_TRANSFORMATION</td><td>18</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr><tr><td>UNSUPPORTED</td><td>3</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr></tbody></table></div>
+<h2 class="sub-title">Object Support Inventory</h2>
+<div class="table-wrapper"><table class="table-support-inventory"><thead><tr><th>Object</th><th>Category</th><th>Status</th><th>Complexity</th><th>Risk</th><th>Conversion</th><th>Confidence</th><th>Reason</th></tr></thead><tbody><tr><td><code>Adresy</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>7 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Adresy podformularz</code></td><td>FORM</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Bound to Adresy; controls and events map to a React page</td></tr>
+<tr><td><code>BazaDanych</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Diagram relacji</code></td><td>REPORT</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Report has no record source</td></tr>
+<tr><td><code>Form_BazaDanych</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Formularze</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Generator</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Klienci</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Magazyn</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Menu</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Narzędzia</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Obniżka Ceny</code></td><td>VBA</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>FORM module - analyzed with parent</td></tr>
+<tr><td><code>Form_Produkty w koszyku podformularz</code></td><td>VBA</td><td>FAILED_EXTRACTION</td><td>UNKNOWN</td><td>HIGH</td><td>-</td><td>-</td><td>VBA source code not extracted — conversion requires re-extraction</td></tr>
+<tr><td><code>Formularze</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Generator</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Ilosc klientów wg płci</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Ilosc klientów wg płci</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Ilosc klientów wg płci is available; converted to a report endpoint</td></tr>
+<tr><td><code>Ilosc produktów wg dostepnosci</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Kategorie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Kategorie wg lat zamówień</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Kategorie wg lat zamówień ceny</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Kategorie wg lat zamówień ceny_Krzyżowa</code></td><td>QUERY</td><td>UNSUPPORTED</td><td>HIGH</td><td>HIGH</td><td>-</td><td>-</td><td>CROSSTAB queries not supported in V1</td></tr>
+<tr><td><code>Kategorie wg lat zamówień_Krzyżowa</code></td><td>QUERY</td><td>UNSUPPORTED</td><td>HIGH</td><td>HIGH</td><td>-</td><td>-</td><td>CROSSTAB queries not supported in V1</td></tr>
+<tr><td><code>Klienci</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>6 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Klienci</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis; Form has 2 subform(s)</td></tr>
+<tr><td><code>Klienci wydający najwięcej</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Klienci wydający najwięcej</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Klienci wydający najwięcej is available; converted to a report endpoint</td></tr>
+<tr><td><code>Koszyk</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Magazyn</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Menu</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Miasta z największą ilością zamówień</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Miasta z największą ilością zamówień</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Miasta z największą ilością zamówień is available; converted to a report endpoint</td></tr>
+<tr><td><code>Narzędzia</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>NieuzywaneKategorie</code></td><td>QUERY</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Obniżka Ceny</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>HIGH</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has VBA module - requires analysis</td></tr>
+<tr><td><code>Produkty</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>6 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Produkty</code></td><td>FORM</td><td>SUPPORTED_WITH_TRANSFORMATION</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Form has 1 subform(s)</td></tr>
+<tr><td><code>Produkty generujące największe przychody</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Produkty generujące największe przychody</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Produkty generujące największe przychody is available; converted to a report endpoint</td></tr>
+<tr><td><code>Produkty w koszyku</code></td><td>QUERY</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Produkty w koszyku podformularz</code></td><td>FORM</td><td>FAILED_EXTRACTION</td><td>HIGH</td><td>HIGH</td><td>-</td><td>-</td><td>Form VBA module Form_Produkty w koszyku podformularz source not extracted</td></tr>
+<tr><td><code>Produkty w przedziale cenowym</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Produkty z niskim stanem</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Produkty z niskim stanem</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Produkty z niskim stanem is available; converted to a report endpoint</td></tr>
+<tr><td><code>Produkty_Kategorie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Produkty_Kategorie podformularz</code></td><td>FORM</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Bound to SELECT [Produkty_Kategorie].[id_produktu], [Produkty_Kategorie].[id_kategorii] FROM Produkty_Kategorie; ; controls and events map to a React page</td></tr>
+<tr><td><code>Produkty_zamowienia</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>4 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Raporty</code></td><td>FORM</td><td>SUPPORTED</td><td>MEDIUM</td><td>MEDIUM</td><td>-</td><td>-</td><td>Unbound form converted to a React layout scaffold; no record source was found</td></tr>
+<tr><td><code>Stan_Magazynu</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>USysApplicationLog</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>9 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Usuń nieużywane kategorie</code></td><td>QUERY</td><td>UNSUPPORTED</td><td>HIGH</td><td>HIGH</td><td>-</td><td>-</td><td>UNION queries not supported in V1</td></tr>
+<tr><td><code>Utwórz kategorię</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>APPEND query uses supported SQL constructs; converted to REVIEW</td></tr>
+<tr><td><code>Utwórz tabelę wieku klientów</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>DELETE query uses supported SQL constructs; converted to SERVICE_METHOD</td></tr>
+<tr><td><code>Wydatki wg wieku</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Wydatki wg wieku</code></td><td>REPORT</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>Record source Wydatki wg wieku is available; converted to a report endpoint</td></tr>
+<tr><td><code>Zamowienia</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>6 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>Zamowienia klientow</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>SELECT query uses supported SQL constructs; converted to JPA_QUERY</td></tr>
+<tr><td><code>Zamówienia</code></td><td>REPORT</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>Record source Zamowienia klientow is available; converted to a report endpoint</td></tr>
+<tr><td><code>Zmień dostępność produktów</code></td><td>QUERY</td><td>SUPPORTED</td><td>MEDIUM</td><td>LOW</td><td>-</td><td>-</td><td>UPDATE query uses supported SQL constructs; converted to SERVICE_METHOD</td></tr>
+<tr><td><code>imiona_damskie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>imiona_meskie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>nazwiska_damskie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>nazwiska_meskie</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>2 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+<tr><td><code>przykladowe_adresy</code></td><td>TABLE</td><td>SUPPORTED</td><td>LOW</td><td>LOW</td><td>-</td><td>-</td><td>7 columns with a directly supported schema; converted to a PostgreSQL-backed JPA entity</td></tr>
+</tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 44 &bull; Operational Support</span>
