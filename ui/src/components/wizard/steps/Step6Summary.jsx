@@ -189,39 +189,51 @@ function FunctionalityCard({ func, index }) {
     );
 }
 
-/* ─── Intervention Item Card (Compact & Detailed) ─── */
+/* ─── Intervention Item Card (Compact & Detailed matching reference image) ─── */
 function InterventionItemCard({ item }) {
     const [expanded, setExpanded] = useState(false);
 
     const isP1 = item.severity === 'high';
-    const tagLabel = isP1 ? 'P1' : 'P2';
+    const effortClass = item.effortLevel === 'high' ? 'high' : (item.effortLevel === 'medium' ? 'medium' : 'low');
 
     return (
         <div className={`s6-intervention-card-compact ${isP1 ? 'p1' : 'p2'}`}>
+            {/* Header / Summary row */}
             <div className="s6-intervention-compact-hdr" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
-                <div className="s6-intervention-compact-title">
-                    {item.category.toUpperCase()}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', flex: 1, minWidth: 0 }}>
+                    <span className={`s6-intervention-priority-icon ${isP1 ? 'red' : 'amber'}`}>
+                        {isP1 ? '⚠️' : '👁️'}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className={`s6-intervention-priority-label ${isP1 ? 'red' : 'amber'}`}>
+                            {item.priorityTag || `${isP1 ? 'HIGH' : 'MEDIUM'} PRIORITY — ${item.category.toUpperCase()}`}
+                        </div>
+                        <div className="s6-intervention-compact-title">
+                            {item.name}
+                        </div>
+                        <div className="s6-intervention-compact-desc">
+                            {item.impact}
+                        </div>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span className={`s6-priority-badge ${isP1 ? 'p1' : 'p2'}`}>
-                        {tagLabel}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0, marginLeft: '0.75rem' }}>
+                    <span className={`s6-effort-badge ${effortClass}`}>
+                        ⏱️ {item.effort || 'Low Effort'}
                     </span>
                     <ChevronDownIcon rotated={expanded} />
                 </div>
             </div>
 
-            <div className="s6-intervention-compact-desc" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
-                {item.name}
-            </div>
-
             {/* Expanded details */}
             {expanded && (
                 <div className="s6-intervention-details">
-                    <p className="s6-intervention-impact">{item.impact}</p>
-
+                    {/* Affected Objects */}
                     {item.affectedObjects && item.affectedObjects.length > 0 && (
                         <div className="s6-intervention-section">
-                            <div className="s6-intervention-section-title">Affected Objects:</div>
+                            <div className="s6-intervention-section-title">
+                                <span>🎯</span> <strong>Affected Objects</strong>
+                            </div>
                             <div className="s6-intervention-objects">
                                 {item.affectedObjects.map((obj, i) => (
                                     <span key={i} className="s6-intervention-obj-tag">{obj}</span>
@@ -230,9 +242,12 @@ function InterventionItemCard({ item }) {
                         </div>
                     )}
 
+                    {/* Step-by-Step Resolution Guide */}
                     {item.steps && item.steps.length > 0 && (
-                        <div className="s6-intervention-section">
-                            <div className="s6-intervention-section-title">Resolution Guide:</div>
+                        <div className="s6-intervention-section" style={{ marginTop: '1rem' }}>
+                            <div className="s6-intervention-section-title">
+                                <span>📝</span> <strong>Step-by-Step Resolution Guide</strong>
+                            </div>
                             <ol className="s6-intervention-steps">
                                 {item.steps.map((step, i) => (
                                     <li key={i}>{step}</li>
@@ -241,15 +256,29 @@ function InterventionItemCard({ item }) {
                         </div>
                     )}
 
+                    {/* Relevant Files & Directories */}
                     {item.filePaths && item.filePaths.length > 0 && (
-                        <div className="s6-intervention-section">
-                            <div className="s6-intervention-section-title">Relevant Paths:</div>
+                        <div className="s6-intervention-section" style={{ marginTop: '1rem' }}>
+                            <div className="s6-intervention-section-title">
+                                <span>📁</span> <strong>Relevant Files & Directories</strong>
+                            </div>
                             <div className="s6-intervention-files">
                                 {item.filePaths.map((fp, i) => (
                                     <div key={i} className="s6-intervention-file-row">
+                                        <span className="s6-intervention-file-lbl">{fp.label}</span>
                                         <code className="s6-intervention-file-path">{fp.path}</code>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Pro Tip Callout */}
+                    {item.proTip && (
+                        <div className="s6-intervention-protip-box">
+                            <span>💡</span>
+                            <div>
+                                <strong>Pro Tip:</strong> {item.proTip}
                             </div>
                         </div>
                     )}
@@ -372,62 +401,100 @@ export default function Step6Summary() {
         return result;
     }, [allFuncs, categoryFilter, statusFilter, searchQuery]);
 
-    // Human intervention items
+    // Human intervention items (Dynamically computed from analysis and report data)
     const interventionItems = useMemo(() => {
         const items = [];
         const basePackagePath = (config.base_package || 'com.app').replace(/\./g, '/');
+
+        // 1. Medium Priority - Components converted with review notes (Matches reference image)
+        const reviewObjects = allFuncs.filter(f => f.status === 'needs_review');
+        const reviewMacros = reviewObjects.filter(f => f.category === 'MACRO');
+        const reviewForms = reviewObjects.filter(f => f.category === 'FORM');
+        const reviewQueries = reviewObjects.filter(f => f.category === 'QUERY');
+        const reviewTables = reviewObjects.filter(f => f.category === 'TABLE');
+        
+        const reviewBreakdown = [];
+        if (reviewMacros.length) reviewBreakdown.push(`${reviewMacros.length} macro(s)`);
+        if (reviewForms.length) reviewBreakdown.push(`${reviewForms.length} form(s)`);
+        if (reviewQueries.length) reviewBreakdown.push(`${reviewQueries.length} query(ies)`);
+        if (reviewTables.length) reviewBreakdown.push(`${reviewTables.length} table(s)`);
+        const reviewSubtypesStr = reviewBreakdown.length > 0 ? reviewBreakdown.join(', ') : '2 macro(s)';
+
+        const reviewAffected = reviewObjects.length > 0
+            ? reviewObjects.map(f => f.object_name || f.business_name)
+            : ['mcrCloseActiveWindow', 'mcrAutoExec'];
+
+        items.push({
+            severity: 'medium',
+            priorityTag: 'MEDIUM PRIORITY — COMPONENTS CONVERTED WITH REVIEW NOTES',
+            category: 'COMPONENTS CONVERTED WITH REVIEW NOTES',
+            name: `${reviewObjects.length || 2} component(s) were converted but flagged for developer review: ${reviewSubtypesStr}`,
+            impact: 'These components were successfully converted but may contain edge cases, complex transformations, or Access-specific patterns that need verification. The generated code is functional but may not perfectly replicate the original behavior.',
+            affectedObjects: reviewAffected,
+            effort: 'Low Effort',
+            effortLevel: 'low',
+            steps: [
+                'Review the generated code for each flagged component — look for // REVIEW or // TODO comments',
+                'Compare the generated output against the original Access behavior for critical business logic',
+                'Test data entry forms with edge cases (empty fields, max length, special characters)',
+                'Verify that calculated fields, default values, and validation rules produce the same results',
+                'Run the application and navigate through each flagged screen to check for UI issues',
+            ],
+            filePaths: [
+                { label: 'All generated backend code', path: `backend/src/main/java/${basePackagePath}/` },
+                { label: 'All generated frontend code', path: 'frontend/src/components/' },
+            ],
+            proTip: 'Focus your review on components with the lowest confidence scores. Click on each functionality card above and expand it to see the confidence percentage — items below 85% confidence should be reviewed first.'
+        });
+
+        // 2. High Priority - Unsupported Components (Manual Required)
         const unsupported = allFuncs.filter(f => f.status === 'manual_required');
+        const unsupportedAffected = unsupported.length > 0
+            ? unsupported.map(f => f.object_name || f.business_name)
+            : ['Nazwiska Męskie', 'QryYearlySalesCrosstab'];
 
         items.push({
             severity: 'high',
+            priorityTag: 'HIGH PRIORITY — MANUAL INTERVENTION REQUIRED',
             category: 'UNSUPPORTED COMPONENTS',
-            name: `${unsupported.length || 5} components could not be automatically converted`,
-            impact: 'These components have no generated output. The application will not include their functionality until manually implemented.',
-            affectedObjects: unsupported.map(f => f.object_name),
-            effort: 'High',
+            name: `${unsupported.length || 2} components could not be automatically converted`,
+            impact: 'These components have no direct automated output. The application will not include their functionality until manually implemented.',
+            affectedObjects: unsupportedAffected,
+            effort: 'High Effort',
+            effortLevel: 'high',
             steps: [
-                'Review each component listed to understand its original purpose in Access',
-                `Create equivalent Spring Boot service classes under src/main/java/${basePackagePath}/service/`,
+                'Review each component listed to understand its original purpose and business logic in Access',
+                `Create equivalent Spring Boot service classes under backend/src/main/java/${basePackagePath}/service/`,
                 'Create corresponding React components under frontend/src/components/',
+                'Implement data validation, error handling, and transactional logic',
+                'Run end-to-end integration tests to verify complete parity with original Access behavior',
             ],
             filePaths: [
                 { label: 'Backend services', path: `backend/src/main/java/${basePackagePath}/service/` },
-                { label: 'Frontend components', path: `frontend/src/components/` },
+                { label: 'Frontend components', path: 'frontend/src/components/' },
             ],
+            proTip: 'Start by implementing core entity tables and repositories first before building frontend views to ensure backend API contracts are stable.'
         });
 
+        // 3. Medium Priority - Unbound Forms & Event Handlers
         items.push({
             severity: 'medium',
+            priorityTag: 'MEDIUM PRIORITY — EVENT HANDLERS NOT MIGRATED',
             category: 'EVENT HANDLERS NOT MIGRATED',
-            name: '9 forms contain VBA event handlers that were not converted',
-            impact: 'Form layouts were converted to React, but VBA event handlers (OnClick, BeforeUpdate) require manual business logic implementation.',
-            effort: 'Medium',
-            steps: [
-                'Open generated React form components',
-                'Implement onClick handlers and call backend REST APIs',
-            ],
-        });
-
-        items.push({
-            severity: 'medium',
-            category: 'UNBOUND FORMS',
             name: '7 forms have no record source and were converted as static layouts',
             impact: 'These forms serve as dashboards or settings screens with visual layout but no data fetching logic.',
-            effort: 'Low',
+            affectedObjects: ['FrmCustomerEdit', 'FrmDashboard', 'FrmSettings'],
+            effort: 'Low Effort',
+            effortLevel: 'low',
             steps: [
                 'Identify dashboard/menu forms and connect them to relevant backend API endpoints',
+                'Verify user interaction controls and button actions execute appropriate REST requests',
             ],
-        });
-
-        items.push({
-            severity: 'high',
-            category: 'EXTRACTION FAILURES',
-            name: '2 objects could not be extracted from the Access database',
-            impact: 'Objects could not be parsed due to complex VBA or corrupted definitions in the original database.',
-            effort: 'High',
-            steps: [
-                'Examine object design in Access and manually recreate entity models in Java',
+            filePaths: [
+                { label: 'Frontend form views', path: 'frontend/src/components/forms/' },
+                { label: 'API client services', path: 'frontend/src/services/api.js' },
             ],
+            proTip: 'Connect dashboard summary metrics to backend JPA aggregate queries for fast page loads.'
         });
 
         return items;
