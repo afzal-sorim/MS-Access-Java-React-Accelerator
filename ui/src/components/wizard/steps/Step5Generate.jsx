@@ -1098,15 +1098,88 @@ export default function Step5Generate() {
                             width: 'min(1500px, 94vw)',
                             height: 'min(820px, calc(100vh - 2rem))',
                             display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                            background: '#fff',
-                            borderRadius: '14px',
-                            boxShadow: '0 24px 80px rgba(15, 23, 42, 0.35)',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
+                            padding: '0.7rem 1.25rem',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: tab.disabled ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            transition: 'all 0.2s ease',
+                            opacity: tab.disabled ? 0.45 : 1,
+                            background: activeTab === tab.key
+                                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                                : 'transparent',
+                            color: activeTab === tab.key ? '#fff' : '#64748b',
+                            boxShadow: activeTab === tab.key
+                                ? '0 4px 12px rgba(79, 70, 229, 0.3)'
+                                : 'none',
                         }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
-                            <strong style={{ color: '#1e293b' }}>Solution Explorer</strong>
+                        <span style={{ fontSize: '1rem' }}>{tab.icon}</span>
+                        <span>{tab.label}</span>
+                        {tab.key === 'explorer' && !generationComplete && (
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#f59e0b',
+                                animation: 'pulse 1.5s ease-in-out infinite',
+                                marginLeft: '0.25rem',
+                            }} />
+                        )}
+                        {tab.key === 'explorer' && generationComplete && (
+                            <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#10b981',
+                                marginLeft: '0.25rem',
+                            }} />
+                        )}
+                        
+                    </button>
+                ))}
+            </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.4; }
+                }
+            `}</style>
+
+            {/* ── Tab Content ── */}
+            {activeTab === 'review' && (
+                <Step4Review />
+            )}
+
+            {activeTab === 'explorer' && (
+                <div>
+                   
+
+                    {/* Solution Explorer */}
+                    {(generationJobId || analysisJobId) && (
+                        <FileExplorer jobId={generationJobId || analysisJobId} generationComplete={generationComplete} />
+                    )}
+
+                    {!generationComplete && (
+                        <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                                <span>
+                                    {isGenerating ? 'Generating project...' : 'Starting generation...'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {generationComplete && generationResult && (
+                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => downloadResult(generationJobId, config.project_name)}
+                            >
+                                Download Project ZIP
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setExplorerOpen(false)}
