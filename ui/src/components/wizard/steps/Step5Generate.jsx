@@ -1084,7 +1084,8 @@ export default function Step5Generate() {
                 ].map(tab => (
                     <button
                         key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+                        disabled={tab.disabled}
+                        onClick={() => !tab.disabled && setActiveTab(tab.key)}
                         style={{
                             flex: 1,
                             display: 'flex',
@@ -1094,10 +1095,11 @@ export default function Step5Generate() {
                             padding: '0.7rem 1.25rem',
                             border: 'none',
                             borderRadius: '10px',
-                            cursor: 'pointer',
+                            cursor: tab.disabled ? 'not-allowed' : 'pointer',
                             fontWeight: 700,
                             fontSize: '0.875rem',
                             transition: 'all 0.2s ease',
+                            opacity: tab.disabled ? 0.45 : 1,
                             background: activeTab === tab.key
                                 ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
                                 : 'transparent',
@@ -1124,6 +1126,7 @@ export default function Step5Generate() {
                                 marginLeft: '0.25rem',
                             }} />
                         )}
+                        
                     </button>
                 ))}
             </div>
@@ -1161,7 +1164,7 @@ export default function Step5Generate() {
                     )}
 
                     {generationComplete && generationResult && (
-                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                             <button
                                 className="btn btn-primary"
                                 onClick={() => downloadResult(generationJobId, config.project_name)}

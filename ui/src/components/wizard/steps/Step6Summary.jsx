@@ -3,6 +3,7 @@ import { useWizard } from '../../../context/WizardContext';
 import { getReport, downloadResult } from '../../../services/api';
 import { formatNumber, formatPercentage } from '../../../utils/helpers';
 import { getGeneratedCounts } from '../../../utils/generatedCounts';
+import ReactPreview from './ReactPreview';
 
 /* ─── tiny SVG icons (inline to avoid extra deps) ─── */
 const CheckIcon = () => (
@@ -64,6 +65,9 @@ const LayersIcon = () => (
 );
 const ToolIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+);
+const EyeIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 );
 
 
@@ -314,6 +318,7 @@ export default function Step6Summary() {
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [showAllFuncs, setShowAllFuncs] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
 
     // Load full report when step is entered
     useEffect(() => {
@@ -932,9 +937,15 @@ export default function Step6Summary() {
 
             {/* ── ACTION BUTTONS ── */}
             <div className="s6-actions">
+                
                 <button className="s6-action-btn s6-action-btn--outline" onClick={handleOpenReport}>
                     <FileTextIcon /> Open Report
                 </button>
+                {generationJobId && (
+                    <button className="s6-action-btn" onClick={() => setShowPreview(!showPreview)} style={{ background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', color: '#fff', border: 'none' }}>
+                        <EyeIcon /> {showPreview ? 'Hide UI Preview' : 'Launch UI Preview'}
+                    </button>
+                )}
                 {generationJobId && (
                     <button className="s6-action-btn s6-action-btn--download" onClick={handleDownload}>
                         <DownloadIcon /> Download Project ZIP
@@ -944,6 +955,13 @@ export default function Step6Summary() {
                     <FolderIcon /> Open Project Folder
                 </button>
             </div>
+
+            {/* ── REACT PREVIEW ── */}
+            {showPreview && generationJobId && (
+                <div style={{ marginTop: '2rem', animation: 'fadeIn 0.3s ease-out' }}>
+                    <ReactPreview jobId={generationJobId} />
+                </div>
+            )}
 
             {/* ── FOOTER ── */}
             <div className="s6-footer">
