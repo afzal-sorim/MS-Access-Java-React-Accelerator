@@ -501,15 +501,14 @@ export default function WizardContainer() {
 
             </aside>
 
-            {/* ── Main Content Area (Scrolls independently for discovery overview) ── */}
+            {/* ── Main Content Area (Single page scrolling, no internal scrollbar) ── */}
             <main 
                 className="content-scrollable"
                 style={{ 
                     flex: 1, 
                     minWidth: 0, 
-                    height: 'calc(100vh - 64px)',
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
+                    minHeight: 'calc(100vh - 64px)',
+                    overflow: 'visible',
                     display: 'flex', 
                     flexDirection: 'column', 
                     background: '#ffffff',

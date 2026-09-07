@@ -92,28 +92,25 @@ body {
 }
 
 /* ── Disable text-edit I-beam cursor across all wizard pages ── */
-body,
-body *,
-.wizard-container,
-.wizard-container *,
-.s6-dossier-wrapper,
-.s6-dossier-wrapper * {
-    cursor: default;
+*:not(input):not(textarea):not(select) {
+    cursor: default !important;
+    user-select: none;
 }
 
 /* Maintain pointer cursor for buttons, links & interactive controls */
-button,
-a,
-select,
+button, button *,
+a, a *,
+select, select *,
 option,
-[role="button"],
-.s6-tab-btn,
-.s6-hdr-btn,
-.s6-func-card-compact,
-.s6-intervention-card-compact,
-.s6-warning-item-row,
-.s6-show-more-btn {
-    cursor: pointer;
+[role="button"], [role="button"] *,
+.s6-tab-btn, .s6-hdr-btn,
+.s6-func-card-compact, .s6-func-card-compact *,
+.s6-intervention-card-compact, .s6-intervention-card-compact *,
+.s6-warning-item-row, .s6-warning-item-row *,
+.s6-show-more-btn,
+.review-tab, .review-tab *,
+.kpi-card, .kpi-card * {
+    cursor: pointer !important;
 }
 
 /* Allow text I-beam cursor ONLY on actual editable inputs */
@@ -123,7 +120,8 @@ input[type="number"],
 input[type="email"],
 input[type="password"],
 textarea {
-    cursor: text;
+    cursor: text !important;
+    user-select: text !important;
 }
 
 img,
