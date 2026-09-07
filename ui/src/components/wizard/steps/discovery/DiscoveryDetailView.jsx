@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
     Table, Database, Layout, FileText, PlaySquare, Code, Share2, 
-    Link2, Search, ArrowLeft, CheckCircle2, ShieldAlert, Zap,
+    Link2, Search, ArrowLeft, CheckCircle2, ShieldAlert, Zap, X,
     HardDrive, Layers, ChevronRight, ChevronLeft
 } from 'lucide-react';
 
 const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedForm, setSelectedForm] = useState(null);
+    const [selectedReport, setSelectedReport] = useState(null);
     const pageSize = 10;
 
     // Reset to page 1 whenever activeTab or search filter changes
@@ -138,7 +140,7 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                         name: name,
                         groups: r.groups ? (Array.isArray(r.groups) ? r.groups.length : r.groups) : (idx % 2 === 0 ? 2 : 1),
                         source: r.record_source || r.source || name.replace(/_rpt$/i, '_qry'),
-                        target: 'React / PDF Report'
+                        target: 'PDF Report'
                     };
                 })
                 .filter(r => r.name.toLowerCase().includes(query));
@@ -190,7 +192,6 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                         name: name,
                         procs: m.procs || (m.source ? (m.source.match(/Sub |Function /gi) || []).length : 6),
                         loc: loc ? `~${loc} LOC` : (idx % 2 === 0 ? `~${(idx + 1) * 45 + 120} LOC` : `~${(idx + 1) * 35 + 80} LOC`),
-                        target: isClass ? 'Java Domain Entity' : 'Spring Service Bean'
                     };
                 })
                 .filter(m => m.name.toLowerCase().includes(query));
@@ -471,7 +472,6 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                                             <th style={{ padding: '0.75rem 1rem' }}>Module Name</th>
                                             <th style={{ padding: '0.75rem 1rem' }}>Procedures</th>
                                             <th style={{ padding: '0.75rem 1rem' }}>Est. Lines of Code</th>
-                                            <th style={{ padding: '0.75rem 1rem' }}>Target Component</th>
                                         </>
                                     )}
                                     {activeTab === 'Relationships' && (
@@ -569,7 +569,21 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                                                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{item.controls} controls</td>
                                                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{item.table}</td>
                                                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{item.subforms} subforms</td>
-                                                <td style={{ padding: '0.75rem 1rem', color: '#3730A3', fontWeight: 600 }}>{item.target}</td>
+                                                <td style={{ padding: '0.75rem 1rem' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedForm(item)}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                                            border: '1px solid #fde68a', borderRadius: '7px', padding: '0.35rem 0.65rem',
+                                                            backgroundColor: '#fffbeb', color: '#b45309', fontSize: '0.75rem',
+                                                            fontWeight: 700, cursor: 'pointer'
+                                                        }}
+                                                        title={`Open ${item.name} as an MS Access form`}
+                                                    >
+                                                        <Layout size={13} /> {item.target}
+                                                    </button>
+                                                </td>
                                             </>
                                         )}
 
@@ -583,7 +597,21 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{item.groups} levels</td>
                                                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{item.source}</td>
-                                                <td style={{ padding: '0.75rem 1rem', color: '#3730A3', fontWeight: 600 }}>{item.target}</td>
+                                                <td style={{ padding: '0.75rem 1rem' }}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedReport(item)}
+                                                        style={{
+                                                            display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                                            border: '1px solid #bfdbfe', borderRadius: '7px', padding: '0.35rem 0.65rem',
+                                                            backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '0.75rem',
+                                                            fontWeight: 700, cursor: 'pointer'
+                                                        }}
+                                                        title={`Open ${item.name} as an MS Access report`}
+                                                    >
+                                                        <FileText size={13} /> {item.target}
+                                                    </button>
+                                                </td>
                                             </>
                                         )}
 
@@ -767,6 +795,123 @@ const DiscoveryDetailView = ({ activeTab, onBack, progress, result }) => {
                     </>
                 )}
             </div>
+
+            {selectedReport && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="report-preview-title"
+                    onClick={() => setSelectedReport(null)}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.55)'
+                    }}
+                >
+                    <div
+                        onClick={event => event.stopPropagation()}
+                        style={{ width: 'min(780px, 100%)', maxHeight: '90vh', overflow: 'auto', backgroundColor: '#f8fafc', borderRadius: '10px', boxShadow: '0 24px 80px rgba(15, 23, 42, 0.3)' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.1rem', backgroundColor: '#1e3a8a', color: '#ffffff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                                <FileText size={18} />
+                                <div>
+                                    <div id="report-preview-title" style={{ fontSize: '0.95rem', fontWeight: 800 }}>{selectedReport.name}</div>
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>MS Access report preview</div>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setSelectedReport(null)} aria-label="Close report preview" style={{ display: 'inline-flex', border: 0, background: 'transparent', color: '#ffffff', cursor: 'pointer', padding: '0.25rem' }}>
+                                <X size={19} />
+                            </button>
+                        </div>
+                        <div style={{ margin: '1.1rem', backgroundColor: '#ffffff', border: '1px solid #cbd5e1', boxShadow: '0 2px 5px rgba(15, 23, 42, 0.08)' }}>
+                            <div style={{ padding: '1.3rem 1.5rem', borderBottom: '2px solid #1e3a8a', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Report</div>
+                                <div style={{ marginTop: '0.3rem', fontSize: '1.35rem', fontWeight: 800, color: '#172554' }}>{selectedReport.name}</div>
+                                <div style={{ marginTop: '0.45rem', fontSize: '0.75rem', color: '#64748b' }}>Data source: {selectedReport.source}</div>
+                            </div>
+                            <div style={{ padding: '1rem 1.5rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', border: '1px solid #cbd5e1', backgroundColor: '#eff6ff', fontSize: '0.75rem', fontWeight: 700, color: '#1e3a8a' }}>
+                                    <div style={{ padding: '0.6rem', borderRight: '1px solid #cbd5e1' }}>Record</div>
+                                    <div style={{ padding: '0.6rem', borderRight: '1px solid #cbd5e1' }}>Description</div>
+                                    <div style={{ padding: '0.6rem' }}>Status</div>
+                                </div>
+                                {[1, 2, 3].map(row => (
+                                    <div key={row} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', border: '1px solid #e2e8f0', borderTop: 0, fontSize: '0.75rem', color: '#475569' }}>
+                                        <div style={{ padding: '0.65rem', borderRight: '1px solid #e2e8f0' }}>{String(row).padStart(3, '0')}</div>
+                                        <div style={{ padding: '0.65rem', borderRight: '1px solid #e2e8f0' }}>{selectedReport.source} item {row}</div>
+                                        <div style={{ padding: '0.65rem', color: '#047857', fontWeight: 700 }}>Active</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1.5rem', borderTop: '1px solid #cbd5e1', color: '#64748b', fontSize: '0.7rem' }}>
+                                <span>Grouping levels: {selectedReport.groups}</span>
+                                <span>Page 1 of 1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {selectedForm && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="form-preview-title"
+                    onClick={() => setSelectedForm(null)}
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.55)'
+                    }}
+                >
+                    <div
+                        onClick={event => event.stopPropagation()}
+                        style={{ width: 'min(720px, 100%)', maxHeight: '90vh', overflow: 'auto', backgroundColor: '#f8fafc', borderRadius: '10px', boxShadow: '0 24px 80px rgba(15, 23, 42, 0.3)' }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.9rem 1.1rem', backgroundColor: '#92400e', color: '#ffffff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                                <Layout size={18} />
+                                <div>
+                                    <div id="form-preview-title" style={{ fontSize: '0.95rem', fontWeight: 800 }}>{selectedForm.name}</div>
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>MS Access form preview</div>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setSelectedForm(null)} aria-label="Close form preview" style={{ display: 'inline-flex', border: 0, background: 'transparent', color: '#ffffff', cursor: 'pointer', padding: '0.25rem' }}>
+                                <X size={19} />
+                            </button>
+                        </div>
+                        <div style={{ margin: '1.1rem', padding: '1.25rem', backgroundColor: '#ffffff', border: '1px solid #d6d3d1', boxShadow: '0 2px 5px rgba(15, 23, 42, 0.08)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, color: '#57534e' }}>
+                                    Form name
+                                    <input value={selectedForm.name} readOnly style={{ padding: '0.65rem', border: '1px solid #d6d3d1', borderRadius: '5px', color: '#292524', backgroundColor: '#fafaf9' }} />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, color: '#57534e' }}>
+                                    Bound entity
+                                    <input value={selectedForm.table} readOnly style={{ padding: '0.65rem', border: '1px solid #d6d3d1', borderRadius: '5px', color: '#292524', backgroundColor: '#fafaf9' }} />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, color: '#57534e' }}>
+                                    Record ID
+                                    <input placeholder="Enter record ID" style={{ padding: '0.65rem', border: '1px solid #d6d3d1', borderRadius: '5px' }} />
+                                </label>
+                                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, color: '#57534e' }}>
+                                    Status
+                                    <select defaultValue="Active" style={{ padding: '0.65rem', border: '1px solid #d6d3d1', borderRadius: '5px', backgroundColor: '#ffffff' }}>
+                                        <option>Active</option>
+                                        <option>Inactive</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div style={{ marginTop: '1rem', padding: '0.75rem', border: '1px dashed #d6d3d1', backgroundColor: '#fafaf9', color: '#78716c', fontSize: '0.75rem' }}>
+                                {selectedForm.controls} controls and {selectedForm.subforms} subforms detected in the modernized React view.
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
+                                <button type="button" onClick={() => setSelectedForm(null)} style={{ padding: '0.55rem 0.85rem', border: '1px solid #d6d3d1', borderRadius: '5px', backgroundColor: '#ffffff', color: '#57534e', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+                                <button type="button" onClick={() => setSelectedForm(null)} style={{ padding: '0.55rem 0.85rem', border: 0, borderRadius: '5px', backgroundColor: '#92400e', color: '#ffffff', cursor: 'pointer', fontWeight: 700 }}>Save Record</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

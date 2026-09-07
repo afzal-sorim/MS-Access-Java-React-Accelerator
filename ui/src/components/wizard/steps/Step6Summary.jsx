@@ -378,7 +378,7 @@ export default function Step6Summary() {
     const estimated = getGeneratedCounts(analysisProgress);
     const backendFiles = estimated.backend || generated.backend_files || 0;
     const frontendFiles = estimated.frontend || generated.frontend_files || 0;
-    const totalFilesGenerated = backendFiles + frontendFiles + estimated.database;
+    const totalFilesGenerated = estimated.total || (backendFiles + frontendFiles + (estimated.database || 0));
 
     // Filter functionalities
     const filteredFuncs = useMemo(() => {
@@ -654,7 +654,7 @@ export default function Step6Summary() {
     ];
 
     return (
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ width: '100%' }}>
 
             {/* ── HERO ── */}
             <div className="s6-hero">

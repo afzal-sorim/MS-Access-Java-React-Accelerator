@@ -8,54 +8,87 @@
 <style>
 /* =========================================================
    BRD TEMPLATE — Detailed 48-Section Specifications
-   White + Blue Modern Enterprise Theme
+   A4 Paper Report Layout
    ========================================================= */
 
+@page {
+    size: A4;
+    margin: 0;
+}
+
 :root {
-    --primary: #1769e0;
-    --primary-dark: #0f4fa8;
-    --primary-light: #eaf2ff;
+    --primary: #0faaa3;
+    --primary-dark: #0b6865;
+    --primary-light: #e2f5f3;
     --text: #172033;
     --muted: #667085;
     --border: #d9e1ec;
     --white: #ffffff;
-    --background: #f4f7fb;
+    --background: #e5e9e8;
     --success: #16803c;
     --warning: #b7791f;
     --danger: #c53030;
-    --page-width: 100%;
+    --page-width: 210mm;
+    --page-height: 297mm;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; width: 100%; }
 body {
     margin: 0;
-    padding: 20px 16px;
-    background: var(--background);
+    padding: 34px;
+    background: linear-gradient(135deg, #e7e9e8 0%, #dfe5e3 100%);
     color: var(--text);
     font-family: Inter, Arial, Helvetica, sans-serif;
     line-height: 1.6;
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
 }
 
 .page {
-    width: 100%;
-    max-width: 100%;
-    min-height: auto;
-    margin: 0 0 24px;
+    width: min(var(--page-width), 100%);
+    min-height: var(--page-height);
+    margin: 0;
     background: var(--white);
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid #d4dcda;
+    border-radius: 2px;
+    box-shadow: 0 12px 28px rgba(25, 45, 43, 0.16);
     position: relative;
     overflow: visible;
     box-sizing: border-box;
 }
 
+.page::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 28px;
+    border-top: 4px solid var(--primary);
+    border-left: 4px solid var(--primary);
+    pointer-events: none;
+}
+
+.page::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 28px;
+    height: 28px;
+    border-right: 4px solid var(--primary);
+    border-bottom: 4px solid var(--primary);
+    pointer-events: none;
+}
+
 .page-inner {
-    padding: 32px 3%;
+    padding: 38px 28px;
     display: flex;
     flex-direction: column;
     min-height: 100%;
@@ -64,7 +97,7 @@ body {
 }
 
 .cover {
-    min-height: auto;
+    min-height: var(--page-height);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -74,7 +107,7 @@ body {
 .cover-top {
     border-left: 6px solid var(--primary);
     padding-left: 24px;
-    margin-top: 60px;
+    margin-top: 42px;
 }
 
 .cover-label {
@@ -367,12 +400,52 @@ td code, th code {
 }
 
 @media (max-width: 768px) {
-    body { padding: 10px 8px; }
-    .page-inner { padding: 20px 14px; }
+    body {
+        padding: 18px 10px;
+        gap: 22px;
+    }
+    .page {
+        width: 100%;
+        min-height: auto;
+    }
+    .page-inner { padding: 28px 22px; }
     .toc-list { column-count: 1; }
     .cover-meta { grid-template-columns: 1fr; }
     .erd-connection-item { flex-direction: column; gap: 8px; align-items: stretch; }
     .erd-box { flex: 1 1 auto; width: 100%; }
+}
+
+@media print {
+    html, body {
+        width: auto;
+        background: #ffffff;
+    }
+
+    body {
+        display: block;
+        padding: 0;
+    }
+
+    .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .page::before,
+    .page::after {
+        display: none;
+    }
 }
 </style>
 </head>

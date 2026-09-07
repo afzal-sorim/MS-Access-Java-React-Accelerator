@@ -514,7 +514,17 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
         frontend_log = await log_build("frontend", "generate_react")
 
         frontend_dir = job_dir / "frontend"
-        react_gen = await asyncio.to_thread(generate_react, app_ir, frontend_dir)
+        form_conversions = {
+            result.object: result.conversion
+            for result in support_results
+            if result.category == "FORM"
+        }
+        react_gen = await asyncio.to_thread(
+            generate_react,
+            app_ir,
+            frontend_dir,
+            form_conversions=form_conversions,
+        )
         # Write generated frontend files to disk
         def write_frontend():
             for file_path, content in react_gen.items():

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -22,6 +23,7 @@ from sqlalchemy import (
     Column, String, Text, DateTime, Integer, Float, Boolean,
     ForeignKey, Index, select, func, delete, update, JSON
 )
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import (
     create_async_engine, AsyncSession, async_sessionmaker, AsyncEngine
@@ -440,8 +442,16 @@ class JobRepository:
         self.session = session
 
     async def create(self, job: JobModel) -> JobModel:
-        self.session.add(job)
-        await self.session.flush()
+        for attempt in range(4):
+            try:
+                self.session.add(job)
+                await self.session.flush()
+                return job
+            except OperationalError as exc:
+                if "database is locked" not in str(exc).lower() or attempt == 3:
+                    raise
+                await self.session.rollback()
+                await asyncio.sleep(0.25 * (attempt + 1))
         return job
 
     async def get(self, job_id: str) -> Optional[JobModel]:

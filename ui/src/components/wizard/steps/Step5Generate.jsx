@@ -307,7 +307,7 @@ function SolutionSummary({ files, result, analysisProgress, onViewSchema }) {
 
                 {/* ── LEFT: Solution Components ── */}
                 <div style={{ background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {onViewSchema && (
+                    {/* {onViewSchema && (
                         <button
                             onClick={onViewSchema}
                             style={{
@@ -330,7 +330,7 @@ function SolutionSummary({ files, result, analysisProgress, onViewSchema }) {
                                 padding: '2px 8px', borderRadius: '20px'
                             }}>DB Schema</span>
                         </button>
-                    )}
+                    )} */}
                     <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                         Solution Components
                     </div>
@@ -594,7 +594,7 @@ function FileExplorer({ jobId, generationComplete }) {
                 background: '#f8fafc',
                 height: '100%'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
                     <h3 style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, color: '#1e293b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                         Solution Explorer
                     </h3>
@@ -604,6 +604,67 @@ function FileExplorer({ jobId, generationComplete }) {
                         title="Refresh"
                     >🔄</button>
                 </div>
+
+                {/* Sidebar ER Diagram Button */}
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (viewMode === 'schema') {
+                            setViewMode('welcome');
+                        } else {
+                            setViewMode('schema');
+                            loadSchema();
+                            setSelectedFile(null);
+                        }
+                    }}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        marginBottom: '1rem',
+                        background: viewMode === 'schema'
+                            ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                            : '#fff',
+                        color: viewMode === 'schema' ? '#fff' : '#4338ca',
+                        border: viewMode === 'schema' ? '1.5px solid #4338ca' : '1.5px solid #c7d2fe',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.82rem',
+                        boxShadow: viewMode === 'schema'
+                            ? '0 4px 12px rgba(79, 70, 229, 0.25)'
+                            : '0 1px 3px rgba(0,0,0,0.06)',
+                        transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                        if (viewMode !== 'schema') {
+                            e.currentTarget.style.borderColor = '#818cf8';
+                            e.currentTarget.style.background = '#f5f3ff';
+                        }
+                    }}
+                    onMouseLeave={(e) => {
+                        if (viewMode !== 'schema') {
+                            e.currentTarget.style.borderColor = '#c7d2fe';
+                            e.currentTarget.style.background = '#fff';
+                        }
+                    }}
+                >
+                    <span style={{ fontSize: '1.1rem' }}>📊</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>ER Diagram</span>
+                    <span style={{
+                        marginLeft: 'auto',
+                        fontSize: '0.65rem',
+                        fontWeight: 700,
+                        background: viewMode === 'schema' ? 'rgba(255,255,255,0.25)' : '#eef2ff',
+                        color: viewMode === 'schema' ? '#fff' : '#4338ca',
+                        padding: '2px 8px',
+                        borderRadius: '20px'
+                    }}>
+                        {viewMode === 'schema' ? 'Active' : 'DB Schema'}
+                    </span>
+                </button>
 
 
 
@@ -753,6 +814,54 @@ export default function Step5Generate() {
     const [activeTab, setActiveTab] = useState('review');
     const wsRef = useRef(null);
     const startedRef = useRef(false);
+
+    // Generation Complete Toast state
+    const [showToast, setShowToast] = useState(false);
+    const [isToastClosing, setIsToastClosing] = useState(false);
+    const toastTimerRef = useRef(null);
+    const closeTimerRef = useRef(null);
+    const prevCompleteRef = useRef(false);
+
+    const dismissToast = useCallback(() => {
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = null;
+        }
+        setIsToastClosing(true);
+        if (closeTimerRef.current) {
+            clearTimeout(closeTimerRef.current);
+        }
+        closeTimerRef.current = setTimeout(() => {
+            setShowToast(false);
+            setIsToastClosing(false);
+        }, 400);
+    }, []);
+
+    useEffect(() => {
+        if (generationComplete && generationResult) {
+            if (!prevCompleteRef.current) {
+                prevCompleteRef.current = true;
+                setShowToast(true);
+                setIsToastClosing(false);
+
+                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = setTimeout(() => {
+                    dismissToast();
+                }, 5000);
+            }
+        } else {
+            prevCompleteRef.current = false;
+            setShowToast(false);
+            setIsToastClosing(false);
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        }
+
+        return () => {
+            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        };
+    }, [generationComplete, Boolean(generationResult), dismissToast]);
 
     // Start generation when entering step
     const startGeneration = useCallback(async () => {
@@ -1052,62 +1161,6 @@ export default function Step5Generate() {
                     )}
 
                     {generationComplete && generationResult && (
-                        <>
-                            <style>
-                                {`
-                                @keyframes toastSlideIn {
-                                    0% { transform: translateY(-10px) scale(0.95); opacity: 0; }
-                                    100% { transform: translateY(0) scale(1); opacity: 1; }
-                                }
-                                `}
-                            </style>
-                            <div style={{
-                                position: 'fixed',
-                                top: '2rem',
-                                right: '2rem',
-                                zIndex: 9999,
-                                width: '450px',
-                                padding: '1.25rem 1.5rem',
-                                background: '#fff',
-                                borderRadius: '12px',
-                                boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
-                                border: '1px solid #bbf7d0',
-                                borderLeft: '4px solid #22c55e',
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: '1.25rem',
-                                animation: 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                                overflow: 'hidden'
-                            }}>
-                                <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
-                                <div style={{ 
-                                    background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
-                                    borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                    fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
-                                }}>
-                                    ✔️
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
-                                    <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
-                                        The project was successfully generated and saved to: <br/>
-                                        <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
-                                            {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
-                                        </span>
-                                    </div>
-                                    {generationResult.filesGenerated && (
-                                        <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
-                                            <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-
-
-                    {generationComplete && generationResult && (
                         <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
                             <button
                                 className="btn btn-primary"
@@ -1126,6 +1179,117 @@ export default function Step5Generate() {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Generation Complete Toast Notification */}
+            {showToast && generationResult && (
+                <>
+                    <style>
+                        {`
+                        @keyframes toastSlideIn {
+                            0% { transform: translateY(-16px) scale(0.96); opacity: 0; }
+                            100% { transform: translateY(0) scale(1); opacity: 1; }
+                        }
+                        @keyframes toastSlideOut {
+                            0% { transform: translateY(0) scale(1); opacity: 1; }
+                            100% { transform: translateY(-16px) scale(0.96); opacity: 0; }
+                        }
+                        @keyframes toastProgress {
+                            0% { width: 100%; }
+                            100% { width: 0%; }
+                        }
+                        `}
+                    </style>
+                    <div style={{
+                        position: 'fixed',
+                        top: '2rem',
+                        right: '2rem',
+                        zIndex: 9999,
+                        width: '450px',
+                        padding: '1.25rem 1.5rem',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
+                        border: '1px solid #bbf7d0',
+                        borderLeft: '4px solid #22c55e',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '1.25rem',
+                        animation: isToastClosing
+                            ? 'toastSlideOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+                            : 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                        overflow: 'hidden'
+                    }}>
+                        {/* Close button (cross mark) */}
+                        <button
+                            type="button"
+                            onClick={dismissToast}
+                            aria-label="Close notification"
+                            title="Close"
+                            style={{
+                                position: 'absolute',
+                                top: '0.75rem',
+                                right: '0.75rem',
+                                background: 'transparent',
+                                border: 'none',
+                                borderRadius: '6px',
+                                width: '26px',
+                                height: '26px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: '#6b7280',
+                                fontSize: '0.95rem',
+                                lineHeight: 1,
+                                padding: 0,
+                                transition: 'all 0.15s ease',
+                                zIndex: 2,
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#1f2937';
+                                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.06)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#6b7280';
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                        >
+                            ✕
+                        </button>
+                        <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
+                        <div style={{ 
+                            background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
+                            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
+                        }}>
+                            ✔️
+                        </div>
+                        <div style={{ flex: 1, paddingRight: '1rem' }}>
+                            <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
+                            <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
+                                The project was successfully generated and saved to: <br/>
+                                <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
+                                    {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
+                                </span>
+                            </div>
+                            {generationResult.filesGenerated && (
+                                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
+                                    <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
+                                </div>
+                            )}
+                        </div>
+                        {/* Auto-dismiss countdown bar */}
+                        <div style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            height: '3px',
+                            background: '#22c55e',
+                            animation: 'toastProgress 5s linear forwards',
+                        }} />
+                    </div>
+                </>
             )}
         </div>
     );

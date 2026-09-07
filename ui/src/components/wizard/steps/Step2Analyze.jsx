@@ -14,7 +14,7 @@ import TopComplexObjects from './discovery/TopComplexObjects';
 import TopTablesList from './discovery/TopTablesList';
 import DiscoverySummary from './discovery/DiscoverySummary';
 import DiscoveryDetailView from './discovery/DiscoveryDetailView';
-import { Database, Layout, FileText, PlaySquare, Code, CheckCircle2, PanelLeftOpen, Maximize2, Minimize2 } from 'lucide-react';
+import { Database, Layout, FileText, PlaySquare, Code, CheckCircle2, PanelLeftOpen } from 'lucide-react';
 
 // Exact duration formatter: HH:MM:SS
 function formatDuration(totalSeconds) {
@@ -62,7 +62,11 @@ export default function Step2Analyze() {
     const dbName = getDbName();
 
     const handleGenerateBrd = async () => {
-        if (!state.analysisJobId || brdLoading) return;
+        if (brdLoading) return;
+        if (!state.analysisJobId) {
+            setBrdError('Complete the analysis before opening the BRD.');
+            return;
+        }
         setBrdLoading(true);
         setBrdError(null);
         try {
@@ -468,21 +472,23 @@ export default function Step2Analyze() {
                                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{getLastScanned()}</span>
                                 </div>
                                 <button 
-                                    onClick={() => setIsAutoFit(!isAutoFit)}
-                                    title={isAutoFit ? "Reset Zoom to 100%" : "Fit Dashboard to Screen"}
+                                    onClick={handleGenerateBrd}
+                                    disabled={brdLoading}
+                                    title="View Business Requirements Document"
                                     style={{ 
                                         display: 'flex', alignItems: 'center', gap: '0.375rem', 
-                                        backgroundColor: isAutoFit ? '#3730A3' : '#ffffff', 
-                                        color: isAutoFit ? '#ffffff' : '#3730A3', 
+                                        backgroundColor: '#ffffff', 
+                                        color: '#3730A3', 
                                         borderRadius: '12px', border: '1px solid #e2e8f0', 
                                         padding: '0.55rem 0.875rem', fontSize: '0.8125rem', fontWeight: 700, 
-                                        cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                        boxShadow: isAutoFit ? '0 4px 12px rgba(55, 48, 163, 0.3)' : '0 2px 4px rgba(0,0,0,0.02)',
+                                        cursor: brdLoading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                        opacity: brdLoading ? 0.5 : 1,
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
                                         transition: 'all 0.15s ease'
                                     }}
                                 >
-                                    {isAutoFit ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                                    <span>{isAutoFit ? 'Reset View' : 'Fit to Screen'}</span>
+                                    <FileText size={15} />
+                                    <span>{brdLoading ? 'Opening BRD...' : 'View BRD'}</span>
                                 </button>
                             </div>
                         </div>
@@ -506,10 +512,12 @@ export default function Step2Analyze() {
 
                         {/* Lower Middle Cards Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
+                            {/*
                             <ModernizedOutput type="frontend" progress={effectiveProgress} />
                             <ModernizedOutput type="backend" progress={effectiveProgress} />
                             <FileGenerationChart progress={effectiveProgress} />
-                            <TopComplexObjects progress={effectiveProgress} result={analysisResult} />
+                            */}
+                            {/* <TopComplexObjects progress={effectiveProgress} result={analysisResult} /> */}
                         </div>
 
                         {/* Bottom Row Grid */}
@@ -520,33 +528,8 @@ export default function Step2Analyze() {
                                 onContinue={() => actions.nextStep()}
                             />
                         </div>
-                        
-                        {/* Status Success Banner */}
-                        <div style={{ width: '100%', boxSizing: 'border-box', padding: '1rem 1.25rem', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                            <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#9a3412' }}>Business Requirements Document</div>
-                                <div style={{ fontSize: '0.75rem', color: '#7c2d12', marginTop: '0.2rem' }}>Generate a detailed report from the completed discovery analysis.</div>
-                                {brdError && <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginTop: '0.35rem' }}>{brdError}</div>}
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                <button className="btn btn-primary" onClick={handleGenerateBrd} disabled={brdLoading || !state.analysisJobId}>
-                                    {brdLoading ? 'Generating...' : 'View BRD'}
-                                </button>
-                                <a className="btn btn-secondary" href={state.analysisJobId ? getBrdDownloadUrl(state.analysisJobId) : '#'} target="_blank" rel="noreferrer" style={{ pointerEvents: state.analysisJobId ? 'auto' : 'none', opacity: state.analysisJobId ? 1 : 0.5 }}>
-                                    Download BRD
-                                </a>
-                            </div>
-                        </div>
-
-                        <div style={{ width: '100%', boxSizing: 'border-box', marginTop: '0.25rem', padding: '0.875rem 1.25rem', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#065f46' }}>
-                            <CheckCircle2 size={18} color="#10b981" />
-                            <div>
-                                <div style={{ fontWeight: 700, fontSize: '0.8125rem' }}>Discovery Completed Successfully!</div>
-                                <div style={{ fontSize: '0.725rem', marginTop: '0.125rem' }}>
-                                    Found {totalObjectsCount} total objects in {dbName}
-                                </div>
-                            </div>
-                        </div>
+                 
+                       
                     </>
                 )}
             </div>

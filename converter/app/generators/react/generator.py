@@ -36,10 +36,15 @@ class ReactGenerator:
         *,
         app_name: Optional[str] = None,
         report_strategy: str = "pdf",
+        form_conversions: Optional[dict[str, str]] = None,
     ):
         self.app = app_ir
         self.app_name = app_name or app_ir.application_name
         self.report_strategy = (report_strategy or "pdf").strip().lower()
+        self.form_conversions = {
+            str(name): str(conversion).upper()
+            for name, conversion in (form_conversions or {}).items()
+        }
         self.warnings: list[str] = []
         self._pk_map: dict[str, str] = {}
         self._analyze_keys()
@@ -151,6 +156,14 @@ class ReactGenerator:
     def _generate_page(self, form) -> str:
         """Generate a React page component from an Access form."""
         page_name = self._to_pascal(form.name.replace("frm", ""))
+        conversion = self.form_conversions.get(form.name, "")
+
+        if conversion == "MANUAL":
+            self.warnings.append(f"Manual migration required for form {form.name}")
+            return self._generate_unbound_page(form, page_name)
+
+        if conversion == "PAGE_DASHBOARD":
+            return self._generate_unbound_page(form, page_name)
 
         # Fix 4: Unbound forms (no record_source) get info/dashboard pages, not CRUD
         if not form.record_source:
@@ -161,7 +174,7 @@ class ReactGenerator:
         api_name = self._resolve_api_name(form.record_source)
 
         # Determine if this is a list page or form page
-        is_list = any(
+        is_list = conversion == "PAGE_DATAGRID" or any(
             c.control_type in ("ListBox", "Subform") or
             (c.control_type == "ComboBox" and "ID" not in c.name)
             for c in form.controls

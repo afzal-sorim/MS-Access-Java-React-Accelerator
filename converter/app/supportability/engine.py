@@ -340,6 +340,25 @@ class SupportabilityEngine:
         issues: list[str] = []
         confidence = 0.95
 
+        def form_conversion() -> str:
+            """Return the canonical React architecture for this Access form."""
+            if any("not supported" in issue for issue in issues):
+                return "MANUAL"
+            form_name = form.name.lower()
+            if any(token in form_name for token in ("modal", "dialog", "popup")):
+                return "MODAL"
+            if any(control.control_type == "Subform" for control in form.controls):
+                return "SUB_COMPONENT"
+            if not form.record_source:
+                return "PAGE_DASHBOARD"
+            if any(
+                control.control_type in ("ListBox", "Subform") or
+                (control.control_type == "ComboBox" and "ID" not in control.name)
+                for control in form.controls
+            ):
+                return "PAGE_DATAGRID"
+            return "PAGE_FORM"
+
         # Check for record source
         if not form.record_source:
             # Unbound form
@@ -370,7 +389,7 @@ class SupportabilityEngine:
                     status=SupportStatus.FAILED_EXTRACTION,
                     complexity=complexity,
                     risk="HIGH",
-                    conversion="REACT_PAGE",
+                    conversion="MANUAL",
                     confidence=confidence,
                     reason="; ".join(issues),
                 )
@@ -403,7 +422,7 @@ class SupportabilityEngine:
             status=status,
             complexity=complexity,
             risk="LOW" if complexity == "LOW" else "MEDIUM",
-            conversion="REACT_PAGE",
+            conversion=form_conversion(),
             confidence=confidence,
             reason=(
                 "; ".join(issues)

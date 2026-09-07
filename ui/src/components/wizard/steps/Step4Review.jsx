@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useWizard } from '../../../context/WizardContext';
 import { getReport } from '../../../services/api';
 import { formatNumber, formatPercentage } from '../../../utils/helpers';
+import { FolderTree, Network } from 'lucide-react';
 
 /**
  * Step 4: Map & Review
@@ -81,15 +82,39 @@ const CONVERSION_OPTIONS = {
     externalDependencies: ['MANUAL', 'INTEGRATION_SERVICE', 'ENTITY', 'REST_CLIENT', 'SKIP'],
 };
 
-const STATUS_OPTIONS = ['SUPPORTED', 'SUPPORTED_WITH_REVIEW', 'SUPPORTED_WITH_TRANSFORMATION', 'UNSUPPORTED'];
-const RISK_OPTIONS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const FORM_TARGET_BY_CONVERSION = {
+    PAGE_FORM: 'React Page + Form',
+    PAGE_DATAGRID: 'React Page + DataGrid',
+    PAGE_DASHBOARD: 'React Dashboard Page',
+    MODAL: 'React Modal / Dialog',
+    SUB_COMPONENT: 'React Sub-Component',
+    MANUAL: 'Manual Migration',
+};
+
+const FORM_CONVERSION_BY_TARGET = Object.fromEntries(
+    Object.entries(FORM_TARGET_BY_CONVERSION).map(([conversion, target]) => [target, conversion])
+);
+
+function normalizeFormMapping(conversion, target) {
+    const normalizedConversion = String(conversion || '').toUpperCase().replace(/\s+/g, '_');
+    const inferredTarget = FORM_TARGET_BY_CONVERSION[normalizedConversion];
+
+    return {
+        conversion: FORM_TARGET_BY_CONVERSION[normalizedConversion] ? normalizedConversion : (target ? FORM_CONVERSION_BY_TARGET[target] || 'PAGE_FORM' : 'PAGE_FORM'),
+        target: inferredTarget || FORM_TARGET_BY_CONVERSION[FORM_CONVERSION_BY_TARGET[target] || 'PAGE_FORM'],
+    };
+}
+
+
 
 /** Slide-Over Mapping Drawer Component */
 function MappingDrawer({ object, tab, onSave, onClose }) {
-    const [target, setTarget] = useState(object.target || '');
-    const [conversion, setConversion] = useState(object.conversion || '');
-    const [status, setStatus] = useState(object.status || 'SUPPORTED');
-    const [risk, setRisk] = useState(object.risk || 'LOW');
+    const initialMapping = tab === 'forms'
+        ? normalizeFormMapping(object.conversion, object.target)
+        : { target: object.target || '', conversion: object.conversion || '' };
+    const [target, setTarget] = useState(initialMapping.target);
+    const [conversion, setConversion] = useState(initialMapping.conversion);
+
     const [notes, setNotes] = useState(object.notes || '');
 
     const targetOptions = TARGET_OPTIONS[tab] || [];
@@ -136,7 +161,13 @@ function MappingDrawer({ object, tab, onSave, onClose }) {
 
                     <div>
                         <label className="form-label" style={{ display: 'block', fontWeight: 500, marginBottom: '0.375rem', fontSize: '0.8125rem' }}>Target Architecture</label>
-                        <select className="form-control" style={{ width: '100%' }} value={target} onChange={(e) => setTarget(e.target.value)}>
+                        <select className="form-control" style={{ width: '100%' }} value={target} onChange={(e) => {
+                            const newTarget = e.target.value;
+                            setTarget(newTarget);
+                            if (tab === 'forms' && FORM_CONVERSION_BY_TARGET[newTarget]) {
+                                setConversion(FORM_CONVERSION_BY_TARGET[newTarget]);
+                            }
+                        }}>
                             {!targetOptions.includes(target) && target && <option value={target}>{target} (current)</option>}
                             {targetOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
@@ -184,35 +215,54 @@ function MappingDrawer({ object, tab, onSave, onClose }) {
     );
 }
 
-/** Status Badge */
-function StatusBadge({ status, reason, colors }) {
+function DescriptionPopover({ object, summary, category }) {
     const [showPopover, setShowPopover] = useState(false);
-    const isInactive = status === 'UNSUPPORTED' || status === 'FAILED_EXTRACTION';
+    const categoryLabels = {
+        tables: 'database table',
+        forms: 'data-entry form',
+        queries: 'data query',
+        reports: 'report definition',
+        modules: 'VBA module',
+        macros: 'automation macro',
+        externalDependencies: 'external dependency',
+    };
+    const typeLabel = categoryLabels[category] || 'Access object';
+    const recordDetail = object.recordCount && object.recordCount !== '—'
+        ? `The source contains approximately ${object.recordCount} records for this object.`
+        : 'The source record count was not available during analysis, so the generated mapping should be verified against the source database.';
+    const migrationDetail = object.target
+        ? `The recommended migration target is ${object.target}${object.conversion ? ` using the ${object.conversion.replace(/_/g, ' ').toLowerCase()} strategy` : ''}.`
+        : 'The migration target still needs to be confirmed during implementation.';
+    const detail = object.reason || `The analyzer classified ${object.name} as a ${typeLabel} based on its Access structure and dependencies.`;
 
     return (
-        <div style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={() => setShowPopover(true)} onMouseLeave={() => setShowPopover(false)}>
-            <span className={`badge ${colors[status] || 'badge-neutral'}`} style={{ cursor: 'help' }}>
-                {status === 'SUPPORTED' && '✅ '}
-                {status === 'SUPPORTED_WITH_REVIEW' && '⚠️ '}
-                {status === 'SUPPORTED_WITH_TRANSFORMATION' && '🔄 '}
-                {(status === 'UNSUPPORTED' || status === 'FAILED_EXTRACTION') && '❌ '}
-                {status.replace(/_/g, ' ')}
-            </span>
-            {showPopover && reason && (
+        <div
+            style={{ position: 'relative', display: 'inline-block', width: '100%' }}
+            onMouseEnter={() => setShowPopover(true)}
+            onMouseLeave={() => setShowPopover(false)}
+        >
+            <span style={{ cursor: 'help', borderBottom: '1px dotted #64748b' }}>{summary}</span>
+            {showPopover && (
                 <div style={{
-                    position: 'absolute', bottom: 'calc(100% + 12px)', left: '50%', transform: 'translateX(-50%)',
-                    zIndex: 9999, width: '320px', padding: '16px', background: '#e0f2fe', color: '#1e3a8a',
-                    borderRadius: '10px', fontSize: '0.8125rem', lineHeight: '1.5', minHeight: '4.5rem',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.05)',
-                    textAlign: 'left', border: '1px solid #bae6fd', whiteSpace: 'normal', pointerEvents: 'none',
+                    position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 9999,
+                    width: 'min(470px, 72vw)', maxHeight: '340px', overflowY: 'auto', padding: '1.1rem 1.2rem',
+                    background: 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)', color: '#334155',
+                    border: '1px solid #a5b4fc', borderLeft: '4px solid #4f46e5', borderRadius: '12px',
+                    boxShadow: '0 18px 40px rgba(30, 41, 59, 0.24)', fontSize: '0.8125rem', lineHeight: 1.55,
+                    textAlign: 'left', pointerEvents: 'none'
                 }}>
-                    <div style={{ fontWeight: 700, marginBottom: '8px', color: isInactive ? '#ef4444' : '#0369a1' }}>
-                        {isInactive ? '⚠️ Analysis Issue' : 'ℹ️ Analysis Detail'}
+                    <div style={{ marginBottom: '0.8rem', color: '#3730a3', fontWeight: 800, fontSize: '0.875rem' }}>
+                        AI analysis for {object.name}
                     </div>
-                    <div style={{ opacity: 0.95, color: '#0f172a', whiteSpace: 'pre-line' }}>{reason}</div>
+                    <div style={{ display: 'grid', gap: '0.65rem' }}>
+                        <div><strong style={{ color: '#1e293b' }}>Reasoning:</strong> <span style={{ whiteSpace: 'pre-line' }}>{detail}</span></div>
+                        <div><strong style={{ color: '#1e293b' }}>Object profile:</strong> {summary} This is classified as a {typeLabel}.</div>
+                        <div><strong style={{ color: '#1e293b' }}>Data context:</strong> {recordDetail}</div>
+                        <div><strong style={{ color: '#1e293b' }}>Migration plan:</strong> {migrationDetail}</div>
+                    </div>
                     <div style={{
-                        position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                        width: 0, height: 0, borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '7px solid #e0f2fe'
+                        position: 'absolute', top: '100%', left: '2rem', width: 0, height: 0,
+                        borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '7px solid #c7d2fe'
                     }} />
                 </div>
             )}
@@ -220,15 +270,13 @@ function StatusBadge({ status, reason, colors }) {
     );
 }
 
-export default function Step4Review() {
+export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
     const { state, actions } = useWizard();
     const { reviewData, reviewTab, selectedObjects, analysisJobId } = state;
     
     const [loading, setLoading] = useState(false);
     const [filterStatus, setFilterStatus] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [editingObject, setEditingObject] = useState(null);
-    const [expandedRows, setExpandedRows] = useState(new Set());
     const [batchActionTab, setBatchActionTab] = useState(false);
 
     // Initial load logic...
@@ -270,9 +318,12 @@ export default function Step4Review() {
             queries: supportability.filter(s => s.category === 'QUERY').map((s, i) => ({
                 id: `query-${i}`, name: s.object, recordCount: '—', target: 'JPA Repository / Custom Query', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
-            forms: supportability.filter(s => s.category === 'FORM').map((s, i) => ({
-                id: `form-${i}`, name: s.object, recordCount: '—', target: 'React Page + Components', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
+            forms: supportability.filter(s => s.category === 'FORM').map((s, i) => {
+                const mapping = normalizeFormMapping(s.conversion, s.target);
+                return {
+                id: `form-${i}`, name: s.object, recordCount: '—', target: mapping.target, status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: mapping.conversion, selected: true,
+                };
+            }),
             reports: supportability.filter(s => s.category === 'REPORT').map((s, i) => ({
                 id: `report-${i}`, name: s.object, recordCount: '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
             })),
@@ -348,15 +399,11 @@ export default function Step4Review() {
         actions.deselectAllObjects(currentObjects.map(o => o.id));
     };
 
-    const handleToggleExpand = (id) => {
-        const newSet = new Set(expandedRows);
-        if (newSet.has(id)) newSet.delete(id);
-        else newSet.add(id);
-        setExpandedRows(newSet);
-    };
-
     const handleTargetChange = (objectId, newTarget) => {
-        actions.updateObjectMapping(reviewTab, objectId, { target: newTarget });
+        const mapping = reviewTab === 'forms' && FORM_CONVERSION_BY_TARGET[newTarget]
+            ? { target: newTarget, conversion: FORM_CONVERSION_BY_TARGET[newTarget] }
+            : { target: newTarget };
+        actions.updateObjectMapping(reviewTab, objectId, mapping);
     };
 
     const handleBatchTargetChange = (newTarget) => {
@@ -368,26 +415,56 @@ export default function Step4Review() {
         setBatchActionTab(false);
     };
 
-    const getStatusBadgeColors = () => ({
-        SUPPORTED: 'badge-success',
-        SUPPORTED_WITH_REVIEW: 'badge-warning',
-        SUPPORTED_WITH_TRANSFORMATION: 'badge-blue',
-        UNSUPPORTED: 'badge-danger',
-        FAILED_EXTRACTION: 'badge-danger',
-        MANUAL: 'badge-neutral',
-    });
+    const getObjectDescription = (object) => {
+        const recordSummary = object.recordCount && object.recordCount !== '—'
+            ? `Contains ${object.recordCount} records.`
+            : 'Record count is available after source inspection.';
 
-    const getRiskColor = (risk) => ({
-        LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#ef4444', CRITICAL: '#991b1b'
-    })[risk] || '#94a3b8';
+        if (reviewTab === 'tables') {
+            return `${object.name} is a database table. ${recordSummary}`;
+        }
+        if (reviewTab === 'forms') {
+            return `${object.name} is an Access form for entering and viewing records. ${recordSummary}`;
+        }
+        if (reviewTab === 'queries') {
+            return `${object.name} is an Access query used to retrieve or transform records.`;
+        }
+        if (reviewTab === 'reports') {
+            return `${object.name} is an Access report generated from application records.`;
+        }
+        if (reviewTab === 'modules') {
+            return `${object.name} is a VBA module containing application logic.`;
+        }
+        if (reviewTab === 'macros') {
+            return `${object.name} is an Access macro that automates application actions.`;
+        }
+        return `${object.name} is an external dependency requiring migration review.`;
+    };
 
     return (
         <div>
-            <div className="card-header" style={{ marginBottom: '1.5rem' }}>
+            <div className="card-header" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h2 className="card-title">Map & Review Objects</h2>
-                <p className="card-subtitle">
-                    Review extracted objects, adjust target architectures, and confirm mappings before generating code.
-                </p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                        type="button"
+                        title="Open Solution Explorer"
+                        aria-label="Open Solution Explorer"
+                        onClick={onOpenExplorer}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', border: '1px solid #c7d2fe', borderRadius: '10px', background: '#eef2ff', color: '#4338ca', cursor: 'pointer' }}
+                    >
+                        <FolderTree size={19} />
+                    </button>
+                    {/* <button
+                        type="button"
+                        title="Open ER Diagram"
+                        aria-label="Open ER Diagram"
+                        onClick={onOpenErDiagram}
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '38px', height: '38px', border: '1px solid #bae6fd', borderRadius: '10px', background: '#f0f9ff', color: '#0369a1', cursor: 'pointer' }}
+                    >
+                        <Network size={19} />
+                    </button> */}
+                </div>
             </div>
 
             {loading && (
@@ -485,20 +562,16 @@ export default function Step4Review() {
                                     </th>
                                     <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Object Details</th>
                                     <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Target Architecture</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Status</th>
-                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Risk</th>
-                                    <th style={{ padding: '1rem', textAlign: 'right', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Actions</th>
+                                    <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {currentObjects.map((obj) => {
                                     const isInactive = obj.status === 'UNSUPPORTED' || obj.status === 'FAILED_EXTRACTION';
                                     const isSelected = selectedObjects.has(obj.id);
-                                    const isExpanded = expandedRows.has(obj.id);
 
                                     return (
-                                        <React.Fragment key={obj.id}>
-                                            <tr style={{ background: isSelected ? '#f1f5f9' : 'transparent', borderBottom: '1px solid #e2e8f0' }}>
+                                            <tr key={obj.id} style={{ background: isSelected ? '#f1f5f9' : 'transparent', borderBottom: '1px solid #e2e8f0' }}>
                                                 <td style={{ padding: '0.75rem 1rem' }}>
                                                     {!isInactive && (
                                                         <input type="checkbox" checked={isSelected} onChange={() => actions.toggleObjectSelection(obj.id)} />
@@ -520,45 +593,10 @@ export default function Step4Review() {
                                                         {(TARGET_OPTIONS[reviewTab] || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 </td>
-                                                <td style={{ padding: '0.75rem 1rem' }}>
-                                                    <StatusBadge status={obj.status} reason={obj.reason} colors={getStatusBadgeColors()} />
-                                                </td>
-                                                <td style={{ padding: '0.75rem 1rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: getRiskColor(obj.risk) }} />
-                                                        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: '#475569' }}>{obj.risk}</span>
-                                                    </div>
-                                                </td>
-                                                <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                                                    <button className="btn btn-secondary btn-sm" onClick={() => handleToggleExpand(obj.id)} style={{ marginRight: '0.5rem' }}>
-                                                        {isExpanded ? 'Hide' : 'View'}
-                                                    </button>
-                                                    <button className="btn btn-primary btn-sm" onClick={() => setEditingObject(obj)} disabled={isInactive}>
-                                                        Edit
-                                                    </button>
+                                                <td style={{ padding: '0.75rem 1rem', minWidth: '280px' }}>
+                                                    <DescriptionPopover object={obj} category={reviewTab} summary={getObjectDescription(obj)} />
                                                 </td>
                                             </tr>
-                                            {isExpanded && (
-                                                <tr>
-                                                    <td colSpan={6} style={{ padding: 0 }}>
-                                                        <div className="row-expanded-content">
-                                                            <div className="detail-grid">
-                                                                <div className="detail-section">
-                                                                    <h4>🧠 Analysis & Rationale</h4>
-                                                                    <p style={{ fontSize: '0.875rem', color: '#475569', whiteSpace: 'pre-line' }}>{obj.reason}</p>
-                                                                </div>
-                                                                <div className="detail-section">
-                                                                    <h4>⚙️ Target Implementation Preview</h4>
-                                                                    <div className="code-preview">
-                                                                        {`// Target: ${obj.target}\n// Strategy: ${obj.conversion}\n// This is a representative preview of generated code.\n\n@Entity\npublic class ${obj.name.replace(/\s+/g, '')} {\n    @Id\n    private Long id;\n    // fields mapped automatically\n}`}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
@@ -572,18 +610,6 @@ export default function Step4Review() {
                 </>
             )}
 
-            {/* Slide-Over Modal */}
-            {editingObject && (
-                <MappingDrawer
-                    object={editingObject}
-                    tab={reviewTab}
-                    onSave={(mapping) => {
-                        actions.updateObjectMapping(reviewTab, editingObject.id, mapping);
-                        setEditingObject(null);
-                    }}
-                    onClose={() => setEditingObject(null)}
-                />
-            )}
         </div>
     );
 }

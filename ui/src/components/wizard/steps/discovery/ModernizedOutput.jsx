@@ -335,13 +335,13 @@ const ModernizedOutput = ({ type, progress }) => {
                     backgroundColor: 'rgba(15, 23, 42, 0.75)',
                     backdropFilter: 'blur(8px)',
                     zIndex: 9999,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '1.5rem'
+                    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+                    padding: '1rem', overflowY: 'auto'
                 }}>
                     <div style={{
                         width: '100%', maxWidth: '1100px', backgroundColor: '#ffffff', borderRadius: '24px',
                         padding: '2rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                        border: '1px solid #e2e8f0', maxHeight: '85vh', overflowY: 'auto'
+                        border: '1px solid #e2e8f0', maxHeight: 'calc(100vh - 2rem)', overflowY: 'auto'
                     }}>
                         {/* Popup Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
