@@ -72,13 +72,16 @@ export default function WizardContainer() {
     // Discovery components submenu: closed by default ("shows defaultly"), toggles open on click
     const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
 
+    // Track whether user has viewed/reached Human Intervention on Step 5 before enabling Start New Conversion
+    const [canStartNewConversion, setCanStartNewConversion] = useState(false);
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1: return <Step1SelectApplication />;
             case 2: return <Step2Analyze />;
             case 3: return <Step3Configure />;
             case 4: return <Step5Generate />;
-            case 5: return <Step6Summary />;
+            case 5: return <Step6Summary onReachedIntervention={() => setCanStartNewConversion(true)} />;
             default: return <Step1SelectApplication />;
         }
     };
@@ -139,11 +142,13 @@ export default function WizardContainer() {
             gap: '0', 
             width: '100%', 
             minWidth: 0,
-            minHeight: 'calc(100vh - 68px)',
+            height: '100%',
+            maxHeight: '100%',
             background: '#ffffff',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            overflow: 'hidden'
         }}>
-            {/* ── Stepper Sidebar (Scrolls vertically when needed) ── */}
+            {/* ── Stepper Sidebar (Static on the left for all pages, never moves with center content) ── */}
             <aside 
                 className="sidebar-scrollable wizard-sidebar"
                 style={{
@@ -158,10 +163,10 @@ export default function WizardContainer() {
                     flexDirection: 'column',
                     justifyContent: 'flex-start',
                     boxSizing: 'border-box',
-                    position: 'sticky',
-                    top: '0',
-                    height: 'calc(100vh - 64px)',
-                    zIndex: 100,
+                    position: 'relative',
+                    height: '100%',
+                    maxHeight: '100%',
+                    zIndex: 10,
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     boxShadow: 'none',
@@ -499,13 +504,22 @@ export default function WizardContainer() {
 
             </aside>
 
-            {/* ── Main Content Area (Scrolls independently for discovery overview) ── */}
+            {/* ── Main Content Area (Single center scroll area for all pages, sidebar remains static) ── */}
             <main 
-                className="content-scrollable wizard-main-content"
+                className="content-scrollable"
+                onScroll={(e) => {
+                    if (currentStep === 5 && !canStartNewConversion) {
+                        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+                        if (scrollHeight - scrollTop - clientHeight < 360) {
+                            setCanStartNewConversion(true);
+                        }
+                    }
+                }}
                 style={{ 
                     flex: 1, 
                     minWidth: 0, 
-                    height: 'calc(100vh - 64px)',
+                    height: '100%',
+                    maxHeight: '100%',
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     display: 'flex', 
@@ -529,8 +543,8 @@ export default function WizardContainer() {
                 {renderStepContent()}
             </div>
 
-            {/* ── Bottom navigation: only Next button, right-aligned ── */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {/* ── Bottom navigation: only Next / Start New Conversion (No arrow icons) ── */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', paddingBottom: '0.75rem' }}>
                 {currentStep < 5 && (
                     <button
                         onClick={handleNext}
@@ -538,7 +552,7 @@ export default function WizardContainer() {
                         style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '0.6rem',
+                            justifyContent: 'center',
                             padding: '0.75rem 2.25rem',
                             borderRadius: 12,
                             background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
@@ -556,28 +570,40 @@ export default function WizardContainer() {
                         onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 6px 22px rgba(55,48,163,0.30)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     >
                         Next
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                            <polyline points="12 5 19 12 12 19"/>
-                        </svg>
                     </button>
                 )}
 
                 {currentStep === 5 && (
                     <button
-                        onClick={actions.resetWizard}
-                        style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '0.6rem',
-                            padding: '0.75rem 2.25rem', borderRadius: 12,
-                            background: 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)',
-                            color: '#fff', fontWeight: 700, fontSize: '0.9375rem',
-                            border: 'none', boxShadow: '0 6px 22px rgba(55,48,163,0.30)', cursor: 'pointer',
+                        type="button"
+                        onClick={() => {
+                            if (canStartNewConversion) {
+                                actions.resetWizard();
+                            }
                         }}
+                        disabled={!canStartNewConversion}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '0.75rem 2.25rem',
+                            borderRadius: 12,
+                            background: canStartNewConversion
+                                ? 'linear-gradient(135deg, #3730A3 0%, #4F46E5 100%)'
+                                : '#e2e8f0',
+                            color: canStartNewConversion ? '#ffffff' : '#94a3b8',
+                            fontWeight: 700,
+                            fontSize: '0.9375rem',
+                            border: 'none',
+                            boxShadow: canStartNewConversion ? '0 6px 22px rgba(55,48,163,0.30)' : 'none',
+                            cursor: canStartNewConversion ? 'pointer' : 'not-allowed',
+                            opacity: canStartNewConversion ? 1 : 0.65,
+                            transition: 'all 0.25s ease',
+                            letterSpacing: '0.01em',
+                        }}
+                        title={canStartNewConversion ? 'Start a new conversion' : 'Scroll down to review Human Intervention to enable'}
                     >
                         Start New Conversion
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                        </svg>
                     </button>
                 )}
             </div>

@@ -225,8 +225,18 @@ function wizardReducer(state, action) {
             };
         }
 
-        case ActionTypes.SET_FILE_METADATA:
-            return { ...state, fileMetadata: action.payload };
+        case ActionTypes.SET_FILE_METADATA: {
+            const fileName = action.payload?.name;
+            const projectName = fileName ? fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "") : state.config.project_name;
+            return { 
+                ...state, 
+                fileMetadata: action.payload,
+                config: {
+                    ...state.config,
+                    project_name: projectName || 'ConvertedApplication'
+                }
+            };
+        }
 
         case ActionTypes.CLEAR_FILE:
             return { ...state, selectedFile: null, fileMetadata: null, localSource: null };
@@ -242,8 +252,15 @@ function wizardReducer(state, action) {
                 localSource: null,
             };
 
-        case ActionTypes.SET_LOCAL_SOURCE:
-            return { ...state, localSource: action.payload };
+        case ActionTypes.SET_LOCAL_SOURCE: {
+            const fileName = action.payload?.name;
+            let newConfig = state.config;
+            if (fileName) {
+                const projectName = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "");
+                newConfig = { ...state.config, project_name: projectName || 'ConvertedApplication' };
+            }
+            return { ...state, localSource: action.payload, config: newConfig };
+        }
 
         case ActionTypes.SET_ANALYSIS_JOB:
             return { ...state, analysisJobId: action.payload, analysisComplete: false };

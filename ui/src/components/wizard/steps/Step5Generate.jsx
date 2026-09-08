@@ -72,7 +72,7 @@ function getCompletedFrontendSteps(backendState) {
 /**
  * ER Diagram Component
  */
-function ERDiagram({ schema }) {
+export function ERDiagram({ schema }) {
     if (!schema || !schema.tables) return null;
 
     const normalizeName = (name) => String(name || '').replace(/[\[\]`"]+/g, '').trim().toLowerCase();
@@ -578,8 +578,9 @@ function FileExplorer({ jobId, generationComplete }) {
             display: 'grid',
                     gridTemplateColumns: 'minmax(280px, 320px) minmax(0, 1fr)',
             gap: '0',
-            marginTop: 0,
-            height: '100%',
+            marginTop: '1.5rem',
+            height: 'calc(100vh - 240px)',
+            minHeight: '480px',
             border: '1px solid var(--color-border)',
             borderRadius: '16px',
             overflow: 'hidden',
