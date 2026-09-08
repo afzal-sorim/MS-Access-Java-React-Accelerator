@@ -313,6 +313,10 @@ function DescriptionPopover({ object, summary, category }) {
                             >Close</button>
                         </div>
                     </div>
+                    <div style={{
+                        position: 'absolute', top: '100%', right: '2rem', width: 0, height: 0,
+                        borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '7px solid #c7d2fe'
+                    }} />
                 </div>
             )}
         </>
@@ -699,7 +703,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
 
 
                     {/* Data Grid */}
-                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'visible' }}>
                         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>

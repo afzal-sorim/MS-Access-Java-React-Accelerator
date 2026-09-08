@@ -4,7 +4,7 @@ import './Access2JavaLoader.css';
 export default function Access2JavaLoader({ 
   isVisible = true, 
   databaseName = 'Database.accdb',
-  fileSize = '0.00 MB',
+  // fileSize = '0.00 MB',
   scannedData = null,
   isComplete = false,
   onDurationRecorded = null

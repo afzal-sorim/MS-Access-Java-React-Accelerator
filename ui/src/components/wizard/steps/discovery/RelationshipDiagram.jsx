@@ -205,11 +205,11 @@ const RelationshipDiagram = ({ data }) => {
                     <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#fefce8', border: '1px solid #e2e8f0' }}></div>
                     <span>Primary Key</span>
                 </div>
-                {tableItems.length > 12 && (
+                {/* {tableItems.length > 12 && (
                     <div style={{ fontSize: '0.7rem', color: '#6366f1', fontWeight: 600 }}>
                         Showing 12 of {tableItems.length} tables
                     </div>
-                )}
+                )} */}
             </div>
         </div>
     );
