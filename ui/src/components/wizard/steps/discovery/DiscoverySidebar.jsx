@@ -40,7 +40,7 @@ const DiscoverySidebar = ({ activeTab = 'Overview', onSelectTab, isCollapsed, on
         { label: 'Reports', icon: FileText },
         { label: 'Macros', icon: PlaySquare },
         { label: 'Modules', icon: Code },
-        { label: 'Relationships', icon: Share2 },
+        // { label: 'Relationships', icon: Share2 },
         { label: 'Dependencies', icon: Link2 },
         { label: 'Data Dictionary', icon: Search },
     ];
@@ -81,7 +81,7 @@ const DiscoverySidebar = ({ activeTab = 'Overview', onSelectTab, isCollapsed, on
 
         const totalDependencies = (tables.length * 4) + (queries.length * 3) + (forms.length * 2);
         const currentDbName = dbName || progress?.dbName || 'AccessDatabase.accdb';
-        const currentSize = fileSize || progress?.fileSize || '0.00 MB';
+        const currentSize = fileSize || progress?.fileSize;
 
         const inventoryData = {
             application: 'MS Access Converter Accelerator',

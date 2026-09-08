@@ -38,7 +38,7 @@ const DiscoverySummary = ({ progress, onContinue }) => {
     const stats = [
         { label: 'Total Objects', value: totalObjects, icon: Layers, color: '#6366f1', bg: '#f5f3ff', isClickable: true, modalKey: 'objects' },
         { label: 'Total Dependencies', value: totalDependencies, icon: Link2, color: '#10b981', bg: '#ecfdf5', isClickable: true, modalKey: 'dependencies' },
-        { label: 'Database Size', value: (progress?.fileSize || '0.00 MB'), icon: Database, color: '#f59e0b', bg: '#fffbeb' },
+        { label: 'Database Size', value: (progress?.fileSize), icon: Database, color: '#f59e0b', bg: '#fffbeb' },
         { label: 'Scan Duration', value: (progress?.scanDuration || progress?.analysisTime || '00:00:05'), icon: Clock, color: '#3b82f6', bg: '#eff6ff' },
         { label: 'Objects Analyzed', value: '100%', icon: CheckCircle2, color: '#ec4899', bg: '#fce7f3' },
         { label: 'Last Scan', value: (progress?.lastScan || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })), icon: Calendar, color: '#8b5cf6', bg: '#f5f3ff' }

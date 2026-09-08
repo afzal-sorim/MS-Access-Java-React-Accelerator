@@ -111,7 +111,7 @@ export default function ReactPreview({ jobId }) {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
             }}>
                 <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', margin: '0 auto 1rem' }}>
-                    ΓÜá∩╕Å
+                    ⚠️
                 </div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#991b1b', margin: '0 0 0.5rem 0' }}>
                     Preview Not Ready
@@ -124,7 +124,7 @@ export default function ReactPreview({ jobId }) {
                     className="btn btn-primary"
                     style={{ padding: '0.6rem 1.5rem' }}
                 >
-                    ≡ƒöä Retry Loading Preview
+                    🔄 Retry Loading Preview
                 </button>
             </div>
         );
@@ -142,7 +142,7 @@ export default function ReactPreview({ jobId }) {
             marginTop: '1.5rem',
             animation: 'fadeIn 0.3s ease-out',
         }}>
-            {/* ΓöÇΓöÇ Sleek Glassmorphic Toolbar ΓöÇΓöÇ */}
+            {/* ── Sleek Glassmorphic Toolbar ── */}
             <div style={{
                 background: 'rgba(15, 23, 42, 0.92)',
                 backdropFilter: 'blur(12px)',
@@ -191,7 +191,7 @@ export default function ReactPreview({ jobId }) {
                     border: '1px solid #334155',
                 }}>
                     {[
-                        { key: 'desktop', label: 'Desktop', icon: '🖥' },
+                        { key: 'desktop', label: 'Desktop', icon: '🖥️' },
                         { key: 'laptop', label: 'Laptop', icon: '💻' },
                         { key: 'tablet', label: 'Tablet', icon: '📱' },
                         { key: 'mobile', label: 'Mobile', icon: '📲' },
@@ -231,7 +231,7 @@ export default function ReactPreview({ jobId }) {
                         border: '1px solid #334155',
                     }}>
                         {[
-                            { key: 'preview', label: 'Preview', icon: '👁' },
+                            { key: 'preview', label: 'Preview', icon: '👁️' },
                             { key: 'split', label: 'Split', icon: '◫' },
                             { key: 'code', label: 'Code', icon: '💻' },
                         ].map(m => (
@@ -282,7 +282,7 @@ export default function ReactPreview({ jobId }) {
                 </div>
             </div>
 
-            {/* ΓöÇΓöÇ Sandbox Body & Frame ΓöÇΓöÇ */}
+            {/* ── Sandbox Body & Frame ── */}
             <div style={{
                 background: '#090d16',
                 padding: device === 'desktop' ? '0' : '2rem 1.5rem',

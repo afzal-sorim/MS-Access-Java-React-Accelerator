@@ -387,9 +387,9 @@ export default function Step1SelectApplication() {
     };
 
     return (
-        <div style={{ width: '100%' }}>
+        <div className="step1-select-application" style={{ width: '100%' }}>
             {/* ── Card Header ── */}
-            <div style={{ display:'flex', alignItems:'flex-start', gap:'1rem', marginBottom:'1rem', paddingBottom:'1rem', borderBottom:'1px solid #C7D2FE' }}>
+            <div className="step1-header" style={{ display:'flex', alignItems:'flex-start', gap:'1rem', marginBottom:'1rem', paddingBottom:'1rem', borderBottom:'1px solid #C7D2FE' }}>
                 {/* Yellow folder in lavender box */}
                 <div style={{ width:58, height:58, background:'linear-gradient(135deg,#EEF2FF 0%,#E0D0FA 100%)', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, border:'1.5px solid #A5B4FC' }}>
                     <svg width="36" height="30" viewBox="0 0 36 30" fill="none">
@@ -413,7 +413,7 @@ export default function Step1SelectApplication() {
             </div>
 
             {/* ── Mode buttons ── */}
-            <div style={{ display:'flex', gap:'0.75rem', marginBottom:'1.25rem', flexWrap:'wrap' }}>
+            <div className="step1-mode-buttons" style={{ display:'flex', gap:'0.75rem', marginBottom:'1.25rem', flexWrap:'wrap' }}>
                 <button style={sourceMode==='upload' ? btnPrimary : btnSecondary} onClick={() => handleModeChange('upload')}>
                     <UploadBtnIcon /> Upload a file
                 </button>
@@ -527,7 +527,7 @@ export default function Step1SelectApplication() {
                         </>
                     ) : (
                         /* ── File selected ── */
-                        <div style={{ background:'#F8FAFC', border:'1.5px solid var(--color-success)', borderRadius:16, padding:'1.5rem' }}>
+                        <div className="step1-selected-file" style={{ background:'#F8FAFC', border:'1.5px solid var(--color-success)', borderRadius:16, padding:'1.5rem' }}>
                             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'1rem', flexWrap:'wrap' }}>
                                 <div style={{ display:'flex', alignItems:'center', gap:'1rem' }}>
                                     <div style={{ width:52, height:52, borderRadius:12, background:'linear-gradient(135deg,#3730A3 0%,#4F46E5 100%)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>

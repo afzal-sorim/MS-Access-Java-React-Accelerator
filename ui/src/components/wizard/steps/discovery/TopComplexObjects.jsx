@@ -36,23 +36,19 @@ const TopComplexObjects = ({ progress, result }) => {
         const list = [];
         if (qCount > 0 || qItems.length > 0) {
             const count = qCount || qItems.length;
-            list.push({ key: 'Queries', name: `Query Engine (${count} queries)`, icon: Database, color: '#6366f1', bg: '#e0e7ff', score: 96, count, items: qItems });
+            list.push({ key: 'Queries', name: `Query Engine (${count} queries)`, icon: Database, color: '#4f46e5', bg: '#eef2ff', score: 96, count, items: qItems });
         }
         if (fCount > 0 || fItems.length > 0) {
             const count = fCount || fItems.length;
-            list.push({ key: 'Forms', name: `UI Forms (${count} forms)`, icon: Layout, color: '#10b981', bg: '#dcfce7', score: 90, count, items: fItems });
+            list.push({ key: 'Forms', name: `UI Forms (${count} forms)`, icon: Layout, color: '#10b981', bg: '#ecfdf5', score: 90, count, items: fItems });
         }
         if (vCount > 0 || vItems.length > 0) {
             const count = vCount || vItems.length;
-            list.push({ key: 'VBA', name: `VBA Modules (${count} modules)`, icon: Code, color: '#3b82f6', bg: '#dbeafe', score: 84, count, items: vItems });
+            list.push({ key: 'VBA', name: `VBA Modules (${count} modules)`, icon: Code, color: '#2563eb', bg: '#eff6ff', score: 84, count, items: vItems });
         }
         if (rCount > 0 || rItems.length > 0) {
             const count = rCount || rItems.length;
-            list.push({ key: 'Reports', name: `Report Templates (${count} reports)`, icon: FileText, color: '#ec4899', bg: '#fce7f3', score: 78, count, items: rItems });
-        }
-        if (mCount > 0 || mItems.length > 0) {
-            const count = mCount || mItems.length;
-            list.push({ key: 'Macros', name: `Macro Pipelines (${count} macros)`, icon: PlaySquare, color: '#f97316', bg: '#ffedd5', score: 70, count, items: mItems });
+            list.push({ key: 'Reports', name: `Report Templates (${count} reports)`, icon: FileText, color: '#db2777', bg: '#fdf2f8', score: 78, count, items: rItems });
         }
         return list;
     }, [qCount, fCount, vCount, rCount, mCount, qItems, fItems, vItems, rItems, mItems]);
@@ -81,33 +77,33 @@ const TopComplexObjects = ({ progress, result }) => {
             <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#15133A', marginBottom: '0.25rem' }}>Overall Complexity Score</h3>
             <p style={{ fontSize: '0.75rem', color: '#64748B', marginBottom: '1rem' }}>Complexity percentage by object category</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
                 {items.slice(0, 4).map((item, i) => (
                     <div 
                         key={i} 
                         onClick={() => setSelectedObj(item)}
                         style={{ 
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '0.375rem 0.5rem', borderRadius: '8px', cursor: 'pointer',
-                            backgroundColor: selectedObj?.key === item.key ? '#f1f5f9' : 'transparent',
+                            padding: '0.5rem 0.625rem', borderRadius: '12px', cursor: 'pointer',
+                            backgroundColor: selectedObj?.key === item.key ? '#f8fafc' : 'transparent',
                             transition: 'all 0.15s ease'
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedObj?.key === item.key ? '#f1f5f9' : 'transparent'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedObj?.key === item.key ? '#f8fafc' : 'transparent'}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                            <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <item.icon size={15} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '10px', backgroundColor: item.bg, color: item.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <item.icon size={16} />
                             </div>
-                            <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#15133A' }}>
                                 {item.name}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: item.color }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: item.color }}>
                                 {item.score}/100
                             </span>
-                            <ChevronRight size={14} color="#94a3b8" />
+                            <ChevronRight size={15} color="#cbd5e1" />
                         </div>
                     </div>
                 ))}
