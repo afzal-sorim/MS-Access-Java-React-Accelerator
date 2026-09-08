@@ -167,7 +167,7 @@ export default function ReactPreview({ jobId }) {
                         fontSize: '1.1rem',
                         boxShadow: '0 4px 10px rgba(99, 102, 241, 0.35)',
                     }}>
-                        ⚛️
+                        ⚙️
                     </div>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -276,7 +276,7 @@ export default function ReactPreview({ jobId }) {
                             fontWeight: 600,
                         }}
                     >
-                        <span>🔄</span>
+                        <span>↺</span>
                         <span>Reset</span>
                     </button>
                 </div>
