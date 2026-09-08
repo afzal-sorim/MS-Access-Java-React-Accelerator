@@ -15,7 +15,7 @@ import TopComplexObjects from './discovery/TopComplexObjects';
 import TopTablesList from './discovery/TopTablesList';
 import DiscoverySummary from './discovery/DiscoverySummary';
 import DiscoveryDetailView from './discovery/DiscoveryDetailView';
-import { Database, Layout, FileText, PlaySquare, Code, CheckCircle2, PanelLeftOpen } from 'lucide-react';
+import { Database, Layout, FileText, PlaySquare, Code, CheckCircle2, PanelLeftOpen, Download, ExternalLink } from 'lucide-react';
 
 // Exact duration formatter: HH:MM:SS
 function formatDuration(totalSeconds) {
@@ -75,6 +75,24 @@ export default function Step2Analyze() {
             window.open(getBrdPreviewUrl(state.analysisJobId), '_blank', 'noopener,noreferrer');
         } catch (error) {
             setBrdError(error.message || 'Unable to generate the BRD report.');
+        } finally {
+            setBrdLoading(false);
+        }
+    };
+
+    const handleDownloadBrd = async () => {
+        if (brdLoading) return;
+        if (!state.analysisJobId) {
+            setBrdError('Complete the analysis before downloading the BRD.');
+            return;
+        }
+        setBrdLoading(true);
+        setBrdError(null);
+        try {
+            await generateBrdReport(state.analysisJobId);
+            window.open(getBrdDownloadUrl(state.analysisJobId), '_blank');
+        } catch (error) {
+            setBrdError(error.message || 'Unable to download the BRD report.');
         } finally {
             setBrdLoading(false);
         }
@@ -473,25 +491,45 @@ export default function Step2Analyze() {
                                     <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Scanned</span>
                                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{getLastScanned()}</span>
                                 </div>
-                                <button 
-                                    onClick={handleGenerateBrd}
-                                    disabled={brdLoading}
-                                    title="View Business Requirements Document"
-                                    style={{ 
-                                        display: 'flex', alignItems: 'center', gap: '0.375rem', 
-                                        backgroundColor: '#ffffff', 
-                                        color: '#3730A3', 
-                                        borderRadius: '12px', border: '1px solid #e2e8f0', 
-                                        padding: '0.55rem 0.875rem', fontSize: '0.8125rem', fontWeight: 700, 
-                                        cursor: brdLoading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-                                        opacity: brdLoading ? 0.5 : 1,
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                                        transition: 'all 0.15s ease'
-                                    }}
-                                >
-                                    <FileText size={15} />
-                                    <span>{brdLoading ? 'Opening BRD...' : 'View BRD'}</span>
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                                    <button
+                                        onClick={handleDownloadBrd}
+                                        disabled={brdLoading}
+                                        title="Download BRD Report"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            backgroundColor: '#ffffff',
+                                            color: '#3730A3',
+                                            borderRadius: '12px', border: '1px solid #e2e8f0',
+                                            padding: '0.55rem', width: '38px', height: '38px',
+                                            cursor: brdLoading ? 'not-allowed' : 'pointer',
+                                            opacity: brdLoading ? 0.5 : 1,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <Download size={18} />
+                                    </button>
+                                    <button
+                                        onClick={handleGenerateBrd}
+                                        disabled={brdLoading}
+                                        title="View Business Requirements Document"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.375rem',
+                                            backgroundColor: '#ffffff',
+                                            color: '#3730A3',
+                                            borderRadius: '12px', border: '1px solid #e2e8f0',
+                                            padding: '0.55rem 0.875rem', fontSize: '0.8125rem', fontWeight: 700,
+                                            cursor: brdLoading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                                            opacity: brdLoading ? 0.5 : 1,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                            transition: 'all 0.15s ease'
+                                        }}
+                                    >
+                                        <ExternalLink size={15} />
+                                        <span>{brdLoading ? 'Opening...' : 'View BRD'}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -508,33 +546,14 @@ export default function Step2Analyze() {
                         {/* Middle Cards Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
                             <ObjectDistributionChart data={effectiveProgress} />
-                            {/* <ComplexityScore progress={effectiveProgress} /> */}
+                            <TopTablesList progress={effectiveProgress} result={analysisResult} />
                             <KeyInsights progress={effectiveProgress} result={analysisResult} />
                         </div>
 
                         {/* Lower Middle Cards Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
                             <RelationshipDiagram data={effectiveProgress} />
-                            {/*
-                            <ModernizedOutput type="frontend" progress={effectiveProgress} />
-                            <ModernizedOutput type="backend" progress={effectiveProgress} />
-                            <FileGenerationChart progress={effectiveProgress} />
-                            */}
-                            {/* <TopComplexObjects progress={effectiveProgress} result={analysisResult} /> */}
                         </div>
-
-                        {/* Bottom Row Grid */}
-                        {/*
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
-                            <TopTablesList progress={effectiveProgress} result={analysisResult} />
-                            <DiscoverySummary
-                                progress={effectiveProgress}
-                                onContinue={() => actions.nextStep()}
-                            />
-                        </div>
-                        */}
-
-
                     </>
                 )}
             </div>

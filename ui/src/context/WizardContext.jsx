@@ -88,7 +88,7 @@ const initialState = {
         macros: [],
         externalDependencies: [],
     },
-    reviewTab: 'tables',
+    reviewTab: 'all',
     selectedObjects: new Set(),
 
     // Step 5: Generation

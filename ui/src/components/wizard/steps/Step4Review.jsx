@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { useWizard } from '../../../context/WizardContext';
 import { getReport } from '../../../services/api';
 import { formatNumber, formatPercentage } from '../../../utils/helpers';
@@ -245,22 +246,24 @@ function DescriptionPopover({ object, summary, category }) {
             >
                 {summary}
             </div>
-            {showModal && (
+            {showModal && ReactDOM.createPortal(
                 <div
                     onClick={() => setShowModal(false)}
                     style={{
                         position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
                         backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 9999,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(4px)'
+                        backdropFilter: 'blur(4px)',
+                        padding: '2rem', boxSizing: 'border-box'
                     }}
                 >
                     <div
                         onClick={e => e.stopPropagation()}
                         style={{
-                            width: 'min(650px, 90vw)', background: '#fff', borderRadius: '16px',
+                            width: 'min(650px, 95vw)', background: '#fff', borderRadius: '16px',
                             padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            position: 'relative', textAlign: 'left'
+                            position: 'relative', textAlign: 'left',
+                            maxHeight: 'calc(100vh - 4rem)', overflowY: 'auto'
                         }}
                     >
                         <button
@@ -313,7 +316,8 @@ function DescriptionPopover({ object, summary, category }) {
                             >Close</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
@@ -516,8 +520,40 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
         return objects.filter(obj => matchesStatusFilter(obj, filterStatus)).length;
     };
 
-    const allObjectsFlat = useMemo(() => Object.values(reviewData).flat(), [reviewData]);
-    const readinessScore = allObjectsFlat.length > 0 ? Math.round(((allObjectsFlat.filter(isSupported).length + allObjectsFlat.filter(isReview).length * 0.5) / allObjectsFlat.length) * 100) : 0;
+    // Calculate true counts for each category (Tier 2 tabs) - independent of selection
+    const categoryCounts = useMemo(() => {
+        const counts = {};
+        REVIEW_TABS.forEach(tab => {
+            const objects = reviewData[tab.key] || [];
+            counts[tab.key] = {
+                category: tab.key,
+                total: objects.length,
+                fullySupported: objects.filter(isSupported).length,
+                needsReview: objects.filter(isReview).length,
+                manualSkipped: objects.filter(isUnsupported).length,
+            };
+        });
+        return counts;
+    }, [reviewData]);
+
+    // Calculate aggregate totals for all categories
+    const globalCounts = useMemo(() => {
+        const allObjects = Object.values(reviewData).flat();
+        return {
+            total: allObjects.length,
+            fullySupported: allObjects.filter(isSupported).length,
+            needsReview: allObjects.filter(isReview).length,
+            manualSkipped: allObjects.filter(isUnsupported).length,
+        };
+    }, [reviewData]);
+
+    // Tier 1 Summary Data: reflects current category if one is selected, else global
+    const summaryData = useMemo(() => {
+        if (reviewTab === 'all') {
+            return globalCounts;
+        }
+        return categoryCounts[reviewTab] || { total: 0, fullySupported: 0, needsReview: 0, manualSkipped: 0 };
+    }, [reviewTab, globalCounts, categoryCounts]);
 
     const handleFilterChange = (status) => {
         // Toggle: if clicking the already active filter, go back to 'all'
@@ -626,49 +662,81 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
 
             {!loading && (
                 <>
-                    {/* KPI Scorecards */}
-                    <div className="kpi-container">
-                        <div className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>
-                            <div className="kpi-header">📊 Total Objects</div>
-                            <div className="kpi-value">{totalObjectsCount}</div>
-                        
+                    {/* Tier 1 - Summary Cards (Read-only aggregate dashboard) */}
+                    <div className="kpi-container" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
+                        <div className="kpi-card kpi-total" style={{ cursor: 'default', borderLeft: '4px solid #4338ca' }}>
+                            <div className="kpi-header" style={{ color: '#4338ca' }}>📊 Total Objects</div>
+                            <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.total}</div>
                         </div>
-                        <div className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED')}>
-                            <div className="kpi-header">✅ Fully Supported</div>
-                            <div className="kpi-value">{supportedCount}</div>
+                        <div className="kpi-card kpi-supported" style={{ cursor: 'default', borderLeft: '4px solid #10b981' }}>
+                            <div className="kpi-header" style={{ color: '#10b981' }}>✅ Fully Supported</div>
+                            <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.fullySupported}</div>
                         </div>
-                        <div className={`kpi-card kpi-review ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED_WITH_REVIEW')}>
-                            <div className="kpi-header">⚠️ Needs Review</div>
-                            <div className="kpi-value">{reviewCount}</div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Check mappings</div>
+                        <div className="kpi-card kpi-review" style={{ cursor: 'default', borderLeft: '4px solid #f59e0b' }}>
+                            <div className="kpi-header" style={{ color: '#f59e0b' }}>⚠️ Needs Review</div>
+                            <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.needsReview}</div>
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Check mappings</div>
                         </div>
-                        <div className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('UNSUPPORTED')}>
-                            <div className="kpi-header">❌ Manual / Skipped</div>
-                            <div className="kpi-value">{unsupportedCount}</div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Requires attention</div>
+                        <div className="kpi-card kpi-unsupported" style={{ cursor: 'default', borderLeft: '4px solid #ef4444' }}>
+                            <div className="kpi-header" style={{ color: '#ef4444' }}>❌ Manual / Skipped</div>
+                            <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.manualSkipped}</div>
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Requires attention</div>
                         </div>
                     </div>
 
-                    {/* Segmented Category Tabs */}
-                    <div className="review-tabs">
+                    {/* Tier 2 - Segmented Category Tabs */}
+                    <div className="review-tabs" style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1rem',
+                        background: '#f8fafc',
+                        borderRadius: '999px',
+                        border: '1px solid #e2e8f0',
+                        marginBottom: '1.5rem',
+                        overflowX: 'auto',
+                        whiteSpace: 'nowrap'
+                    }}>
                         {REVIEW_TABS.map((tab) => {
-                            const count = getTabCount(tab.key);
-                            const hasIssues = reviewData[tab.key]?.some(o => o.status === 'UNSUPPORTED' || o.status === 'FAILED_EXTRACTION');
+                            const stats = categoryCounts[tab.key];
+                            const isActive = reviewTab === tab.key;
                             return (
                                 <button
                                     key={tab.key}
-                                    className={`review-tab ${reviewTab === tab.key ? 'active' : ''}`}
+                                    className={`review-tab ${isActive ? 'active' : ''}`}
                                     onClick={() => {
                                         const newTab = reviewTab === tab.key ? 'all' : tab.key;
                                         actions.setReviewTab(newTab);
                                     }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.6rem',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '999px',
+                                        border: isActive ? '1.5px solid #4338ca' : '1.5px solid transparent',
+                                        background: isActive ? '#fff' : 'transparent',
+                                        color: isActive ? '#4338ca' : '#64748b',
+                                        boxShadow: isActive ? '0 2px 4px rgba(67, 56, 202, 0.1)' : 'none',
+                                        fontWeight: 600,
+                                        fontSize: '0.875rem'
+                                    }}
                                 >
-                                    {tab.icon} {tab.label}
-                                    <span className="review-tab-count">{formatNumber(count)}</span>
-                                    {count > 0 && (
+                                    <span style={{ fontSize: '1.1rem' }}>{tab.icon}</span>
+                                    <span>{tab.label}</span>
+                                    <span className="review-tab-count" style={{
+                                        background: isActive ? '#eef2ff' : '#e2e8f0',
+                                        color: isActive ? '#4338ca' : '#64748b',
+                                        padding: '1px 8px',
+                                        borderRadius: '10px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700
+                                    }}>
+                                        {stats.total}
+                                    </span>
+                                    {stats.total > 0 && (
                                         <span style={{
-                                            width: '8px', height: '8px', borderRadius: '50%',
-                                            background: hasIssues ? '#ef4444' : '#10b981'
+                                            width: '6px', height: '6px', borderRadius: '50%',
+                                            background: stats.manualSkipped > 0 ? '#ef4444' : '#10b981'
                                         }} />
                                     )}
                                 </button>
@@ -679,8 +747,10 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                     {/* Smart Toolbar */}
                     <div className="review-toolbar">
                         <div className="quick-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>All</span>
+                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>All Statuses</span>
                             <span className={`filter-chip ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED')}>Supported</span>
+                            <span className={`filter-chip ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED_WITH_REVIEW')}>Needs Review</span>
+                            <span className={`filter-chip ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('UNSUPPORTED')}>Manual/Skipped</span>
                             <span className={`filter-chip ${filterStatus === 'selected' ? 'active' : ''}`} onClick={() => handleFilterChange('selected')}>Selected ({selectedObjects.size})</span>
                             <button className="btn btn-primary" onClick={handleGlobalSelectAll} style={{ marginLeft: '1rem', borderRadius: '999px', fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}>Select All Globally</button>
                         </div>

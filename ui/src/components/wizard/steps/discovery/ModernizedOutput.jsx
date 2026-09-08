@@ -335,7 +335,7 @@ const ModernizedOutput = ({ type, progress }) => {
                     backgroundColor: 'rgba(15, 23, 42, 0.75)',
                     backdropFilter: 'blur(8px)',
                     zIndex: 9999,
-                    display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     padding: '1rem', overflowY: 'auto'
                 }}>
                     <div style={{
