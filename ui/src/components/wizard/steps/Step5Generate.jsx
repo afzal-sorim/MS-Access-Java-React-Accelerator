@@ -71,7 +71,7 @@ function getCompletedFrontendSteps(backendState) {
 /**
  * ER Diagram Component
  */
-function ERDiagram({ schema }) {
+export function ERDiagram({ schema }) {
     if (!schema || !schema.tables) return null;
 
     const normalizeName = (name) => String(name || '').replace(/[\[\]`"]+/g, '').trim().toLowerCase();
