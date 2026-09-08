@@ -5,6 +5,7 @@ import { getReport, downloadResult, listJobFiles, getFileContent, getJobDbSchema
 import { formatNumber } from '../../../utils/helpers';
 import { getGeneratedCounts } from '../../../utils/generatedCounts';
 import { ERDiagram } from './Step5Generate';
+import ReactPreview from './ReactPreview';
 
 /* ─── Inline SVG icons ─── */
 const CheckIcon = () => (
@@ -62,6 +63,7 @@ const EyeIcon = () => (
         <circle cx="12" cy="12" r="3" />
     </svg>
 );
+
 
 const ChevronDownIcon = ({ rotated, color }) => (
     <svg
@@ -1192,6 +1194,8 @@ export default function Step6Summary({ onReachedIntervention }) {
 
     // Human Intervention filters
     const [interventionFilter, setInterventionFilter] = useState('ALL');
+    // UI Preview panel toggle
+    const [showPreview, setShowPreview] = useState(false);
 
     const targetJobId = generationJobId || analysisJobId || generationResult?.jobId;
 
@@ -2137,11 +2141,108 @@ export default function Step6Summary({ onReachedIntervention }) {
                     >
                         <LayersIcon /> View Components & Mappings
                     </button>
+                    <button
+                        className={`s6-hdr-btn s6-hdr-btn--preview ${showPreview ? 'active' : ''}`}
+                        onClick={() => setShowPreview(prev => !prev)}
+                        title={showPreview ? 'Hide UI Preview' : 'Open the generated React app UI in browser preview'}
+                    >
+                        <span style={{ fontSize: '1em' }}>⚛️</span>
+                        {showPreview ? 'Hide UI Preview' : 'Show UI Preview'}
+                    </button>
                     <button className="s6-hdr-btn s6-hdr-btn--primary" onClick={handleDownload}>
                         <DownloadIcon /> Download ZIP
                     </button>
                 </div>
             </div>
+
+            {/* ── UI PREVIEW PANEL (Sandpack React Preview) ── */}
+            {showPreview && (
+                <div
+                    className="s6-ui-preview-panel"
+                    style={{
+                        marginBottom: '1.5rem',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        border: '1.5px solid #c7d2fe',
+                        boxShadow: '0 8px 30px -4px rgba(99,102,241,0.18)',
+                        animation: 'fadeIn 0.25s ease-out'
+                    }}
+                >
+                    {/* Panel Header */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.85rem 1.25rem',
+                        background: 'linear-gradient(90deg, #4f46e5 0%, #0ea5e9 100%)',
+                        color: '#fff'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <span style={{ fontSize: '1.25rem' }}>⚛️</span>
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>
+                                    Live Generated UI Preview
+                                </div>
+                                <div style={{ fontSize: '0.72rem', opacity: 0.85, marginTop: '1px' }}>
+                                    Running the exact React 19 files produced by this migration job
+                                </div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const url = targetJobId
+                                        ? `${window.location.origin}/preview/${targetJobId}`
+                                        : `${window.location.origin}/preview`;
+                                    window.open(url, '_blank', 'noopener,noreferrer');
+                                }}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    padding: '0.45rem 0.9rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(255,255,255,0.35)',
+                                    background: 'rgba(255,255,255,0.15)',
+                                    color: '#fff',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    backdropFilter: 'blur(4px)',
+                                    transition: 'background 0.15s ease'
+                                }}
+                                title="Open UI in new browser tab"
+                            >
+                                <span>🔗</span> Open in New Tab
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowPreview(false)}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(255,255,255,0.3)',
+                                    background: 'rgba(255,255,255,0.15)',
+                                    color: '#fff',
+                                    cursor: 'pointer'
+                                }}
+                                title="Close preview"
+                                aria-label="Close preview"
+                            >
+                                <XIcon />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ReactPreview sandpack component */}
+                    <ReactPreview jobId={targetJobId} />
+                </div>
+            )}
 
             {/* ── 2. EXECUTIVE SUMMARY CHARTS ROW (EXISTING SPACE) ── */}
             <div className="s6-summary-charts-grid">
