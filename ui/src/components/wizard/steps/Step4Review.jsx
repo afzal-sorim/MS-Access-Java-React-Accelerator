@@ -664,20 +664,52 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                 <>
                     {/* Tier 1 - Summary Cards (Read-only aggregate dashboard) */}
                     <div className="kpi-container" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2rem' }}>
-                        <div className="kpi-card kpi-total" style={{ cursor: 'default', borderLeft: '4px solid #4338ca' }}>
+                        <div
+                            className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`}
+                            onClick={() => handleFilterChange('all')}
+                            style={{
+                                cursor: 'pointer',
+                                borderLeft: '4px solid #4338ca',
+                                background: filterStatus === 'all' ? '#f5f7ff' : '#fff'
+                            }}
+                        >
                             <div className="kpi-header" style={{ color: '#4338ca' }}>📊 Total Objects</div>
                             <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.total}</div>
                         </div>
-                        <div className="kpi-card kpi-supported" style={{ cursor: 'default', borderLeft: '4px solid #10b981' }}>
+                        <div
+                            className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`}
+                            onClick={() => handleFilterChange('SUPPORTED')}
+                            style={{
+                                cursor: 'pointer',
+                                borderLeft: '4px solid #10b981',
+                                background: filterStatus === 'SUPPORTED' ? '#f0fdf4' : '#fff'
+                            }}
+                        >
                             <div className="kpi-header" style={{ color: '#10b981' }}>✅ Fully Supported</div>
                             <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.fullySupported}</div>
                         </div>
-                        <div className="kpi-card kpi-review" style={{ cursor: 'default', borderLeft: '4px solid #f59e0b' }}>
+                        <div
+                            className={`kpi-card kpi-review ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`}
+                            onClick={() => handleFilterChange('SUPPORTED_WITH_REVIEW')}
+                            style={{
+                                cursor: 'pointer',
+                                borderLeft: '4px solid #f59e0b',
+                                background: filterStatus === 'SUPPORTED_WITH_REVIEW' ? '#fffbeb' : '#fff'
+                            }}
+                        >
                             <div className="kpi-header" style={{ color: '#f59e0b' }}>⚠️ Needs Review</div>
                             <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.needsReview}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Check mappings</div>
                         </div>
-                        <div className="kpi-card kpi-unsupported" style={{ cursor: 'default', borderLeft: '4px solid #ef4444' }}>
+                        <div
+                            className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`}
+                            onClick={() => handleFilterChange('UNSUPPORTED')}
+                            style={{
+                                cursor: 'pointer',
+                                borderLeft: '4px solid #ef4444',
+                                background: filterStatus === 'UNSUPPORTED' ? '#fef2f2' : '#fff'
+                            }}
+                        >
                             <div className="kpi-header" style={{ color: '#ef4444' }}>❌ Manual / Skipped</div>
                             <div className="kpi-value" style={{ fontSize: '2.25rem' }}>{summaryData.manualSkipped}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>Requires attention</div>
@@ -699,6 +731,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                         {REVIEW_TABS.map((tab) => {
                             const stats = categoryCounts[tab.key];
                             const isActive = reviewTab === tab.key;
+                            const currentTabCount = getTabCount(tab.key);
                             return (
                                 <button
                                     key={tab.key}
@@ -718,7 +751,8 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                                         color: isActive ? '#4338ca' : '#64748b',
                                         boxShadow: isActive ? '0 2px 4px rgba(67, 56, 202, 0.1)' : 'none',
                                         fontWeight: 600,
-                                        fontSize: '0.875rem'
+                                        fontSize: '0.875rem',
+                                        opacity: currentTabCount === 0 && filterStatus !== 'all' ? 0.6 : 1
                                     }}
                                 >
                                     <span style={{ fontSize: '1.1rem' }}>{tab.icon}</span>
@@ -731,7 +765,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                                         fontSize: '0.75rem',
                                         fontWeight: 700
                                     }}>
-                                        {stats.total}
+                                        {currentTabCount}
                                     </span>
                                     {stats.total > 0 && (
                                         <span style={{
@@ -769,7 +803,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
 
 
                     {/* Data Grid */}
-                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'visible' }}>
+                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
                         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>

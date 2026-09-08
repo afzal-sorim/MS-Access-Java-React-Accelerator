@@ -40,7 +40,7 @@ const DiscoverySidebar = ({ activeTab = 'Overview', onSelectTab, isCollapsed, on
         { label: 'Reports', icon: FileText },
         { label: 'Macros', icon: PlaySquare },
         { label: 'Modules', icon: Code },
-        { label: 'Relationships', icon: Share2 },
+        // { label: 'Relationships', icon: Share2 },
         { label: 'Dependencies', icon: Link2 },
         { label: 'Data Dictionary', icon: Search },
     ];
