@@ -454,7 +454,7 @@ function FunctionalityCard({ func, index, onPreviewFile }) {
 }
 
 /* ─── Intervention Item Card (Compact & Clean Collapsed State) ─── */
-function InterventionItemCard({ item, onPreviewFile }) {
+function InterventionItemCard({ item, onPreviewFile, filesToRemove = [], removedFiles = [], onToggleRemove }) {
     const [expanded, setExpanded] = useState(false);
     const isP1 = item.severity === 'high';
 
@@ -548,8 +548,11 @@ function InterventionItemCard({ item, onPreviewFile }) {
                                 <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>Click any file to preview source code</span>
                             </div>
                             <div className="s6-intervention-files">
-                                {item.filePaths.map((fp, i) => (
-                                    <div key={i} className="s6-intervention-file-row">
+                                {item.filePaths.map((fp, i) => {
+                                    const isRemoved = removedFiles.includes(fp.path);
+                                    const isMarked = filesToRemove.includes(fp.path);
+                                    return (
+                                    <div key={i} className="s6-intervention-file-row" style={{ opacity: isRemoved ? 0.6 : 1, background: isMarked ? '#fef2f2' : '' }}>
                                         <div
                                             className="s6-intervention-file-left"
                                             onClick={() => onPreviewFile && onPreviewFile({ name: fp.label, path: fp.path, type: 'file' })}
@@ -559,10 +562,33 @@ function InterventionItemCard({ item, onPreviewFile }) {
                                             <span style={{ fontSize: '0.9rem' }}>
                                                 {fp.path.endsWith('.java') ? '☕' : (fp.path.endsWith('.sql') ? '📜' : (fp.path.endsWith('.jsx') || fp.path.endsWith('.js') ? '⚛️' : '📁'))}
                                             </span>
-                                            <span className="s6-intervention-file-lbl" style={{ color: '#4338ca', fontWeight: 600 }}>{fp.label}</span>
-                                            <code className="s6-intervention-file-path">{fp.path}</code>
+                                            <span className="s6-intervention-file-lbl" style={{ color: '#4338ca', fontWeight: 600, textDecoration: isRemoved ? 'line-through' : 'none' }}>{fp.label}</span>
+                                            <code className="s6-intervention-file-path" style={{ textDecoration: isRemoved ? 'line-through' : 'none' }}>{fp.path}</code>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => onToggleRemove && onToggleRemove(fp.path)}
+                                                title={isMarked ? 'Unmark for removal' : 'Mark for removal'}
+                                                aria-label="Remove"
+                                                disabled={isRemoved}
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    borderRadius: '5px',
+                                                    background: isRemoved ? '#e2e8f0' : (isMarked ? '#fee2e2' : '#f8fafc'),
+                                                    color: isRemoved ? '#94a3b8' : (isMarked ? '#ef4444' : '#64748b'),
+                                                    border: `1px solid ${isRemoved ? '#cbd5e1' : (isMarked ? '#fecaca' : '#e2e8f0')}`,
+                                                    cursor: isRemoved ? 'not-allowed' : 'pointer',
+                                                    padding: 0,
+                                                    fontWeight: 'bold'
+                                                }}
+                                            >
+                                                {isMarked ? '+' : '-'}
+                                            </button>
                                             <button
                                                 type="button"
                                                 onClick={() => onPreviewFile && onPreviewFile({ name: fp.label, path: fp.path, type: 'file' })}
@@ -587,7 +613,7 @@ function InterventionItemCard({ item, onPreviewFile }) {
                                             <CopyButton text={fp.path} />
                                         </div>
                                     </div>
-                                ))}
+                                )})}
                             </div>
                         </div>
                     )}
@@ -1200,6 +1226,87 @@ export default function Step6Summary({ onReachedIntervention }) {
     // UI Preview panel toggle
     const [showPreview, setShowPreview] = useState(false);
 
+    // File Removal State
+    const [filesToRemove, setFilesToRemove] = useState([]);
+    const [removedFiles, setRemovedFiles] = useState([]);
+    const [isRemovingFiles, setIsRemovingFiles] = useState(false);
+    const [showRemovedModal, setShowRemovedModal] = useState(false);
+    const [removedFilesContent, setRemovedFilesContent] = useState({});
+
+    useEffect(() => {
+        if (showRemovedModal && removedFiles.length > 0) {
+            const fetchContents = async () => {
+                const jobId = generationJobId || analysisJobId;
+                if (!jobId) return;
+                const newContents = { ...removedFilesContent };
+                let changed = false;
+                for (const file of removedFiles) {
+                    if (!newContents[file]) {
+                        try {
+                            const res = await getFileContent(jobId, file);
+                            if (res && res.content) {
+                                newContents[file] = res.content;
+                                changed = true;
+                            }
+                        } catch (e) {
+                            console.error(`Failed to fetch removed file content for ${file}:`, e);
+                            newContents[file] = "// Failed to load content.";
+                            changed = true;
+                        }
+                    }
+                }
+                if (changed) setRemovedFilesContent(newContents);
+            };
+            fetchContents();
+        }
+    }, [showRemovedModal, removedFiles, generationJobId, analysisJobId, removedFilesContent]);
+
+    const toggleFileRemoval = useCallback((path) => {
+        setFilesToRemove(prev => 
+            prev.includes(path) 
+                ? prev.filter(p => p !== path) 
+                : [...prev, path]
+        );
+    }, []);
+
+    const handleRemoveFiles = async () => {
+        const jobId = generationJobId || analysisJobId;
+        if (!filesToRemove.length || !jobId) return;
+        setIsRemovingFiles(true);
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/jobs/${jobId}/remove-files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: filesToRemove })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setRemovedFiles(prev => [...prev, ...(data.removed || [])]);
+                setFilesToRemove([]);
+            } else {
+                console.error('Failed to remove files');
+            }
+        } catch (err) {
+            console.error('Error removing files:', err);
+        } finally {
+            setIsRemovingFiles(false);
+        }
+    };
+    
+    const handleDownloadRemoved = () => {
+        const jobId = generationJobId || analysisJobId;
+        if (!jobId) return;
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        window.open(`${apiUrl}/api/jobs/${jobId}/download-removed`, '_blank');
+    };
+    
+    const handleDownloadRefined = () => {
+        const jobId = generationJobId || analysisJobId;
+        if (!jobId) return;
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        window.open(`${apiUrl}/api/jobs/${jobId}/download`, '_blank');
+    };
     const targetJobId = generationJobId || analysisJobId || generationResult?.jobId;
 
     // Load full report and file tree
@@ -2746,6 +2853,43 @@ export default function Step6Summary({ onReachedIntervention }) {
                                 <span className="s6-open-badge">{interventionItems.length} open</span>
                             </div>
                             <p className="s6-box-subtitle">Focused tasks and review items remaining before production deployment.</p>
+                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                                {filesToRemove.length > 0 && (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleRemoveFiles}
+                                        disabled={isRemovingFiles}
+                                        style={{ padding: '6px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        <span>🗑️</span> {isRemovingFiles ? 'Removing...' : `Remove Selected Files (${filesToRemove.length})`}
+                                    </button>
+                                )}
+                                {removedFiles.length > 0 && (
+                                    <>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowRemovedModal(true)}
+                                            style={{ padding: '6px 12px', background: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <span>👀</span> View Removed Files ({removedFiles.length})
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleDownloadRemoved}
+                                            style={{ padding: '6px 12px', background: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <span>📦</span> Download Removed Files (ZIP)
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={handleDownloadRefined}
+                                            style={{ padding: '6px 12px', background: '#4f46e5', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                        >
+                                            <span>⬇️</span> Refined Download Zip
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
                         {/* Priority Filter Bar for Human Intervention */}
@@ -2789,6 +2933,9 @@ export default function Step6Summary({ onReachedIntervention }) {
                                     key={item.id || i}
                                     item={item}
                                     onPreviewFile={handleOpenFilePreview}
+                                    filesToRemove={filesToRemove}
+                                    removedFiles={removedFiles}
+                                    onToggleRemove={toggleFileRemoval}
                                 />
                             ))
                         ) : (
@@ -2799,6 +2946,28 @@ export default function Step6Summary({ onReachedIntervention }) {
             </div>
 
             {/* ── 5. INTERACTIVE MODALS ── */}
+            {showRemovedModal && (
+                <div className="s6-modal-overlay" onClick={() => setShowRemovedModal(false)} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="s6-modal-content" onClick={e => e.stopPropagation()} style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>Removed Files</h3>
+                            <button type="button" onClick={() => setShowRemovedModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>&times;</button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {removedFiles.map((file, i) => (
+                                <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                    <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontFamily: 'monospace', fontSize: '0.9rem', color: '#475569', fontWeight: 'bold' }}>
+                                        {file}
+                                    </div>
+                                    <pre style={{ margin: 0, padding: '12px', background: '#ffffff', color: '#334155', fontSize: '0.85rem', overflowX: 'auto', maxHeight: '300px', overflowY: 'auto' }}>
+                                        {removedFilesContent[file] || 'Loading...'}
+                                    </pre>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
             <ComponentsMappingsModal
                 isOpen={showMappingsModal}
                 onClose={() => setShowMappingsModal(false)}
