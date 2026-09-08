@@ -11,7 +11,23 @@ Total Macros: {macros_count} ({macros_list})
 Total VBA Modules: {vba_modules_count} ({vba_list})
 Target Tech Stack: Spring Boot {spring_boot_version} (Java {java_version}), React {react_version}, PostgreSQL {postgres_version}
 
-Based on these actual verified project facts, generate detailed, professional business and technical descriptions for the Business Requirements Document (BRD) conforming to the JSON schema.
+Based on these actual verified project facts, generate detailed, professional business and technical descriptions for the Business Requirements Document (BRD).
 Ensure descriptions accurately reference the extracted objects (forms, reports, queries, and tables) and explain their business purpose and modernization path.
+
+Your output MUST be a single JSON object with the following keys. Each description should be at least 2-3 sentences long and provide specific technical depth:
+- "executive_summary_overview": A high-level overview of the application and its architectural significance.
+- "executive_summary_business_need": The justification for this modernization project, focusing on technical debt and scalability.
+- "executive_summary_functional_scope": What the application does functionally, mentioning specific object counts.
+- "existing_system_overview": A detailed description of the current Access application, its role in the business, and its monolithic nature.
+- "database_architecture": Description of the schema, how tables like {tables_list} relate, and the JET/ACE engine context.
+- "business_processes": Description of the workflows and processes supported by the queries and VBA logic.
+- "user_interaction_model": How users interact with the system via {forms_list} and the event-driven nature of the UI.
+- "data_management_approach": How data is stored, validated (mentioning primary/foreign keys), and the transition to PostgreSQL.
+- "reporting_approach": How reports like {reports_list} are generated and their role in business decision making.
+- "vba_automation": Detailed description of the business logic and automation handled by {vba_list}.
+- "administrative_functions": Maintenance and admin tasks like compact/repair and property management.
+- "security_model": Current security (workstation/startup props) and the move to modern RBAC.
+- "integration_points": How it connects to other systems, ODBC links, or file exports.
+
 Do not hallucinate fake tables or forms not in the list.
 Output JSON only.

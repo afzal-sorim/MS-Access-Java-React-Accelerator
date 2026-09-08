@@ -150,7 +150,7 @@ export default function WizardContainer() {
         }}>
             {/* ── Stepper Sidebar (Static on the left for all pages, never moves with center content) ── */}
             <aside 
-                className="sidebar-scrollable"
+                className="sidebar-scrollable wizard-sidebar"
                 style={{
                     width: isExpanded ? '290px' : '76px',
                     minWidth: isExpanded ? '290px' : '76px',
@@ -182,9 +182,7 @@ export default function WizardContainer() {
                                     <span style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, color: '#6366f1' }}>
                                         Workflow Pipeline
                                     </span>
-                                    <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#15133A', marginTop: '0.2rem' }}>
-                                        Progress Stepper
-                                    </div>
+                                
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                                     <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3730A3' }}>
@@ -535,7 +533,7 @@ export default function WizardContainer() {
                 }}
             >
             {/* ── Step Content Card ── */}
-            <div className="card-3d-lift" style={{
+            <div className="card-3d-lift wizard-step-card" style={{
                 background: '#fff',
                 borderRadius: 20,
                 boxShadow: '0 4px 16px rgba(55,48,163,0.09)',

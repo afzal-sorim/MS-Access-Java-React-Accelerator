@@ -8,54 +8,87 @@
 <style>
 /* =========================================================
    BRD TEMPLATE — Detailed 48-Section Specifications
-   White + Blue Modern Enterprise Theme
+   A4 Paper Report Layout
    ========================================================= */
 
+@page {
+    size: A4;
+    margin: 0;
+}
+
 :root {
-    --primary: #1769e0;
-    --primary-dark: #0f4fa8;
-    --primary-light: #eaf2ff;
+    --primary: #0faaa3;
+    --primary-dark: #0b6865;
+    --primary-light: #e2f5f3;
     --text: #172033;
     --muted: #667085;
     --border: #d9e1ec;
     --white: #ffffff;
-    --background: #f4f7fb;
+    --background: #e5e9e8;
     --success: #16803c;
     --warning: #b7791f;
     --danger: #c53030;
-    --page-width: 100%;
+    --page-width: 210mm;
+    --page-height: 297mm;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; width: 100%; }
 body {
     margin: 0;
-    padding: 20px 16px;
-    background: var(--background);
+    padding: 34px;
+    background: linear-gradient(135deg, #e7e9e8 0%, #dfe5e3 100%);
     color: var(--text);
     font-family: Inter, Arial, Helvetica, sans-serif;
     line-height: 1.6;
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
 }
 
 .page {
-    width: 100%;
-    max-width: 100%;
-    min-height: auto;
-    margin: 0 0 24px;
+    width: min(var(--page-width), 100%);
+    min-height: var(--page-height);
+    margin: 0;
     background: var(--white);
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    border: 1px solid #d4dcda;
+    border-radius: 2px;
+    box-shadow: 0 12px 28px rgba(25, 45, 43, 0.16);
     position: relative;
     overflow: visible;
     box-sizing: border-box;
 }
 
+.page::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 28px;
+    border-top: 4px solid var(--primary);
+    border-left: 4px solid var(--primary);
+    pointer-events: none;
+}
+
+.page::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 28px;
+    height: 28px;
+    border-right: 4px solid var(--primary);
+    border-bottom: 4px solid var(--primary);
+    pointer-events: none;
+}
+
 .page-inner {
-    padding: 32px 3%;
+    padding: 38px 28px;
     display: flex;
     flex-direction: column;
     min-height: 100%;
@@ -64,7 +97,7 @@ body {
 }
 
 .cover {
-    min-height: auto;
+    min-height: var(--page-height);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -74,7 +107,7 @@ body {
 .cover-top {
     border-left: 6px solid var(--primary);
     padding-left: 24px;
-    margin-top: 60px;
+    margin-top: 42px;
 }
 
 .cover-label {
@@ -367,12 +400,52 @@ td code, th code {
 }
 
 @media (max-width: 768px) {
-    body { padding: 10px 8px; }
-    .page-inner { padding: 20px 14px; }
+    body {
+        padding: 18px 10px;
+        gap: 22px;
+    }
+    .page {
+        width: 100%;
+        min-height: auto;
+    }
+    .page-inner { padding: 28px 22px; }
     .toc-list { column-count: 1; }
     .cover-meta { grid-template-columns: 1fr; }
     .erd-connection-item { flex-direction: column; gap: 8px; align-items: stretch; }
     .erd-box { flex: 1 1 auto; width: 100%; }
+}
+
+@media print {
+    html, body {
+        width: auto;
+        background: #ffffff;
+    }
+
+    body {
+        display: block;
+        padding: 0;
+    }
+
+    .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .page:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .page::before,
+    .page::after {
+        display: none;
+    }
 }
 </style>
 </head>
@@ -394,7 +467,7 @@ td code, th code {
     <div class="meta-card"><div class="meta-label">Document Name</div><div class="meta-value">PeopleManager - Business Requirements Document</div></div>
     <div class="meta-card"><div class="meta-label">Document Version</div><div class="meta-value">1.0</div></div>
     <div class="meta-card"><div class="meta-label">Source Database File</div><div class="meta-value">PeopleManager.accdb</div></div>
-    <div class="meta-card"><div class="meta-label">Publication Date</div><div class="meta-value">September 04, 2026</div></div>
+    <div class="meta-card"><div class="meta-label">Publication Date</div><div class="meta-value">September 07, 2026</div></div>
     <div class="meta-card"><div class="meta-label">Organization</div><div class="meta-value">Enterprise Systems Architecture</div></div>
     <div class="meta-card"><div class="meta-label">Document Status</div><div class="meta-value">Final / Extracted Specification</div></div>
   </div>
@@ -482,13 +555,13 @@ td code, th code {
   <h2 class="sub-title">1.1 Document Purpose</h2>
 <p>This Business Requirements Document (BRD) specifies the comprehensive technical, functional, and data specifications extracted directly from the uploaded application file <code>PeopleManager.accdb</code>. It serves as the primary technical specification document for <strong>PeopleManager</strong>.</p>
 <h2 class="sub-title">1.2 Document Version History</h2>
-<div class="table-wrapper"><table class="table-doc-history"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:30%;"><col style="width:35%;"></colgroup><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes / Description</th></tr></thead><tbody><tr><td>1.0</td><td>September 04, 2026</td><td>Access2Java Universal Accelerator</td><td>Initial automated BRD extraction derived from source analysis of PeopleManager.accdb</td></tr></tbody></table></div>
+<div class="table-wrapper"><table class="table-doc-history"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:30%;"><col style="width:35%;"></colgroup><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes / Description</th></tr></thead><tbody><tr><td>1.0</td><td>September 07, 2026</td><td>Access2Java Universal Accelerator</td><td>Initial automated BRD extraction derived from source analysis of PeopleManager.accdb</td></tr></tbody></table></div>
 <h2 class="sub-title">1.3 Document Ownership</h2><p>Enterprise Architecture & Application Management Team.</p>
 <h2 class="sub-title">1.4 Authors and Contributors</h2><p>Extracted via Access2Java Static & Behavioral Code Analyzer.</p>
 <h2 class="sub-title">1.5 Reviewers and Approvers</h2><p>Technical Architecture Review Board.</p>
 <h2 class="sub-title">1.6 Document Status</h2><p><span class="badge badge-success">Final / Extracted Specification</span></p>
 <h2 class="sub-title">1.7 Confidentiality and Distribution</h2><p>Internal Enterprise Use Only — Contains proprietary data models and application logic for <code>PeopleManager.accdb</code>.</p>
-<h2 class="sub-title">1.8 Reference Documents</h2><p>Source Repository: <code>PeopleManager.accdb</code> (2,547,712 bytes).</p>
+<h2 class="sub-title">1.8 Reference Documents</h2><p>Source Repository: <code>PeopleManager.accdb</code> (2,637,824 bytes).</p>
   <div class="report-footer">
     <span>PeopleManager</span>
     <span>Section 1 &bull; Document Control</span>
@@ -505,9 +578,9 @@ td code, th code {
   </div>
   <div class="section-number">SECTION 2</div>
   <h1 class="section-title">Executive Summary</h1>
-  <h2 class="sub-title">2.1 Application Overview</h2><p>The application <strong>PeopleManager</strong> (<code>PeopleManager.accdb</code>) is a Microsoft Access desktop application containing <strong>32 business tables</strong>, <strong>20 SQL queries</strong>, <strong>50 user forms</strong>, <strong>0 reports</strong>, and <strong>1 VBA code modules</strong> (4,702 total LOC).</p>
+  <h2 class="sub-title">2.1 Application Overview</h2><p>The application <strong>PeopleManager</strong> (<code>PeopleManager.accdb</code>) is a Microsoft Access desktop application containing <strong>32 business tables</strong>, <strong>20 SQL queries</strong>, <strong>50 user forms</strong>, <strong>12 reports</strong>, and <strong>1 VBA code modules</strong> (5,475 total LOC).</p>
 <h2 class="sub-title">2.2 Business Need</h2><p>Document and catalog 100% of the operational data structures, form interfaces, query data views, printable report layouts, and VBA business rules present in <code>PeopleManager.accdb</code>.</p>
-<h2 class="sub-title">2.3 Functional Scope</h2><p>Preserve and specify all 32 relational database entities, 20 SQL queries, 50 form screens, 0 reports, and 1 VBA code modules.</p>
+<h2 class="sub-title">2.3 Functional Scope</h2><p>Preserve and specify all 32 relational database entities, 20 SQL queries, 50 form screens, 12 reports, and 1 VBA code modules.</p>
 <h2 class="sub-title">2.4 Key Stakeholders</h2><p>Business Operations Users, Application Administrators, Database Engineers, Executive Leadership.</p>
 <h2 class="sub-title">2.5 Success Criteria</h2><p>Complete data fidelity, thorough documentation of all business rules, and 100% specification coverage of all database objects in <code>PeopleManager.accdb</code>.</p>
   <div class="report-footer">
@@ -527,11 +600,11 @@ td code, th code {
   <div class="section-number">SECTION 3</div>
   <h1 class="section-title">Existing System Overview</h1>
   <h2 class="sub-title">3.1 Current Application Overview</h2><p>Microsoft Access file database application packaged in <code>PeopleManager.accdb</code>.</p>
-<h2 class="sub-title">3.2 Database Architecture</h2><p>Monolithic desktop file containing 32 business tables, 0 system objects, 20 queries, 50 forms, 0 reports, and 1 VBA modules.</p>
+<h2 class="sub-title">3.2 Database Architecture</h2><p>Monolithic desktop file containing 32 business tables, 0 system objects, 20 queries, 50 forms, 12 reports, and 1 VBA modules.</p>
 <h2 class="sub-title">3.3 Business Processes</h2><p>Data entry via desktop forms, batch processing via SQL queries, and routine execution via VBA procedures.</p>
 <h2 class="sub-title">3.4 User Interaction Model</h2><p>Form-driven desktop interaction using JET/ACE database bindings.</p>
 <h2 class="sub-title">3.5 Data Management Approach</h2><p>Relational database storage containing 32 business tables with primary keys, foreign key relationships, and field validation properties.</p>
-<h2 class="sub-title">3.6 Reporting Approach</h2><p>0 Access reports generated directly within the desktop Access runtime.</p>
+<h2 class="sub-title">3.6 Reporting Approach</h2><p>12 Access reports generated directly within the desktop Access runtime.</p>
 <h2 class="sub-title">3.7 VBA Automation</h2><p>1 VBA code modules containing event routines and business logic.</p>
 <h2 class="sub-title">3.8 Administrative Functions</h2><p>Database compact/repair, relationship builder, and Access property sheets.</p>
 <h2 class="sub-title">3.9 Security Model</h2><p>Workstation file permissions and MS Access startup property configurations.</p>
@@ -591,7 +664,7 @@ td code, th code {
   <div class="section-number">SECTION 6</div>
   <h1 class="section-title">User Roles and Access Requirements</h1>
   <h2 class="sub-title">6.1 User Role Definition</h2><p>Role-Based Access Control (RBAC) definitions for application security.</p>
-<div class="table-wrapper"><table class="table-roles"><colgroup><col style="width:20%;"><col style="width:30%;"><col style="width:50%;"></colgroup><thead><tr><th>Role Name</th><th>Scope</th><th>Permissions & Access Level</th></tr></thead><tbody><tr><td>System Administrator</td><td>Full System Access</td><td>Manage users, database administration, system configuration</td></tr><tr><td>Standard Business User</td><td>Operational Functions</td><td>Read/write data entry across 50 form screens</td></tr><tr><td>Reporting User</td><td>Read-Only Analytics</td><td>Execute queries and view 0 reports</td></tr><tr><td>Developer / Support</td><td>Technical Maintenance</td><td>API access, audit logs, and system diagnostics</td></tr></tbody></table></div>
+<div class="table-wrapper"><table class="table-roles"><colgroup><col style="width:20%;"><col style="width:30%;"><col style="width:50%;"></colgroup><thead><tr><th>Role Name</th><th>Scope</th><th>Permissions & Access Level</th></tr></thead><tbody><tr><td>System Administrator</td><td>Full System Access</td><td>Manage users, database administration, system configuration</td></tr><tr><td>Standard Business User</td><td>Operational Functions</td><td>Read/write data entry across 50 form screens</td></tr><tr><td>Reporting User</td><td>Read-Only Analytics</td><td>Execute queries and view 12 reports</td></tr><tr><td>Developer / Support</td><td>Technical Maintenance</td><td>API access, audit logs, and system diagnostics</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
     <span>Section 6 &bull; User Roles and Access Requirements</span>
@@ -672,8 +745,19 @@ td code, th code {
   </div>
   <div class="section-number">SECTION 19</div>
   <h1 class="section-title">Reporting Requirements</h1>
-  <p>Reporting requirements covering 0 Access reports. Includes report parameters, filtering, sorting, grouping, print preview, and export.</p>
-<div class="table-wrapper"><table class="table-reports"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>Report Name</th><th>Source & Filtering Scope</th><th>Target Render Format</th></tr></thead><tbody><tr><td colspan="3"><em>No formal report objects defined in source database.</em></td></tr>
+  <p>Reporting requirements covering 12 Access reports. Includes report parameters, filtering, sorting, grouping, print preview, and export.</p>
+<div class="table-wrapper"><table class="table-reports"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>Report Name</th><th>Source & Filtering Scope</th><th>Target Render Format</th></tr></thead><tbody><tr><td><code>rptBirthdaysThisMonth</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptSkillsReport</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptAddressBook</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptPeopleDirectory</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptEmploymentHistory</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptRecentInteractions</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptTasksOpen</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptTasksOverdue</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptUpcomingAppointments</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptGroupMembership</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptPeopleCountByCity</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
+<tr><td><code>rptPeopleCountByOrg</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>
 </tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
@@ -709,8 +793,8 @@ td code, th code {
   </div>
   <div class="section-number">SECTION 22</div>
   <h1 class="section-title">VBA Automation Requirements</h1>
-  <p>VBA code automation requirements covering 1 code modules (86 LOC).</p>
-<div class="table-wrapper"><table class="table-vba"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>VBA Module Name</th><th>Behavioral Description & Routine Logic</th><th>Target Java Service Class</th></tr></thead><tbody><tr><td><code>modHelpers</code></td><td>Adds Form Header/Footer sections to a form currently open in Design view.<br/><ul style='margin:4px 0 0; padding-left:16px;'><li><code>PingHelpers()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>OpenNamedForm()</code>: Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</li><li><code>CloseActiveForm()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>SaveActiveRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>GotoNewRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>DeleteActiveRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>QuitApp()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>OpenPersonDetail()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li></ul></td><td><code>modHelpersService.java</code></td></tr>
+  <p>VBA code automation requirements covering 1 code modules (94 LOC).</p>
+<div class="table-wrapper"><table class="table-vba"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup><thead><tr><th>VBA Module Name</th><th>Behavioral Description & Routine Logic</th><th>Target Java Service Class</th></tr></thead><tbody><tr><td><code>modHelpers</code></td><td>File system I/O, directory traversal, and export/import operations (PingHelpers, OpenNamedForm, OpenNamedReport, CloseActiveForm, SaveActiveRecord, GotoNewRecord)<br/><ul style='margin:4px 0 0; padding-left:16px;'><li><code>PingHelpers()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>OpenNamedForm()</code>: Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</li><li><code>OpenNamedReport()</code>: Function returning Boolean derived from parameter inputs (strReportName As String) in modHelpers.</li><li><code>CloseActiveForm()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>SaveActiveRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>GotoNewRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>DeleteActiveRecord()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li><li><code>QuitApp()</code>: Function returning Boolean derived from parameter inputs () in modHelpers.</li></ul></td><td><code>modHelpersService.java</code></td></tr>
 </tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
@@ -2792,14 +2876,15 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   <p>Business logic and data entry rules extracted from VBA code modules and table validation properties.</p>
 <div class="table-wrapper"><table class="table-br"><colgroup><col style="width:15%;"><col style="width:35%;"><col style="width:50%;"></colgroup><thead><tr><th>Rule ID</th><th>Routine / Property</th><th>Business Purpose & Context</th></tr></thead><tbody><tr><td>BR-001</td><td><code>PingHelpers()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>BR-002</td><td><code>OpenNamedForm()</code></td><td>Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</td></tr>
-<tr><td>BR-003</td><td><code>CloseActiveForm()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-004</td><td><code>SaveActiveRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-005</td><td><code>GotoNewRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-006</td><td><code>DeleteActiveRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-007</td><td><code>QuitApp()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-008</td><td><code>OpenPersonDetail()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-009</td><td><code>ApplyPeopleFilter()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-010</td><td><code>AddHeaderFooter()</code></td><td>Adds Form Header/Footer sections to a form currently open in Design view.</td></tr>
+<tr><td>BR-003</td><td><code>OpenNamedReport()</code></td><td>Function returning Boolean derived from parameter inputs (strReportName As String) in modHelpers.</td></tr>
+<tr><td>BR-004</td><td><code>CloseActiveForm()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-005</td><td><code>SaveActiveRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-006</td><td><code>GotoNewRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-007</td><td><code>DeleteActiveRecord()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-008</td><td><code>QuitApp()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-009</td><td><code>OpenPersonDetail()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-010</td><td><code>ApplyPeopleFilter()</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-011</td><td><code>AddHeaderFooter()</code></td><td>Adds Form Header/Footer sections to a form currently open in Design view.</td></tr>
 </tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
@@ -2817,7 +2902,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   </div>
   <div class="section-number">SECTION 28</div>
   <h1 class="section-title">Functional Requirements</h1>
-  <p>Comprehensive, deterministically numbered Functional Requirements catalog (117 total requirements).</p>
+  <p>Comprehensive, deterministically numbered Functional Requirements catalog (130 total requirements).</p>
 <div class="table-wrapper"><table class="table-fr"><colgroup><col style="width:12%;"><col style="width:28%;"><col style="width:60%;"></colgroup><thead><tr><th>Req ID</th><th>Functional Area</th><th>Requirement Specification</th></tr></thead><tbody><tr><td>FR-001</td><td>User Authentication</td><td>Enforce user role access control and session management.</td></tr>
 <tr><td>FR-002</td><td>Main Menu Navigation</td><td>Provide intuitive menu navigation across application screens.</td></tr>
 <tr><td>FR-003</td><td>Relational Data Integrity</td><td>Enforce field data types, required constraints, primary keys, and foreign keys.</td></tr>
@@ -2857,7 +2942,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td>FR-037</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmPositionsDetail</code> (15 UI controls)</td></tr>
 <tr><td>FR-038</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmPositionsList</code> (11 UI controls)</td></tr>
 <tr><td>FR-039</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmRelationshipsManage</code> (13 UI controls)</td></tr>
-<tr><td>FR-040</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmReportsMenu</code> (8 UI controls)</td></tr>
+<tr><td>FR-040</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmReportsMenu</code> (14 UI controls)</td></tr>
 <tr><td>FR-041</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmSkillsDetail</code> (12 UI controls)</td></tr>
 <tr><td>FR-042</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmSkillsList</code> (9 UI controls)</td></tr>
 <tr><td>FR-043</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>frmStatesList</code> (9 UI controls)</td></tr>
@@ -2899,42 +2984,55 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td>FR-079</td><td>Business Logic Routine</td><td>Execute procedure <code>DeleteActiveRecord()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>FR-080</td><td>Business Logic Routine</td><td>Execute procedure <code>GotoNewRecord()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>FR-081</td><td>Business Logic Routine</td><td>Execute procedure <code>OpenNamedForm()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</td></tr>
-<tr><td>FR-082</td><td>Business Logic Routine</td><td>Execute procedure <code>OpenPersonDetail()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>FR-083</td><td>Business Logic Routine</td><td>Execute procedure <code>PingHelpers()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>FR-084</td><td>Business Logic Routine</td><td>Execute procedure <code>QuitApp()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>FR-085</td><td>Business Logic Routine</td><td>Execute procedure <code>SaveActiveRecord()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>FR-086</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAddresses</code> (10 columns; PK: AddressID)</td></tr>
-<tr><td>FR-087</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAddressTypes</code> (2 columns; PK: AddressTypeID)</td></tr>
-<tr><td>FR-088</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAppointments</code> (7 columns; PK: AppointmentID)</td></tr>
-<tr><td>FR-089</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAuditLog</code> (8 columns; PK: AuditID)</td></tr>
-<tr><td>FR-090</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblCities</code> (3 columns; PK: CityID)</td></tr>
-<tr><td>FR-091</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblCountries</code> (4 columns; PK: CountryID)</td></tr>
-<tr><td>FR-092</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblDepartments</code> (6 columns; PK: DepartmentID)</td></tr>
-<tr><td>FR-093</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblDocuments</code> (7 columns; PK: DocumentID)</td></tr>
-<tr><td>FR-094</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmails</code> (5 columns; PK: EmailID)</td></tr>
-<tr><td>FR-095</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmailTypes</code> (2 columns; PK: EmailTypeID)</td></tr>
-<tr><td>FR-096</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmergencyContacts</code> (6 columns; PK: EmergencyContactID)</td></tr>
-<tr><td>FR-097</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmploymentHistory</code> (10 columns; PK: EmploymentHistoryID)</td></tr>
-<tr><td>FR-098</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblGroupMembers</code> (5 columns; PK: GroupMemberID)</td></tr>
-<tr><td>FR-099</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblGroups</code> (5 columns; PK: GroupID)</td></tr>
-<tr><td>FR-100</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblInteractions</code> (7 columns; PK: InteractionID)</td></tr>
-<tr><td>FR-101</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblLanguages</code> (3 columns; PK: LanguageID)</td></tr>
-<tr><td>FR-102</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblNotes</code> (6 columns; PK: NoteID)</td></tr>
-<tr><td>FR-103</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblOrganizations</code> (7 columns; PK: OrganizationID)</td></tr>
-<tr><td>FR-104</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPeople</code> (20 columns; PK: PersonID)</td></tr>
-<tr><td>FR-105</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonLanguages</code> (4 columns; PK: PersonLanguageID)</td></tr>
-<tr><td>FR-106</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonRelationships</code> (5 columns; PK: RelationshipID)</td></tr>
-<tr><td>FR-107</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonSkills</code> (6 columns; PK: PersonSkillID)</td></tr>
-<tr><td>FR-108</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPhoneNumbers</code> (6 columns; PK: PhoneID)</td></tr>
-<tr><td>FR-109</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPhoneTypes</code> (2 columns; PK: PhoneTypeID)</td></tr>
-<tr><td>FR-110</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPositions</code> (6 columns; PK: PositionID)</td></tr>
-<tr><td>FR-111</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblSkills</code> (4 columns; PK: SkillID)</td></tr>
-<tr><td>FR-112</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblStates</code> (4 columns; PK: StateID)</td></tr>
-<tr><td>FR-113</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblSystemSettings</code> (4 columns; PK: SettingID)</td></tr>
-<tr><td>FR-114</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTaskPriorities</code> (3 columns; PK: PriorityID)</td></tr>
-<tr><td>FR-115</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTasks</code> (10 columns; PK: TaskID)</td></tr>
-<tr><td>FR-116</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTaskStatuses</code> (2 columns; PK: StatusID)</td></tr>
-<tr><td>FR-117</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblUsers</code> (6 columns; PK: UserID)</td></tr>
+<tr><td>FR-082</td><td>Business Logic Routine</td><td>Execute procedure <code>OpenNamedReport()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs (strReportName As String) in modHelpers.</td></tr>
+<tr><td>FR-083</td><td>Business Logic Routine</td><td>Execute procedure <code>OpenPersonDetail()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>FR-084</td><td>Business Logic Routine</td><td>Execute procedure <code>PingHelpers()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>FR-085</td><td>Business Logic Routine</td><td>Execute procedure <code>QuitApp()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>FR-086</td><td>Business Logic Routine</td><td>Execute procedure <code>SaveActiveRecord()</code> in <code>modHelpers</code> — Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>FR-087</td><td>Report Generation</td><td>Generate printable document report <code>rptAddressBook</code></td></tr>
+<tr><td>FR-088</td><td>Report Generation</td><td>Generate printable document report <code>rptBirthdaysThisMonth</code></td></tr>
+<tr><td>FR-089</td><td>Report Generation</td><td>Generate printable document report <code>rptEmploymentHistory</code></td></tr>
+<tr><td>FR-090</td><td>Report Generation</td><td>Generate printable document report <code>rptGroupMembership</code></td></tr>
+<tr><td>FR-091</td><td>Report Generation</td><td>Generate printable document report <code>rptPeopleCountByCity</code></td></tr>
+<tr><td>FR-092</td><td>Report Generation</td><td>Generate printable document report <code>rptPeopleCountByOrg</code></td></tr>
+<tr><td>FR-093</td><td>Report Generation</td><td>Generate printable document report <code>rptPeopleDirectory</code></td></tr>
+<tr><td>FR-094</td><td>Report Generation</td><td>Generate printable document report <code>rptRecentInteractions</code></td></tr>
+<tr><td>FR-095</td><td>Report Generation</td><td>Generate printable document report <code>rptSkillsReport</code></td></tr>
+<tr><td>FR-096</td><td>Report Generation</td><td>Generate printable document report <code>rptTasksOpen</code></td></tr>
+<tr><td>FR-097</td><td>Report Generation</td><td>Generate printable document report <code>rptTasksOverdue</code></td></tr>
+<tr><td>FR-098</td><td>Report Generation</td><td>Generate printable document report <code>rptUpcomingAppointments</code></td></tr>
+<tr><td>FR-099</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAddresses</code> (10 columns; PK: AddressID)</td></tr>
+<tr><td>FR-100</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAddressTypes</code> (2 columns; PK: AddressTypeID)</td></tr>
+<tr><td>FR-101</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAppointments</code> (7 columns; PK: AppointmentID)</td></tr>
+<tr><td>FR-102</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblAuditLog</code> (8 columns; PK: AuditID)</td></tr>
+<tr><td>FR-103</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblCities</code> (3 columns; PK: CityID)</td></tr>
+<tr><td>FR-104</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblCountries</code> (4 columns; PK: CountryID)</td></tr>
+<tr><td>FR-105</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblDepartments</code> (6 columns; PK: DepartmentID)</td></tr>
+<tr><td>FR-106</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblDocuments</code> (7 columns; PK: DocumentID)</td></tr>
+<tr><td>FR-107</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmails</code> (5 columns; PK: EmailID)</td></tr>
+<tr><td>FR-108</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmailTypes</code> (2 columns; PK: EmailTypeID)</td></tr>
+<tr><td>FR-109</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmergencyContacts</code> (6 columns; PK: EmergencyContactID)</td></tr>
+<tr><td>FR-110</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblEmploymentHistory</code> (10 columns; PK: EmploymentHistoryID)</td></tr>
+<tr><td>FR-111</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblGroupMembers</code> (5 columns; PK: GroupMemberID)</td></tr>
+<tr><td>FR-112</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblGroups</code> (5 columns; PK: GroupID)</td></tr>
+<tr><td>FR-113</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblInteractions</code> (7 columns; PK: InteractionID)</td></tr>
+<tr><td>FR-114</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblLanguages</code> (3 columns; PK: LanguageID)</td></tr>
+<tr><td>FR-115</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblNotes</code> (6 columns; PK: NoteID)</td></tr>
+<tr><td>FR-116</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblOrganizations</code> (7 columns; PK: OrganizationID)</td></tr>
+<tr><td>FR-117</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPeople</code> (20 columns; PK: PersonID)</td></tr>
+<tr><td>FR-118</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonLanguages</code> (4 columns; PK: PersonLanguageID)</td></tr>
+<tr><td>FR-119</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonRelationships</code> (5 columns; PK: RelationshipID)</td></tr>
+<tr><td>FR-120</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPersonSkills</code> (6 columns; PK: PersonSkillID)</td></tr>
+<tr><td>FR-121</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPhoneNumbers</code> (6 columns; PK: PhoneID)</td></tr>
+<tr><td>FR-122</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPhoneTypes</code> (2 columns; PK: PhoneTypeID)</td></tr>
+<tr><td>FR-123</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblPositions</code> (6 columns; PK: PositionID)</td></tr>
+<tr><td>FR-124</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblSkills</code> (4 columns; PK: SkillID)</td></tr>
+<tr><td>FR-125</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblStates</code> (4 columns; PK: StateID)</td></tr>
+<tr><td>FR-126</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblSystemSettings</code> (4 columns; PK: SettingID)</td></tr>
+<tr><td>FR-127</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTaskPriorities</code> (3 columns; PK: PriorityID)</td></tr>
+<tr><td>FR-128</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTasks</code> (10 columns; PK: TaskID)</td></tr>
+<tr><td>FR-129</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblTaskStatuses</code> (2 columns; PK: StatusID)</td></tr>
+<tr><td>FR-130</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>tblUsers</code> (6 columns; PK: UserID)</td></tr>
 </tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
@@ -2988,55 +3086,55 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   <h1 class="section-title">Form Requirements</h1>
   <p>Form requirements covering 50 user forms extracted from source Access database.</p>
 <div class="table-wrapper"><table class="table-forms"><colgroup><col style="width:30%;"><col style="width:25%;"><col style="width:45%;"></colgroup><thead><tr><th>Form Name</th><th>Controls Count</th><th>Form Purpose & Specification</th></tr></thead><tbody><tr><td><code>frmDashboard</code></td><td>21 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmNotesDetail</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmEmergencyContactsManage</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmRelationshipsManage</code></td><td>13 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmAddressesManage</code></td><td>23 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmEmailsManage</code></td><td>13 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmPersonLanguagesManage</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmPersonSkillsManage</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmNotesDetail</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>sfrmOrgDepartments</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>sfrmPersonAddresses</code></td><td>10 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmOrganizationsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmDocumentsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>sfrmPersonNotes</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmOrganizationsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>sfrmPersonAddresses</code></td><td>10 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmCitiesList</code></td><td>7 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmSkillsList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>sfrmPersonNotes</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmDepartmentsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmSkillsList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmPhoneNumbersManage</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmPeopleSearch</code></td><td>7 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>sfrmSkillPeople</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmPeopleDetail</code></td><td>46 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmPositionsDetail</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmOrganizationsDetail</code></td><td>16 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmInteractionsDetail</code></td><td>17 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmGroupsDetail</code></td><td>12 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmEmploymentHistoryDetail</code></td><td>23 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmGroupsDetail</code></td><td>12 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmInteractionsDetail</code></td><td>17 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmOrganizationsDetail</code></td><td>16 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmPositionsDetail</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmDepartmentsDetail</code></td><td>15 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>sfrmGroupMembers</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmTasksDetail</code></td><td>21 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmSkillsDetail</code></td><td>12 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmOverdueTasks</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmAppointmentsDetail</code></td><td>17 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>sfrmPersonEmails</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmUpcomingAppointments</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmOverdueTasks</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmSkillsDetail</code></td><td>12 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmTasksDetail</code></td><td>21 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>sfrmGroupMembers</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmSystemSettings</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmLanguagesList</code></td><td>7 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmEmploymentHistoryList</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmUpcomingAppointments</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>sfrmPersonEmails</code></td><td>6 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmCountriesList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmStatesList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmPeopleList</code></td><td>16 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmNotesList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmMainMenu</code></td><td>20 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmEmploymentHistoryList</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmLanguagesList</code></td><td>7 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmGroupsList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmMainMenu</code></td><td>20 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmNotesList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmPeopleList</code></td><td>16 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmStatesList</code></td><td>9 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmReportsMenu</code></td><td>14 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>sfrmPersonTasks</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmReportsMenu</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>sfrmPersonPhones</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmAppointmentsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmTasksList</code></td><td>14 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmPositionsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
-<tr><td><code>frmInteractionsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>sfrmPersonPhones</code></td><td>8 UI Controls</td><td>Interactive Form Screen</td></tr>
 <tr><td><code>frmBirthdayList</code></td><td>0 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmInteractionsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmPositionsList</code></td><td>11 UI Controls</td><td>Interactive Form Screen</td></tr>
+<tr><td><code>frmTasksList</code></td><td>14 UI Controls</td><td>Interactive Form Screen</td></tr>
 </tbody></table></div>
   <div class="report-footer">
     <span>PeopleManager</span>
@@ -3054,7 +3152,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   </div>
   <div class="section-number">SECTION 32</div>
   <h1 class="section-title">Report Requirements</h1>
-  <p>Report inventory (0 reports), report parameters, formatting, print preview, and distribution specs.</p>
+  <p>Report inventory (12 reports), report parameters, formatting, print preview, and distribution specs.</p>
   <div class="report-footer">
     <span>PeopleManager</span>
     <span>Section 32 &bull; Report Requirements</span>
@@ -3160,7 +3258,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
 <div class="arch-diagram">
   <div class="arch-box">User Interface Layer (50 Access Forms)</div>
   <div class="arch-arrow">↓ Event Handlers & Control Bindings</div>
-  <div class="arch-box">Business Logic Layer (1 VBA Code Modules & 0 Macros)</div>
+  <div class="arch-box">Business Logic Layer (1 VBA Code Modules & 11 Macros)</div>
   <div class="arch-arrow">↓ SQL Query Engine & DAO Layer</div>
   <div class="arch-box">Data Storage Layer (32 Business Tables & 20 Queries)</div>
 </div>
@@ -3328,7 +3426,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   </div>
   <div class="section-number">SECTION 47</div>
   <h1 class="section-title">Acceptance Criteria</h1>
-  <ol><li>100% of business data tables (32 tables) specified with complete data dictionary field mappings, primary keys, and foreign keys.</li><li>All 20 SQL query views cataloged with exact SQL query text and parameter filters.</li><li>All 50 user form views specified with complete control lists and record sources.</li><li>All 1 VBA code modules (86 LOC) cataloged with deep behavioral procedure specifications.</li></ol>
+  <ol><li>100% of business data tables (32 tables) specified with complete data dictionary field mappings, primary keys, and foreign keys.</li><li>All 20 SQL query views cataloged with exact SQL query text and parameter filters.</li><li>All 50 user form views specified with complete control lists and record sources.</li><li>All 1 VBA code modules (94 LOC) cataloged with deep behavioral procedure specifications.</li></ol>
   <div class="report-footer">
     <span>PeopleManager</span>
     <span>Section 47 &bull; Acceptance Criteria</span>
@@ -3346,14 +3444,14 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
   <div class="section-number">SECTION 48</div>
   <h1 class="section-title">Appendices</h1>
   <h2 class="sub-title">Appendix A — Database Object Inventory</h2>
-<p>Complete summary of all 103 database objects discovered in <code>PeopleManager.accdb</code>.</p>
+<p>Complete summary of all 126 database objects discovered in <code>PeopleManager.accdb</code>.</p>
 <div class="table-wrapper"><table class="table-app-a"><colgroup><col style="width:22%;"><col style="width:12%;"><col style="width:22%;"><col style="width:24%;"><col style="width:20%;"></colgroup><thead><tr><th>Object Category</th><th>Count</th><th>Classification</th><th>Storage Engine</th><th>Scope & Status</th></tr></thead><tbody><tr><td>Business Tables</td><td>32</td><td>Relational Entities</td><td>Schema Data Storage</td><td>Active / In Scope</td></tr>
 <tr><td>System Tables</td><td>0</td><td>Access Configuration</td><td>UI Metadata / Ribbons</td><td>Excluded from Data Migration</td></tr>
 <tr><td>SQL Queries</td><td>20</td><td>Data Views & Filters</td><td>Query Engine</td><td>Active / Translated to Repositories</td></tr>
 <tr><td>User Forms</td><td>50</td><td>Interactive Screens</td><td>Desktop Workstation UI</td><td>Active / Translated to Web Views</td></tr>
-<tr><td>Output Reports</td><td>0</td><td>Printable Documents</td><td>Access Report Runtime</td><td>Active / Translated to Web Reports</td></tr>
-<tr><td>Macros</td><td>0</td><td>Event Procedures</td><td>Macro Actions</td><td>Active / Translated to Workflows</td></tr>
-<tr><td>VBA Code Modules</td><td>1</td><td>Business Logic (86 LOC)</td><td>VBA Engine</td><td>Active / Translated to Java Services</td></tr>
+<tr><td>Output Reports</td><td>12</td><td>Printable Documents</td><td>Access Report Runtime</td><td>Active / Translated to Web Reports</td></tr>
+<tr><td>Macros</td><td>11</td><td>Event Procedures</td><td>Macro Actions</td><td>Active / Translated to Workflows</td></tr>
+<tr><td>VBA Code Modules</td><td>1</td><td>Business Logic (94 LOC)</td><td>VBA Engine</td><td>Active / Translated to Java Services</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix B — Table Inventory</h2>
 <p>Inventory of all 32 business data tables extracted from source database.</p>
 <div class="table-wrapper"><table class="table-app-b"><colgroup><col style="width:22%;"><col style="width:12%;"><col style="width:22%;"><col style="width:20%;"><col style="width:24%;"></colgroup><thead><tr><th>Table Name</th><th>Columns</th><th>Primary Key Status</th><th>Classification</th><th>Business Description</th></tr></thead><tbody><tr><td><code>tblAddresses</code></td><td>10 Columns</td><td><code>AddressID</code></td><td>Relational Entity Table</td><td>Primary transactional data storage for tblAddresses entity.</td></tr>
@@ -3611,7 +3709,7 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td><code>frmPositionsDetail</code></td><td>15 Controls</td><td><code>tblPositions</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>frmPositionsList</code></td><td>11 Controls</td><td><code>tblPositions</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>frmRelationshipsManage</code></td><td>13 Controls</td><td><code>tblPersonRelationships</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
-<tr><td><code>frmReportsMenu</code></td><td>8 Controls</td><td><code>Unbound Dialog</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
+<tr><td><code>frmReportsMenu</code></td><td>14 Controls</td><td><code>Unbound Dialog</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>frmSkillsDetail</code></td><td>12 Controls</td><td><code>tblSkills</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>frmSkillsList</code></td><td>9 Controls</td><td><code>tblSkills</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>frmStatesList</code></td><td>9 Controls</td><td><code>tblStates</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
@@ -3628,8 +3726,19 @@ FRO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td><code>sfrmPersonTasks</code></td><td>8 Controls</td><td><code>tblTasks</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 <tr><td><code>sfrmSkillPeople</code></td><td>8 Controls</td><td><code>qrySkillPeople</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix E — Report Inventory</h2>
-<p>Inventory of all 0 printable output report specifications.</p>
-<div class="table-wrapper"><table class="table-app-e"><colgroup><col style="width:24%;"><col style="width:24%;"><col style="width:16%;"><col style="width:16%;"><col style="width:20%;"></colgroup><thead><tr><th>Report Name</th><th>Record Source</th><th>Grouping / Sorting</th><th>Output Format</th><th>Description</th></tr></thead><tbody><tr><td colspan="5"><em>No report objects present in source database.</em></td></tr>
+<p>Inventory of all 12 printable output report specifications.</p>
+<div class="table-wrapper"><table class="table-app-e"><colgroup><col style="width:24%;"><col style="width:24%;"><col style="width:16%;"><col style="width:16%;"><col style="width:20%;"></colgroup><thead><tr><th>Report Name</th><th>Record Source</th><th>Grouping / Sorting</th><th>Output Format</th><th>Description</th></tr></thead><tbody><tr><td><code>rptAddressBook</code></td><td><code>qryAddressBook</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptBirthdaysThisMonth</code></td><td><code>qryBirthdaysThisMonth</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptEmploymentHistory</code></td><td><code>qryEmploymentHistoryFull</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptGroupMembership</code></td><td><code>qryGroupMembership</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptPeopleCountByCity</code></td><td><code>qryPeopleCountByCity</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptPeopleCountByOrg</code></td><td><code>qryPeopleCountByOrg</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptPeopleDirectory</code></td><td><code>qryPeopleDirectory</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptRecentInteractions</code></td><td><code>qryRecentInteractions</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptSkillsReport</code></td><td><code>qryPeopleBySkill</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptTasksOpen</code></td><td><code>qryOpenTasks</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptTasksOverdue</code></td><td><code>qryOverdueTasks</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
+<tr><td><code>rptUpcomingAppointments</code></td><td><code>qryUpcomingAppointments</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix F — Query Inventory</h2>
 <p>Inventory of all 20 SQL queries extracted from source database.</p>
 <div class="table-wrapper"><table class="table-app-f"><colgroup><col style="width:22%;"><col style="width:16%;"><col style="width:40%;"><col style="width:22%;"></colgroup><thead><tr><th>Query Name</th><th>Query Type</th><th>Extracted SQL Text Snippet</th><th>Target Repository Method</th></tr></thead><tbody><tr><td><code>qryActivePeople</code></td><td>Select Query</td><td><code>SELECT PersonID, FirstName &amp; &#x27; &#x27; &amp; LastName AS FullName, JobTitle, Hir...</code></td><td>Spring Data Repository Query</td></tr>
@@ -3657,13 +3766,14 @@ FROM tblO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td><code>qryTasksWithDetails</code></td><td>Select Query</td><td><code>SELECT t.TaskID, t.Title, p.FirstName &amp; &#x27; &#x27; &amp; p.LastName AS FullName, ...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td><code>qryUpcomingAppointments</code></td><td>Select Query</td><td><code>SELECT a.AppointmentID, p.FirstName &amp; &#x27; &#x27; &amp; p.LastName AS FullName, a....</code></td><td>Spring Data Repository Query</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix G — VBA Module & Procedure Inventory</h2>
-<p>Comprehensive inventory detailing all 10 VBA code routines extracted across 1 modules.</p>
+<p>Comprehensive inventory detailing all 11 VBA code routines extracted across 1 modules.</p>
 <div class="table-wrapper"><table class="table-app-g"><colgroup><col style="width:16%;"><col style="width:16%;"><col style="width:10%;"><col style="width:22%;"><col style="width:10%;"><col style="width:26%;"></colgroup><thead><tr><th>Module Name</th><th>Routine Name</th><th>Kind</th><th>Procedure Signature</th><th>Return Type</th><th>Behavioral Description</th></tr></thead><tbody><tr><td><code>modHelpers</code></td><td><code>AddHeaderFooter()</code></td><td>Function</td><td><code>Function AddHeaderFooter(strFormName As String) As Boolean</code></td><td><code>Boolean</code></td><td>Adds Form Header/Footer sections to a form currently open in Design view.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>ApplyPeopleFilter()</code></td><td>Function</td><td><code>Function ApplyPeopleFilter() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>CloseActiveForm()</code></td><td>Function</td><td><code>Function CloseActiveForm() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>DeleteActiveRecord()</code></td><td>Function</td><td><code>Function DeleteActiveRecord() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>GotoNewRecord()</code></td><td>Function</td><td><code>Function GotoNewRecord() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>OpenNamedForm()</code></td><td>Function</td><td><code>Function OpenNamedForm(strFormName As String) As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</td></tr>
+<tr><td><code>modHelpers</code></td><td><code>OpenNamedReport()</code></td><td>Function</td><td><code>Function OpenNamedReport(strReportName As String) As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs (strReportName As String) in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>OpenPersonDetail()</code></td><td>Function</td><td><code>Function OpenPersonDetail() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>PingHelpers()</code></td><td>Function</td><td><code>Function PingHelpers() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td><code>modHelpers</code></td><td><code>QuitApp()</code></td><td>Function</td><td><code>Function QuitApp() As Boolean</code></td><td><code>Boolean</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
@@ -3713,17 +3823,18 @@ FROM tblO...</code></td><td>Spring Data Repository Query</td></tr>
 <tr><td><code>tblTaskPriorities</code></td><td><code>PriorityID</code></td><td><code>tblTasks</code></td><td><code>PriorityID</code></td><td><span class="badge badge-info">1 : N</span></td><td>Cascade Update</td></tr>
 <tr><td><code>tblTaskStatuses</code></td><td><code>StatusID</code></td><td><code>tblTasks</code></td><td><code>StatusID</code></td><td><span class="badge badge-info">1 : N</span></td><td>Cascade Update</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix I — Business Rules Catalogue</h2>
-<p>Catalogue of all 10 extracted business rules and validation constraints.</p>
+<p>Catalogue of all 11 extracted business rules and validation constraints.</p>
 <div class="table-wrapper"><table class="table-app-i"><colgroup><col style="width:12%;"><col style="width:24%;"><col style="width:20%;"><col style="width:44%;"></colgroup><thead><tr><th>Rule ID</th><th>Routine / Property</th><th>Source Module</th><th>Business Purpose & Context</th></tr></thead><tbody><tr><td>BR-001</td><td><code>AddHeaderFooter()</code></td><td><code>modHelpers</code></td><td>Adds Form Header/Footer sections to a form currently open in Design view.</td></tr>
 <tr><td>BR-002</td><td><code>ApplyPeopleFilter()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>BR-003</td><td><code>CloseActiveForm()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>BR-004</td><td><code>DeleteActiveRecord()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>BR-005</td><td><code>GotoNewRecord()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 <tr><td>BR-006</td><td><code>OpenNamedForm()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs (strFormName As String) in modHelpers.</td></tr>
-<tr><td>BR-007</td><td><code>OpenPersonDetail()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-008</td><td><code>PingHelpers()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-009</td><td><code>QuitApp()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
-<tr><td>BR-010</td><td><code>SaveActiveRecord()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-007</td><td><code>OpenNamedReport()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs (strReportName As String) in modHelpers.</td></tr>
+<tr><td>BR-008</td><td><code>OpenPersonDetail()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-009</td><td><code>PingHelpers()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-010</td><td><code>QuitApp()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
+<tr><td>BR-011</td><td><code>SaveActiveRecord()</code></td><td><code>modHelpers</code></td><td>Function returning Boolean derived from parameter inputs () in modHelpers.</td></tr>
 </tbody></table></div><h2 class="sub-title">Appendix J — Validation Rules & Field Constraints</h2>
 <p>Field validation rules, required indicators, and input masks cataloged across database tables.</p>
 <div class="table-wrapper"><table class="table-app-j"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:30%;"></colgroup><thead><tr><th>Table Name</th><th>Field Name</th><th>Constraint Type</th><th>Validation Rule / Text</th></tr></thead><tbody><tr><td>All Data Entities</td><td>Primary Key Fields</td><td>NOT NULL Constraint</td><td>Primary key values must be non-null and unique.</td></tr><tr><td>All Data Entities</td><td>Foreign Key Fields</td><td>Referential Integrity</td><td>Foreign key references must exist in parent PK index.</td></tr></tbody></table></div><h2 class="sub-title">Appendix K — Error Codes & Exception Catalog</h2>
@@ -3732,7 +3843,7 @@ FROM tblO...</code></td><td>Spring Data Repository Query</td></tr>
 <p>External interfaces, file system I/O, Outlook email, and database connectivity.</p>
 <div class="table-wrapper"><table class="table-app-l"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:30%;"><col style="width:20%;"></colgroup><thead><tr><th>Integration Point</th><th>Interface Type</th><th>Description & Protocol</th><th>Target Component</th></tr></thead><tbody><tr><td>File System I/O</td><td>Local File Operations</td><td>Load/save text, CSV, and report documents</td><td>File Service</td></tr><tr><td>Outlook MAPI</td><td>Email Integration</td><td>Dispatch report emails via MAPI session</td><td>Mail Service</td></tr></tbody></table></div><h2 class="sub-title">Appendix M — User Role Matrix</h2>
 <p>Role-Based Access Control (RBAC) permissions across application modules.</p>
-<div class="table-wrapper"><table class="table-app-m"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup><thead><tr><th>Application Module</th><th>Administrator</th><th>Standard User</th><th>Reporter</th></tr></thead><tbody><tr><td>Form UI Screens (50)</td><td>Full Control</td><td>Read / Write</td><td>Read Only</td></tr><tr><td>Data Queries (20)</td><td>Full Control</td><td>Execute</td><td>Execute</td></tr><tr><td>Printable Reports (0)</td><td>Full Control</td><td>View / Export</td><td>View / Export</td></tr></tbody></table></div><h2 class="sub-title">Appendix N — Requirements Traceability Matrix</h2>
+<div class="table-wrapper"><table class="table-app-m"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup><thead><tr><th>Application Module</th><th>Administrator</th><th>Standard User</th><th>Reporter</th></tr></thead><tbody><tr><td>Form UI Screens (50)</td><td>Full Control</td><td>Read / Write</td><td>Read Only</td></tr><tr><td>Data Queries (20)</td><td>Full Control</td><td>Execute</td><td>Execute</td></tr><tr><td>Printable Reports (12)</td><td>Full Control</td><td>View / Export</td><td>View / Export</td></tr></tbody></table></div><h2 class="sub-title">Appendix N — Requirements Traceability Matrix</h2>
 <p>Traceability matrix mapping requirements to source Access objects and target components.</p>
 <div class="table-wrapper"><table class="table-app-n"><colgroup><col style="width:15%;"><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:15%;"></colgroup><thead><tr><th>Req ID</th><th>Functional Area</th><th>Access Source Object</th><th>Target Component</th><th>Verification</th></tr></thead><tbody><tr><td>REQ-001</td><td>Data Entity Maintenance</td><td><code>tblAddresses</code></td><td>PostgreSQL DDL & JPA Entity Class</td><td>Unit Test</td></tr>
 <tr><td>REQ-002</td><td>Data Entity Maintenance</td><td><code>tblAddressTypes</code></td><td>PostgreSQL DDL & JPA Entity Class</td><td>Unit Test</td></tr>

@@ -216,7 +216,7 @@ function MappingDrawer({ object, tab, onSave, onClose }) {
 }
 
 function DescriptionPopover({ object, summary, category }) {
-    const [showPopover, setShowPopover] = useState(false);
+    const [showModal, setShowModal] = useState(false);
     const categoryLabels = {
         tables: 'database table',
         forms: 'data-entry form',
@@ -233,40 +233,93 @@ function DescriptionPopover({ object, summary, category }) {
     const migrationDetail = object.target
         ? `The recommended migration target is ${object.target}${object.conversion ? ` using the ${object.conversion.replace(/_/g, ' ').toLowerCase()} strategy` : ''}.`
         : 'The migration target still needs to be confirmed during implementation.';
-    const detail = object.reason || `The analyzer classified ${object.name} as a ${typeLabel} based on its Access structure and dependencies.`;
+
+    // Use aiReason if available, fallback to reason
+    const detail = object.aiReason || object.reason || `The analyzer classified ${object.name} as a ${typeLabel} based on its Access structure and dependencies.`;
 
     return (
-        <div
-            style={{ position: 'relative', display: 'inline-block', width: '100%' }}
-            onMouseEnter={() => setShowPopover(true)}
-            onMouseLeave={() => setShowPopover(false)}
-        >
-            <span style={{ cursor: 'help', borderBottom: '1px dotted #64748b' }}>{summary}</span>
-            {showPopover && (
-                <div style={{
-                    position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, zIndex: 9999,
-                    width: 'min(470px, 72vw)', maxHeight: '340px', overflowY: 'auto', padding: '1.1rem 1.2rem',
-                    background: 'linear-gradient(145deg, #ffffff 0%, #f8faff 100%)', color: '#334155',
-                    border: '1px solid #a5b4fc', borderLeft: '4px solid #4f46e5', borderRadius: '12px',
-                    boxShadow: '0 18px 40px rgba(30, 41, 59, 0.24)', fontSize: '0.8125rem', lineHeight: 1.55,
-                    textAlign: 'left', pointerEvents: 'none'
-                }}>
-                    <div style={{ marginBottom: '0.8rem', color: '#3730a3', fontWeight: 800, fontSize: '0.875rem' }}>
-                        AI analysis for {object.name}
-                    </div>
-                    <div style={{ display: 'grid', gap: '0.65rem' }}>
-                        <div><strong style={{ color: '#1e293b' }}>Reasoning:</strong> <span style={{ whiteSpace: 'pre-line' }}>{detail}</span></div>
-                        <div><strong style={{ color: '#1e293b' }}>Object profile:</strong> {summary} This is classified as a {typeLabel}.</div>
-                        <div><strong style={{ color: '#1e293b' }}>Data context:</strong> {recordDetail}</div>
-                        <div><strong style={{ color: '#1e293b' }}>Migration plan:</strong> {migrationDetail}</div>
+        <>
+            <div
+                style={{ cursor: 'pointer', borderBottom: '1px dotted #64748b', display: 'inline-block', width: '100%' }}
+                onClick={() => setShowModal(true)}
+            >
+                {summary}
+            </div>
+            {showModal && (
+                <div
+                    onClick={() => setShowModal(false)}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        backgroundColor: 'rgba(15, 23, 42, 0.4)', zIndex: 9999,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                >
+                    <div
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                            width: 'min(650px, 90vw)', background: '#fff', borderRadius: '16px',
+                            padding: '2.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            position: 'relative', textAlign: 'left'
+                        }}
+                    >
+                        <button
+                            onClick={() => setShowModal(false)}
+                            style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
+                        >×</button>
+
+                        <div style={{ marginBottom: '1.5rem', color: '#3730a3', fontWeight: 800, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '1.75rem' }}>🤖</span>
+                            AI Analysis for {object.name}
+                        </div>
+
+                        <div style={{ display: 'grid', gap: '1.5rem', color: '#334155', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                            <div>
+                                <strong style={{ color: '#1e293b', display: 'block', marginBottom: '0.5rem', fontSize: '1rem' }}>Reasoning:</strong>
+                                <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px solid #e2e8f0', whiteSpace: 'pre-line', maxHeight: '250px', overflowY: 'auto', fontSize: '0.9rem', color: '#334155' }}>
+                                    {detail}
+                                </div>
+                            </div>
+
+                            {object.humanAction && (
+                                <div>
+                                    <strong style={{ color: '#b45309', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontSize: '1rem' }}>
+                                        ⚠️ Required Human Action:
+                                    </strong>
+                                    <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '10px', border: '1px solid #fde68a', color: '#92400e', fontSize: '0.875rem', fontWeight: 500 }}>
+                                        {object.humanAction}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', padding: '1.25rem', background: '#f1f5f9', borderRadius: '12px' }}>
+                                <div><strong style={{ color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Object Profile</strong><div style={{ color: '#1e293b', fontWeight: 600, marginTop: '0.25rem' }}>{typeLabel}</div></div>
+                                <div><strong style={{ color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data Context</strong><div style={{ color: '#1e293b', fontWeight: 600, marginTop: '0.25rem' }}>{object.recordCount !== '—' ? object.recordCount : 'Not available'}</div></div>
+                            </div>
+
+                            <div>
+                                <strong style={{ color: '#1e293b', display: 'block', marginBottom: '0.5rem', fontSize: '1rem' }}>Migration Plan:</strong>
+                                <div style={{ color: '#4f46e5', fontWeight: 700, padding: '0.75rem 1rem', background: '#eef2ff', borderRadius: '8px', borderLeft: '4px solid #4f46e5' }}>
+                                    {migrationDetail}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowModal(false)}
+                                style={{ padding: '0.75rem 2.5rem', fontSize: '1rem', fontWeight: 700, borderRadius: '10px' }}
+                            >Close</button>
+                        </div>
                     </div>
                     <div style={{
-                        position: 'absolute', top: '100%', left: '2rem', width: 0, height: 0,
+                        position: 'absolute', top: '100%', right: '2rem', width: 0, height: 0,
                         borderLeft: '7px solid transparent', borderRight: '7px solid transparent', borderTop: '7px solid #c7d2fe'
                     }} />
                 </div>
             )}
-        </div>
+        </>
     );
 }
 
@@ -303,83 +356,178 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
     // Transformation logic (simplified for brevity)
     const transformReportData = (report) => {
         const supportability = report.supportability || [];
+        const funcSummaries = report.functionality_summaries || [];
+        const summaryMap = new Map(funcSummaries.map(s => [s.object_name, s]));
 
-        const enhanceReason = (status, originalReason) => {
-            if (status === 'UNSUPPORTED' || status === 'FAILED_EXTRACTION') {
-                return `${originalReason || 'Object could not be parsed automatically.'}\n\nWhy is this unsupported?\nThis object relies on proprietary MS Access features (e.g. CROSSTAB queries, complex VBA automation, or proprietary binary formats) that have no direct 1:1 equivalent in a modern Java/React stack.\n\nAction Required:\nYou must resolve this manually by redesigning the underlying workflow or implementing a custom Java/React solution tailored to this specific requirement.`;
+        const enhanceReason = (item) => {
+            const summary = summaryMap.get(item.object);
+            const status = item.status;
+            const originalReason = summary?.what_it_does || summary?.description || item.reason || item.details;
+            const isManual = item.conversion === 'MANUAL' || (item.target && item.target.toLowerCase().includes('manual'));
+
+            if (status === 'UNSUPPORTED' || status === 'FAILED_EXTRACTION' || isManual) {
+                let strongReasoning = summary?.reason || `Architectural Limitation: This object has been flagged for Manual Migration. `;
+
+                if (!summary?.reason) {
+                    if (item.category === 'QUERY' && (originalReason?.includes('CROSSTAB') || originalReason?.includes('PIVOT'))) {
+                        strongReasoning += `Automated AI migration is prohibited for CROSSTAB/Pivot structures because they rely on the JET/ACE dynamic column engine. Generating a 1:1 JPA equivalent would lead to unstable schema types and "N+1" performance issues. A human architect must redesign this as a Spring Boot aggregate service and a React DataGrid view.`;
+                    } else if (item.category?.includes('VBA') || item.category === 'MODULE') {
+                        strongReasoning += `The logic contains deep dependencies on Windows COM/OLE APIs or local file-system hooks (e.g., Outlook/Excel automation). AI cannot safely modernize these to a web-based Spring Boot architecture without risking a complete break in business workflows. Human intervention is required to implement modern API-based alternatives (like Microsoft Graph).`;
+                    } else if (item.category === 'FORM' && originalReason?.includes('unbound')) {
+                        strongReasoning += `This form uses complex event-driven logic that does not follow standard CRUD patterns. Attempting an automated AI conversion would result in "hallucinated" React states that do not match your original business rules. Manual reconstruction ensures that specific user-interaction sequences are preserved correctly.`;
+                    } else {
+                        strongReasoning += `${originalReason || 'Proprietary desktop-centric patterns detected.'}\n\nWhy Manual and not AI?\n1. Architectural Integrity: AI-driven "best-guess" conversion of monolithic desktop logic into distributed web code frequently results in brittle, unmaintainable "spaghetti" code.\n2. Security Risk: Legacy Access objects often use insecure data handling patterns. Manual review ensures we implement modern JWT/OAuth2 standards rather than migrating vulnerabilities.\n3. Business Logic Fidelity: Automated tools lack the domain context to distinguish between "legacy dead code" and "critical edge-case logic."`;
+                    }
+                }
+
+                return strongReasoning;
             }
             return originalReason;
         };
 
         return {
-            tables: supportability.filter(s => s.category === 'TABLE').map((s, i) => ({
-                id: `table-${i}`, name: s.object, recordCount: '—', target: 'PostgreSQL Table', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
-            queries: supportability.filter(s => s.category === 'QUERY').map((s, i) => ({
-                id: `query-${i}`, name: s.object, recordCount: '—', target: 'JPA Repository / Custom Query', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
-            forms: supportability.filter(s => s.category === 'FORM').map((s, i) => {
-                const mapping = normalizeFormMapping(s.conversion, s.target);
+            tables: supportability.filter(s => s.category === 'TABLE').map((s, i) => {
+                const summary = summaryMap.get(s.object);
                 return {
-                id: `form-${i}`, name: s.object, recordCount: '—', target: mapping.target, status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: mapping.conversion, selected: true,
+                    id: `table-${i}`, name: s.object, category: 'tables', recordCount: summary?.detail_counts || '—', target: 'PostgreSQL Table', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s), conversion: s.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
                 };
             }),
-            reports: supportability.filter(s => s.category === 'REPORT').map((s, i) => ({
-                id: `report-${i}`, name: s.object, recordCount: '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
-            modules: supportability.filter(s => s.category === 'VBA' || s.category === 'VBA_MODULE' || s.category === 'VBA_FUNCTION' || s.category === 'VBA_SUB').map((s, i) => ({
-                id: `module-${i}`, name: s.object, recordCount: '—', target: 'Spring Service / Utility', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
-            macros: supportability.filter(s => s.category === 'MACRO').map((s, i) => ({
-                id: `macro-${i}`, name: s.object, recordCount: '—', target: 'React Navigation / API Call', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s.status, s.reason), conversion: s.conversion, selected: true,
-            })),
-            externalDependencies: (report.externalDependencies || []).map((dep, i) => ({
-                id: `ext-${i}`, name: dep.name || dep.type, recordCount: '—', target: dep.migrationStrategy || 'Manual Review', status: 'UNSUPPORTED', risk: dep.riskLevel || 'HIGH', confidence: 0, reason: enhanceReason('UNSUPPORTED', dep.details || 'External dependency requires manual migration'), conversion: 'MANUAL', selected: false,
-            })),
+            queries: supportability.filter(s => s.category === 'QUERY').map((s, i) => {
+                const summary = summaryMap.get(s.object);
+                return {
+                    id: `query-${i}`, name: s.object, category: 'queries', recordCount: summary?.detail_counts || '—', target: 'JPA Repository / Custom Query', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s), conversion: s.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
+            forms: supportability.filter(s => s.category === 'FORM').map((s, i) => {
+                const summary = summaryMap.get(s.object);
+                const mapping = normalizeFormMapping(s.conversion, s.target);
+                const itemWithMapping = { ...s, ...mapping };
+                return {
+                    id: `form-${i}`, name: s.object, category: 'forms', recordCount: summary?.detail_counts || '—', target: mapping.target, status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(itemWithMapping), conversion: mapping.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
+            reports: supportability.filter(s => s.category === 'REPORT').map((s, i) => {
+                const summary = summaryMap.get(s.object);
+                return {
+                    id: `report-${i}`, name: s.object, category: 'reports', recordCount: summary?.detail_counts || '—', target: 'Report Service + PDF/Excel', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s), conversion: s.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
+            modules: supportability.filter(s => s.category === 'VBA' || s.category === 'VBA_MODULE' || s.category === 'VBA_FUNCTION' || s.category === 'VBA_SUB').map((s, i) => {
+                const summary = summaryMap.get(s.object);
+                return {
+                    id: `module-${i}`, name: s.object, category: 'modules', recordCount: summary?.detail_counts || '—', target: 'Spring Service / Utility', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s), conversion: s.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
+            macros: supportability.filter(s => s.category === 'MACRO').map((s, i) => {
+                const summary = summaryMap.get(s.object);
+                return {
+                    id: `macro-${i}`, name: s.object, category: 'macros', recordCount: summary?.detail_counts || '—', target: 'React Navigation / API Call', status: s.status, risk: s.risk, confidence: s.confidence, reason: enhanceReason(s), conversion: s.conversion, selected: true,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
+            externalDependencies: (report.externalDependencies || []).map((dep, i) => {
+                const name = dep.name || dep.type;
+                const summary = summaryMap.get(name);
+                return {
+                    id: `ext-${i}`, name: name, category: 'externalDependencies', recordCount: summary?.detail_counts || '—', target: dep.migrationStrategy || 'Manual Review', status: 'UNSUPPORTED', risk: dep.riskLevel || 'HIGH', confidence: 0, reason: enhanceReason({ ...dep, object: name, status: 'UNSUPPORTED', conversion: 'MANUAL' }), conversion: 'MANUAL', selected: false,
+                    aiReason: summary?.description, humanAction: summary?.human_action
+                };
+            }),
         };
     };
 
     const getMockReviewData = () => ({
         tables: [
-            { id: 't1', name: 'Employees', recordCount: '1,250', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Standard table with PK and indexes.\nAll data types are directly compatible with PostgreSQL.\nNo complex constraints detected.', conversion: 'ENTITY', selected: true },
-            { id: 't2', name: 'Departments', recordCount: '25', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Simple lookup table.\nContains standard text and numeric fields.\nPerfect candidate for automated migration.', conversion: 'ENTITY', selected: true },
-            { id: 't4', name: 'SysUsers', recordCount: '50', target: 'PostgreSQL Table (User)', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.85, reason: 'Contains plaintext password fields.\nSecurity review required for password hashing.\nAudit trails should be implemented during migration.', conversion: 'ENTITY', selected: true },
+            { id: 't1', name: 'Employees', category: 'tables', recordCount: '1,250', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Standard table with PK and indexes.\nAll data types are directly compatible with PostgreSQL.\nNo complex constraints detected.', conversion: 'ENTITY', selected: true },
+            { id: 't2', name: 'Departments', category: 'tables', recordCount: '25', target: 'PostgreSQL Table', status: 'SUPPORTED', risk: 'LOW', confidence: 0.99, reason: 'Simple lookup table.\nContains standard text and numeric fields.\nPerfect candidate for automated migration.', conversion: 'ENTITY', selected: true },
+            { id: 't4', name: 'SysUsers', category: 'tables', recordCount: '50', target: 'PostgreSQL Table (User)', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.85, reason: 'Contains plaintext password fields.\nSecurity review required for password hashing.\nAudit trails should be implemented during migration.', conversion: 'ENTITY', selected: true },
         ],
         queries: [
-            { id: 'q1', name: 'qryActiveEmployees', recordCount: '—', target: 'JPA Repository Method', status: 'SUPPORTED', risk: 'LOW', confidence: 0.95, reason: 'Simple SELECT with WHERE clause.\nStandard JOIN between Employees and Departments.\nFully convertible to Spring Data JPA method.', conversion: 'REPOSITORY_METHOD', selected: true },
-            { id: 'q2', name: 'qryLeaveBalance', recordCount: '—', target: 'JPA Repository / Custom Query', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.82, reason: 'Uses DLookup domain function.\nRequires conversion to a service-level calculation.\nComplex VBA-based criteria found in SQL.', conversion: 'SERVICE_METHOD', selected: true },
-            { id: 'q3', name: 'qryYearlySalesCrosstab', recordCount: '—', target: 'Manual Migration', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'CROSSTAB queries not supported in V1.\n\nWhy is this unsupported?\nCROSSTAB is a proprietary Access feature for dynamic pivot tables. Standard SQL does not natively support dynamic pivots without complex PIVOT clauses.\n\nAction Required:\nYou must manually recreate this logic using a Spring Boot aggregate query and a React DataGrid with grouping/pivoting capabilities.', conversion: 'MANUAL', selected: false },
+            { id: 'q1', name: 'qryActiveEmployees', category: 'queries', recordCount: '—', target: 'JPA Repository Method', status: 'SUPPORTED', risk: 'LOW', confidence: 0.95, reason: 'Simple SELECT with WHERE clause.\nStandard JOIN between Employees and Departments.\nFully convertible to Spring Data JPA method.', conversion: 'REPOSITORY_METHOD', selected: true },
+            { id: 'q2', name: 'qryLeaveBalance', category: 'queries', recordCount: '—', target: 'JPA Repository / Custom Query', status: 'SUPPORTED_WITH_REVIEW', risk: 'MEDIUM', confidence: 0.82, reason: 'Uses DLookup domain function.\nRequires conversion to a service-level calculation.\nComplex VBA-based criteria found in SQL.', conversion: 'SERVICE_METHOD', selected: true },
+            { id: 'q3', name: 'qryYearlySalesCrosstab', category: 'queries', recordCount: '—', target: 'Manual Migration', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'CROSSTAB queries not supported in V1.\n\nWhy is this unsupported?\nCROSSTAB is a proprietary Access feature for dynamic pivot tables. Standard SQL does not natively support dynamic pivots without complex PIVOT clauses.\n\nAction Required:\nYou must manually recreate this logic using a Spring Boot aggregate query and a React DataGrid with grouping/pivoting capabilities.', conversion: 'MANUAL', selected: false },
         ],
         forms: [
-            { id: 'f1', name: 'frmEmployee', recordCount: '—', target: 'React Page + Form', status: 'SUPPORTED', risk: 'LOW', confidence: 0.94, reason: 'Standard CRUD form with bound fields.\nClean layout with common UI controls.\nDirect mapping to React Hook Form components.', conversion: 'PAGE_FORM', selected: true },
+            { id: 'f1', name: 'frmEmployee', category: 'forms', recordCount: '—', target: 'React Page + Form', status: 'SUPPORTED', risk: 'LOW', confidence: 0.94, reason: 'Standard CRUD form with bound fields.\nClean layout with common UI controls.\nDirect mapping to React Hook Form components.', conversion: 'PAGE_FORM', selected: true },
         ],
         reports: [],
         modules: [],
         macros: [],
         externalDependencies: [
-            { id: 'ext1', name: 'Outlook COM', recordCount: '—', target: 'Manual Review', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'External Outlook automation is not cloud-compatible.\n\nWhy is this unsupported?\nThis object relies on proprietary MS Access COM object integration that has no direct equivalent in a modern Java/React stack.\n\nAction Required:\nYou must resolve this manually by redesigning the underlying workflow or implementing a custom API integration (e.g., Microsoft Graph API).', conversion: 'MANUAL', selected: false },
+            { id: 'ext1', name: 'Outlook COM', category: 'externalDependencies', recordCount: '—', target: 'Manual Review', status: 'UNSUPPORTED', risk: 'HIGH', confidence: 0, reason: 'External Outlook automation is not cloud-compatible.\n\nWhy is this unsupported?\nThis object relies on proprietary MS Access COM object integration that has no direct equivalent in a modern Java/React stack.\n\nAction Required:\nYou must resolve this manually by redesigning the underlying workflow or implementing a custom API integration (e.g., Microsoft Graph API).', conversion: 'MANUAL', selected: false },
         ],
     });
 
+    const isUnsupported = (obj) =>
+        obj.status === 'UNSUPPORTED' ||
+        obj.status === 'FAILED_EXTRACTION' ||
+        obj.conversion === 'MANUAL' ||
+        (obj.target && obj.target.toLowerCase().includes('manual'));
+
+    const isSupported = (obj) =>
+        obj.status === 'SUPPORTED' &&
+        obj.conversion !== 'MANUAL' &&
+        !(obj.target && obj.target.toLowerCase().includes('manual'));
+
+    const isReview = (obj) => !isSupported(obj) && !isUnsupported(obj);
+
+    // Filter logic helper for counts
+    const matchesStatusFilter = (obj, status) => {
+        if (status === 'all') return true;
+        if (status === 'SUPPORTED') return isSupported(obj);
+        if (status === 'SUPPORTED_WITH_REVIEW') return isReview(obj);
+        if (status === 'UNSUPPORTED') return isUnsupported(obj);
+        if (status === 'selected') return selectedObjects.has(obj.id);
+        return true;
+    };
+
     const currentObjects = useMemo(() => {
-        const objects = reviewData[reviewTab] || [];
+        const objects = reviewTab === 'all'
+            ? Object.values(reviewData).flat()
+            : (reviewData[reviewTab] || []);
+
         return objects.filter(obj => {
             const matchesSearch = !searchQuery ||
                 obj.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 obj.target.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesStatus = filterStatus === 'all' || 
-                (filterStatus === 'selected' ? selectedObjects.has(obj.id) : obj.status === filterStatus);
+
+            const matchesStatus = matchesStatusFilter(obj, filterStatus);
+
             return matchesSearch && matchesStatus;
         });
     }, [reviewData, reviewTab, filterStatus, searchQuery, selectedObjects]);
 
-    // KPI Metrics calculation
+    // Summary Card Counts: filtered by current Object Type (reviewTab)
+    const objectsForSummary = useMemo(() => {
+        return reviewTab === 'all'
+            ? Object.values(reviewData).flat()
+            : (reviewData[reviewTab] || []);
+    }, [reviewData, reviewTab]);
+
+    const totalObjectsCount = objectsForSummary.length;
+    const unsupportedCount = objectsForSummary.filter(isUnsupported).length;
+    const supportedCount = objectsForSummary.filter(isSupported).length;
+    const reviewCount = objectsForSummary.filter(isReview).length;
+
+    // Tab Counts: filtered by current Status (filterStatus)
+    const getTabCount = (tabKey) => {
+        const objects = reviewData[tabKey] || [];
+        return objects.filter(obj => matchesStatusFilter(obj, filterStatus)).length;
+    };
+
     const allObjectsFlat = useMemo(() => Object.values(reviewData).flat(), [reviewData]);
-    const totalObjectsCount = allObjectsFlat.length;
-    const supportedCount = allObjectsFlat.filter(o => o.status === 'SUPPORTED').length;
-    const reviewCount = allObjectsFlat.filter(o => o.status.includes('REVIEW') || o.status.includes('TRANSFORMATION')).length;
-    const unsupportedCount = allObjectsFlat.filter(o => o.status === 'UNSUPPORTED' || o.status === 'FAILED_EXTRACTION').length;
-    const readinessScore = totalObjectsCount > 0 ? Math.round(((supportedCount + reviewCount * 0.5) / totalObjectsCount) * 100) : 0;
+    const readinessScore = allObjectsFlat.length > 0 ? Math.round(((allObjectsFlat.filter(isSupported).length + allObjectsFlat.filter(isReview).length * 0.5) / allObjectsFlat.length) * 100) : 0;
+
+    const handleFilterChange = (status) => {
+        // Toggle: if clicking the already active filter, go back to 'all'
+        const newStatus = filterStatus === status ? 'all' : status;
+        setFilterStatus(newStatus);
+    };
 
     const currentSelectedCount = useMemo(() => {
         return currentObjects.filter(o => o.status !== 'UNSUPPORTED' && o.status !== 'FAILED_EXTRACTION' && selectedObjects.has(o.id)).length;
@@ -400,16 +548,20 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
     };
 
     const handleTargetChange = (objectId, newTarget) => {
-        const mapping = reviewTab === 'forms' && FORM_CONVERSION_BY_TARGET[newTarget]
+        // Need to find which tab this object belongs to
+        const obj = currentObjects.find(o => o.id === objectId);
+        const targetTab = obj?.category || reviewTab;
+
+        const mapping = targetTab === 'forms' && FORM_CONVERSION_BY_TARGET[newTarget]
             ? { target: newTarget, conversion: FORM_CONVERSION_BY_TARGET[newTarget] }
             : { target: newTarget };
-        actions.updateObjectMapping(reviewTab, objectId, mapping);
+        actions.updateObjectMapping(targetTab, objectId, mapping);
     };
 
     const handleBatchTargetChange = (newTarget) => {
         currentObjects.forEach(obj => {
             if (selectedObjects.has(obj.id)) {
-                actions.updateObjectMapping(reviewTab, obj.id, { target: newTarget });
+                actions.updateObjectMapping(obj.category || reviewTab, obj.id, { target: newTarget });
             }
         });
         setBatchActionTab(false);
@@ -420,22 +572,24 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
             ? `Contains ${object.recordCount} records.`
             : 'Record count is available after source inspection.';
 
-        if (reviewTab === 'tables') {
+        const category = object.category || reviewTab;
+
+        if (category === 'tables') {
             return `${object.name} is a database table. ${recordSummary}`;
         }
-        if (reviewTab === 'forms') {
+        if (category === 'forms') {
             return `${object.name} is an Access form for entering and viewing records. ${recordSummary}`;
         }
-        if (reviewTab === 'queries') {
+        if (category === 'queries') {
             return `${object.name} is an Access query used to retrieve or transform records.`;
         }
-        if (reviewTab === 'reports') {
+        if (category === 'reports') {
             return `${object.name} is an Access report generated from application records.`;
         }
-        if (reviewTab === 'modules') {
+        if (category === 'modules') {
             return `${object.name} is a VBA module containing application logic.`;
         }
-        if (reviewTab === 'macros') {
+        if (category === 'macros') {
             return `${object.name} is an Access macro that automates application actions.`;
         }
         return `${object.name} is an external dependency requiring migration review.`;
@@ -478,24 +632,21 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                 <>
                     {/* KPI Scorecards */}
                     <div className="kpi-container">
-                        <div className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>
+                        <div className={`kpi-card kpi-total ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>
                             <div className="kpi-header">📊 Total Objects</div>
                             <div className="kpi-value">{totalObjectsCount}</div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                                <span style={{ color: readinessScore > 80 ? '#10b981' : '#f59e0b', fontWeight: 600 }}>{readinessScore}%</span> Auto-Ready
-                            </div>
+                        
                         </div>
-                        <div className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED')}>
+                        <div className={`kpi-card kpi-supported ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED')}>
                             <div className="kpi-header">✅ Fully Supported</div>
                             <div className="kpi-value">{supportedCount}</div>
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Ready for codegen</div>
                         </div>
-                        <div className={`kpi-card kpi-review ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED_WITH_REVIEW')}>
+                        <div className={`kpi-card kpi-review ${filterStatus === 'SUPPORTED_WITH_REVIEW' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED_WITH_REVIEW')}>
                             <div className="kpi-header">⚠️ Needs Review</div>
                             <div className="kpi-value">{reviewCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Check mappings</div>
                         </div>
-                        <div className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('UNSUPPORTED')}>
+                        <div className={`kpi-card kpi-unsupported ${filterStatus === 'UNSUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('UNSUPPORTED')}>
                             <div className="kpi-header">❌ Manual / Skipped</div>
                             <div className="kpi-value">{unsupportedCount}</div>
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>Requires attention</div>
@@ -505,13 +656,16 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                     {/* Segmented Category Tabs */}
                     <div className="review-tabs">
                         {REVIEW_TABS.map((tab) => {
-                            const count = reviewData[tab.key]?.length || 0;
+                            const count = getTabCount(tab.key);
                             const hasIssues = reviewData[tab.key]?.some(o => o.status === 'UNSUPPORTED' || o.status === 'FAILED_EXTRACTION');
                             return (
                                 <button
                                     key={tab.key}
                                     className={`review-tab ${reviewTab === tab.key ? 'active' : ''}`}
-                                    onClick={() => actions.setReviewTab(tab.key)}
+                                    onClick={() => {
+                                        const newTab = reviewTab === tab.key ? 'all' : tab.key;
+                                        actions.setReviewTab(newTab);
+                                    }}
                                 >
                                     {tab.icon} {tab.label}
                                     <span className="review-tab-count">{formatNumber(count)}</span>
@@ -529,9 +683,9 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                     {/* Smart Toolbar */}
                     <div className="review-toolbar">
                         <div className="quick-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>All</span>
-                            <span className={`filter-chip ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => setFilterStatus('SUPPORTED')}>Supported</span>
-                            <span className={`filter-chip ${filterStatus === 'selected' ? 'active' : ''}`} onClick={() => setFilterStatus('selected')}>Selected ({selectedObjects.size})</span>
+                            <span className={`filter-chip ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => handleFilterChange('all')}>All</span>
+                            <span className={`filter-chip ${filterStatus === 'SUPPORTED' ? 'active' : ''}`} onClick={() => handleFilterChange('SUPPORTED')}>Supported</span>
+                            <span className={`filter-chip ${filterStatus === 'selected' ? 'active' : ''}`} onClick={() => handleFilterChange('selected')}>Selected ({selectedObjects.size})</span>
                             <button className="btn btn-primary" onClick={handleGlobalSelectAll} style={{ marginLeft: '1rem', borderRadius: '999px', fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}>Select All Globally</button>
                         </div>
                         <div className="search-box">
@@ -549,7 +703,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
 
 
                     {/* Data Grid */}
-                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+                    <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'visible' }}>
                         <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
@@ -590,11 +744,11 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
                                                         onChange={(e) => handleTargetChange(obj.id, e.target.value)}
                                                         disabled={isInactive}
                                                     >
-                                                        {(TARGET_OPTIONS[reviewTab] || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                        {(TARGET_OPTIONS[obj.category || reviewTab] || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 </td>
                                                 <td style={{ padding: '0.75rem 1rem', minWidth: '280px' }}>
-                                                    <DescriptionPopover object={obj} category={reviewTab} summary={getObjectDescription(obj)} />
+                                                    <DescriptionPopover object={obj} category={obj.category || reviewTab} summary={getObjectDescription(obj)} />
                                                 </td>
                                             </tr>
                                     );

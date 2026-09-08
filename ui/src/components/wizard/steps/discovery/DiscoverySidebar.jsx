@@ -81,7 +81,7 @@ const DiscoverySidebar = ({ activeTab = 'Overview', onSelectTab, isCollapsed, on
 
         const totalDependencies = (tables.length * 4) + (queries.length * 3) + (forms.length * 2);
         const currentDbName = dbName || progress?.dbName || 'AccessDatabase.accdb';
-        const currentSize = fileSize || progress?.fileSize || '0.00 MB';
+        const currentSize = fileSize || progress?.fileSize;
 
         const inventoryData = {
             application: 'MS Access Converter Accelerator',

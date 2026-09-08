@@ -5,6 +5,7 @@ import { getReport, downloadResult, listJobFiles, getFileContent, getJobDbSchema
 import { formatNumber } from '../../../utils/helpers';
 import { getGeneratedCounts } from '../../../utils/generatedCounts';
 import { ERDiagram } from './Step5Generate';
+import ReactPreview from './ReactPreview';
 
 /* ─── Inline SVG icons ─── */
 const CheckIcon = () => (
@@ -61,6 +62,9 @@ const EyeIcon = () => (
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <circle cx="12" cy="12" r="3" />
     </svg>
+);
+const EyeIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 );
 
 const ChevronDownIcon = ({ rotated, color }) => (
@@ -1192,6 +1196,12 @@ export default function Step6Summary({ onReachedIntervention }) {
 
     // Human Intervention filters
     const [interventionFilter, setInterventionFilter] = useState('ALL');
+    // Filters
+    const [categoryFilter, setCategoryFilter] = useState('ALL');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showAllFuncs, setShowAllFuncs] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
 
     const targetJobId = generationJobId || analysisJobId || generationResult?.jobId;
 

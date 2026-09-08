@@ -69,7 +69,7 @@ class OllamaClient:
             "format": "json",
             "options": {
                 "temperature": 0.2,
-                "num_predict": 1500,
+                "num_predict": 3000,
             },
         }
         if system_prompt:
@@ -78,7 +78,7 @@ class OllamaClient:
         logger.info("Calling Ollama at %s with model '%s'", self.base_url, self.model)
 
         try:
-            client_timeout = httpx.Timeout(5.0, connect=2.0)
+            client_timeout = httpx.Timeout(self.timeout, connect=5.0)
             with httpx.Client(timeout=client_timeout) as client:
                 res = client.post(url, json=payload)
         except httpx.ConnectError as e:

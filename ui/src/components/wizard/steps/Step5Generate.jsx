@@ -621,7 +621,7 @@ function FileExplorer({ jobId, generationComplete }) {
                     style={{
                         width: '100%',
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'flex-start',
                         gap: '0.75rem',
                         padding: '0.75rem 1rem',
                         marginBottom: '1rem',
@@ -812,57 +812,9 @@ export default function Step5Generate() {
     const { state, actions } = useWizard();
     const { selectedFile, localSource, config, analysisJobId, generationJobId, generationProgress, generationComplete, generationResult } = state;
     const [isGenerating, setIsGenerating] = useState(false);
-    const [activeTab, setActiveTab] = useState('review');
+    const [explorerOpen, setExplorerOpen] = useState(false);
     const wsRef = useRef(null);
     const startedRef = useRef(false);
-
-    // Generation Complete Toast state
-    const [showToast, setShowToast] = useState(false);
-    const [isToastClosing, setIsToastClosing] = useState(false);
-    const toastTimerRef = useRef(null);
-    const closeTimerRef = useRef(null);
-    const prevCompleteRef = useRef(false);
-
-    const dismissToast = useCallback(() => {
-        if (toastTimerRef.current) {
-            clearTimeout(toastTimerRef.current);
-            toastTimerRef.current = null;
-        }
-        setIsToastClosing(true);
-        if (closeTimerRef.current) {
-            clearTimeout(closeTimerRef.current);
-        }
-        closeTimerRef.current = setTimeout(() => {
-            setShowToast(false);
-            setIsToastClosing(false);
-        }, 400);
-    }, []);
-
-    useEffect(() => {
-        if (generationComplete && generationResult) {
-            if (!prevCompleteRef.current) {
-                prevCompleteRef.current = true;
-                setShowToast(true);
-                setIsToastClosing(false);
-
-                if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-                toastTimerRef.current = setTimeout(() => {
-                    dismissToast();
-                }, 5000);
-            }
-        } else {
-            prevCompleteRef.current = false;
-            setShowToast(false);
-            setIsToastClosing(false);
-            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-        }
-
-        return () => {
-            if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-        };
-    }, [generationComplete, Boolean(generationResult), dismissToast]);
 
     // Start generation when entering step
     const startGeneration = useCallback(async () => {
@@ -1063,235 +1015,91 @@ export default function Step5Generate() {
         <div>
             <div className="card-header" style={{ marginBottom: '0' }}>
                 <p className="card-subtitle">
-                    {activeTab === 'review' 
-                        ? 'Review your Access database objects and how they map to the new architecture.' 
-                        : 'Track generation progress and explore your modernized solution files.'}
+                    Review your Access database objects and how they map to the new architecture.
                 </p>
             </div>
 
-            {/* ── Toggle Tab Bar ── */}
-            <div style={{
-                display: 'flex',
-                gap: '0',
-                marginBottom: '1.5rem',
-                background: '#f1f5f9',
-                borderRadius: '12px',
-                padding: '4px',
-                border: '1px solid #e2e8f0',
-            }}>
-                {[
-                    { key: 'review', label: 'Map & Review Objects', icon: '📋' },
-                    { key: 'explorer', label: 'Solution Explorer', icon: '🏗️' },
-                ].map(tab => (
-                    <button
-                        key={tab.key}
-                        onClick={() => setActiveTab(tab.key)}
+            <Step4Review
+                onOpenExplorer={() => setExplorerOpen(true)}
+                onOpenErDiagram={() => setExplorerOpen(true)}
+            />
+
+            {explorerOpen && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Solution Explorer"
+                    onClick={() => setExplorerOpen(false)}
+                    style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '1.5rem', background: 'rgba(15, 23, 42, 0.4)',
+                    }}
+                >
+                    <div
+                        onClick={(event) => event.stopPropagation()}
                         style={{
-                            flex: 1,
+                            width: 'min(1500px, 94vw)',
+                            height: 'min(820px, calc(100vh - 2rem))',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem',
-                            padding: '0.7rem 1.25rem',
-                            border: 'none',
-                            borderRadius: '10px',
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            fontSize: '0.875rem',
-                            transition: 'all 0.2s ease',
-                            background: activeTab === tab.key
-                                ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                                : 'transparent',
-                            color: activeTab === tab.key ? '#fff' : '#64748b',
-                            boxShadow: activeTab === tab.key
-                                ? '0 4px 12px rgba(79, 70, 229, 0.3)'
-                                : 'none',
+                            flexDirection: 'column',
+                            background: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+                            padding: '1.5rem',
+                            overflow: 'hidden'
                         }}
                     >
-                        <span style={{ fontSize: '1rem' }}>{tab.icon}</span>
-                        <span>{tab.label}</span>
-                        {tab.key === 'explorer' && !generationComplete && (
-                            <span style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                background: '#f59e0b',
-                                animation: 'pulse 1.5s ease-in-out infinite',
-                                marginLeft: '0.25rem',
-                            }} />
-                        )}
-                        {tab.key === 'explorer' && generationComplete && (
-                            <span style={{
-                                width: '8px', height: '8px', borderRadius: '50%',
-                                background: '#10b981',
-                                marginLeft: '0.25rem',
-                            }} />
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            <style>{`
-                @keyframes pulse {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.4; }
-                }
-            `}</style>
-
-            {/* ── Tab Content ── */}
-            {activeTab === 'review' && (
-                <Step4Review />
-            )}
-
-            {activeTab === 'explorer' && (
-                <div>
-                   
-
-                    {/* Solution Explorer */}
-                    {(generationJobId || analysisJobId) && (
-                        <FileExplorer jobId={generationJobId || analysisJobId} generationComplete={generationComplete} />
-                    )}
-
-                    {!generationComplete && (
-                        <div className="alert alert-info" style={{ marginTop: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                                <span>
-                                    {isGenerating ? 'Generating project...' : 'Starting generation...'}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {generationComplete && generationResult && (
-                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Solution Explorer</h3>
                             <button
-                                className="btn btn-primary"
-                                onClick={() => downloadResult(generationJobId, config.project_name)}
+                                type="button"
+                                onClick={() => setExplorerOpen(false)}
+                                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
                             >
-                                Download Project ZIP
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    actions.setStep(5);
-                                }}
-                            >
-                                View Summary →
+                                &times;
                             </button>
                         </div>
-                    )}
-                </div>
-            )}
-
-            {/* Generation Complete Toast Notification */}
-            {showToast && generationResult && (
-                <>
-                    <style>
-                        {`
-                        @keyframes toastSlideIn {
-                            0% { transform: translateY(-16px) scale(0.96); opacity: 0; }
-                            100% { transform: translateY(0) scale(1); opacity: 1; }
-                        }
-                        @keyframes toastSlideOut {
-                            0% { transform: translateY(0) scale(1); opacity: 1; }
-                            100% { transform: translateY(-16px) scale(0.96); opacity: 0; }
-                        }
-                        @keyframes toastProgress {
-                            0% { width: 100%; }
-                            100% { width: 0%; }
-                        }
-                        `}
-                    </style>
-                    <div style={{
-                        position: 'fixed',
-                        top: '2rem',
-                        right: '2rem',
-                        zIndex: 9999,
-                        width: '450px',
-                        padding: '1.25rem 1.5rem',
-                        background: '#fff',
-                        borderRadius: '12px',
-                        boxShadow: '0 20px 25px -5px rgba(34, 197, 94, 0.25), 0 10px 10px -5px rgba(34, 197, 94, 0.1)',
-                        border: '1px solid #bbf7d0',
-                        borderLeft: '4px solid #22c55e',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '1.25rem',
-                        animation: isToastClosing
-                            ? 'toastSlideOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-                            : 'toastSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
-                        overflow: 'hidden'
-                    }}>
-                        {/* Close button (cross mark) */}
-                        <button
-                            type="button"
-                            onClick={dismissToast}
-                            aria-label="Close notification"
-                            title="Close"
-                            style={{
-                                position: 'absolute',
-                                top: '0.75rem',
-                                right: '0.75rem',
-                                background: 'transparent',
-                                border: 'none',
-                                borderRadius: '6px',
-                                width: '26px',
-                                height: '26px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                color: '#6b7280',
-                                fontSize: '0.95rem',
-                                lineHeight: 1,
-                                padding: 0,
-                                transition: 'all 0.15s ease',
-                                zIndex: 2,
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#1f2937';
-                                e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.06)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.color = '#6b7280';
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                        >
-                            ✕
-                        </button>
-                        <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'linear-gradient(90deg, transparent, rgba(220, 252, 231, 0.5))', pointerEvents: 'none' }} />
-                        <div style={{ 
-                            background: '#dcfce7', color: '#16a34a', width: '38px', height: '38px', 
-                            borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            fontSize: '1.1rem', flexShrink: 0, boxShadow: '0 0 0 4px rgba(220, 252, 231, 0.5)'
-                        }}>
-                            ✔️
-                        </div>
-                        <div style={{ flex: 1, paddingRight: '1rem' }}>
-                            <h4 style={{ margin: '0 0 0.35rem 0', color: '#166534', fontSize: '1.05rem', fontWeight: 800 }}>Generation Complete!</h4>
-                            <div style={{ color: '#15803d', fontSize: '0.85rem', marginBottom: '0.35rem', lineHeight: 1.5 }}>
-                                The project was successfully generated and saved to: <br/>
-                                <span style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600, color: '#16a34a', display: 'inline-block', marginTop: '0.35rem', wordBreak: 'break-all' }}>
-                                    {generationResult.outputPath || generationResult.output_path || 'outputs/job-id'}
-                                </span>
-                            </div>
-                            {generationResult.filesGenerated && (
-                                <div style={{ fontSize: '0.8rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.5rem' }}>
-                                    <span>📄</span> {formatNumber(generationResult.filesGenerated)} files generated and ready
+                        
+                        <div style={{ flex: 1, minHeight: 0, border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                            {!generationComplete && (
+                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.8)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#fff', padding: '1rem 1.5rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>
+                                            {isGenerating ? 'Generating project...' : 'Starting generation...'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {(generationJobId || analysisJobId) ? (
+                                <FileExplorer
+                                    jobId={generationJobId || analysisJobId}
+                                    generationComplete={generationComplete}
+                                />
+                            ) : (
+                                <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#64748b' }}>
+                                    Analysis is still starting. Please try again when a job is available.
                                 </div>
                             )}
                         </div>
-                        {/* Auto-dismiss countdown bar */}
-                        <div style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            height: '3px',
-                            background: '#22c55e',
-                            animation: 'toastProgress 5s linear forwards',
-                        }} />
+                        
+                        {generationComplete && generationResult && (
+                            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => downloadResult(generationJobId, config.project_name)}
+                                >
+                                    Download Project ZIP
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </>
+                </div>
             )}
+
+            {/* Generation Complete Toast Notification removed */}
         </div>
     );
 }
