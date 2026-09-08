@@ -122,7 +122,7 @@ const TopTablesList = ({ progress, result }) => {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    formatter={(value, name) => [`${value.toLocaleString()} rows (${((value / totalRows) * 100).toFixed(1)}%)`, name]}
+                                    formatter={(value, name) => [`${value.toLocaleString()} rows`, name]}
                                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: '0.75rem', fontWeight: 600 }}
                                 />
                             </PieChart>
@@ -155,9 +155,6 @@ const TopTablesList = ({ progress, result }) => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                                         <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>
                                             {item.rawRows} rows
-                                        </span>
-                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15133A', minWidth: '36px', textAlign: 'right' }}>
-                                            {percent}%
                                         </span>
                                         <ChevronRight size={13} color="#94a3b8" />
                                     </div>
@@ -194,10 +191,7 @@ const TopTablesList = ({ progress, result }) => {
                                 </div>
 
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: item.color }}>{percent}%</div>
-                                        <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>of DB storage</div>
-                                    </div>
+                                    
                                     <ChevronRight size={14} color="#94a3b8" />
                                 </div>
                             </div>

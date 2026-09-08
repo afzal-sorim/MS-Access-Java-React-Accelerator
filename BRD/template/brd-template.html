@@ -567,11 +567,61 @@ td code, th code {
     .page::after {
         display: none;
     }
+
+    .no-print {
+        display: none !important;
+    }
+}
+
+/* Floating Action Buttons */
+.floating-actions {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    z-index: 10000;
+}
+
+.action-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+.action-btn svg {
+    width: 20px;
+    height: 20px;
 }
 </style>
 </head>
 
 <body>
+
+<div class="no-print floating-actions">
+  <button class="action-btn" onclick="window.print()" title="Download / Print BRD">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  </button>
+  <button class="action-btn" onclick="window.open(window.location.href, '_blank')" title="Open in New Tab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+  </button>
+</div>
 
 <!-- ======================================================
      COVER PAGE

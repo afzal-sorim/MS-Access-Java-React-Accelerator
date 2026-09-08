@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useWizard } from '../../../context/WizardContext';
 import { createJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
@@ -1024,7 +1025,7 @@ export default function Step5Generate() {
                 onOpenErDiagram={() => setExplorerOpen(true)}
             />
 
-            {explorerOpen && (
+            {explorerOpen && ReactDOM.createPortal(
                 <div
                     role="dialog"
                     aria-modal="true"
@@ -1096,7 +1097,8 @@ export default function Step5Generate() {
                             </div>
                         )}
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Generation Complete Toast Notification removed */}

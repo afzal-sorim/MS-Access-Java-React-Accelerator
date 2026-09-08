@@ -390,6 +390,78 @@ td code, th code {
 .er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
 .er-card-rel-tag { font-size: 9.5px; color: #334155; }
 
+/* Chen-style ER Diagram Styles */
+.chen-er-container {
+    width: 100%;
+    margin: 20px 0;
+    padding: 30px;
+    background: #fdfdfd;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    align-items: center;
+    overflow-x: auto;
+}
+.chen-diagram-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    width: 100%;
+}
+.chen-entity {
+    border: 2px solid #1e3a8a;
+    padding: 12px 24px;
+    background: #fff;
+    font-weight: bold;
+    color: #1e3a8a;
+    min-width: 140px;
+    text-align: center;
+    box-shadow: 4px 4px 0px rgba(30, 58, 138, 0.1);
+    position: relative;
+}
+.chen-relationship {
+    width: 80px;
+    height: 80px;
+    background: #f8fafc;
+    border: 2px solid #64748b;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.chen-relationship span {
+    transform: rotate(-45deg);
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    text-align: center;
+}
+.chen-attribute {
+    border: 1px solid #94a3b8;
+    border-radius: 50%;
+    padding: 6px 12px;
+    background: #fff;
+    font-size: 10px;
+    min-width: 80px;
+    text-align: center;
+    color: #64748b;
+}
+.chen-line {
+    position: absolute;
+    background: #94a3b8;
+    z-index: -1;
+}
+.chen-cardinality {
+    position: absolute;
+    font-size: 12px;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
 /* Technical architecture flow */
 .arch-diagram {
     width: 100%;
@@ -632,7 +704,7 @@ td code, th code {
   <h1 class="section-title">Existing System Overview</h1>
   <h2 class="sub-title">3.1 Current Application Overview</h2>
 <p>The Online_Shop system is a monolithic Access application encapsulated in <code>Online Shop.accdb</code>. The architecture is centered on a relational schema comprising 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules, providing a unified environment for data storage and management.</p>
-<h2 class="sub-title">3.2 Database Architecture</h2><p>The database architecture consists of 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules. Relational entities and SQL logic are detailed below:</p><h3 class="sub-sub-title">Relational Tables</h3><ul><li><code>Adresy</code>: Business data entity.</li><li><code>imiona_damskie</code>: Business data entity.</li><li><code>imiona_meskie</code>: Business data entity.</li><li><code>Kategorie</code>: Business data entity.</li><li><code>Klienci</code>: Business data entity.</li><li><code>Koszyk</code>: Business data entity.</li><li><code>nazwiska_damskie</code>: Business data entity.</li><li><code>nazwiska_meskie</code>: Business data entity.</li><li><code>Produkty</code>: Business data entity.</li><li><code>Produkty_Kategorie</code>: Business data entity.</li><li><code>Produkty_zamowienia</code>: Business data entity.</li><li><code>przykladowe_adresy</code>: Business data entity.</li><li><code>Stan_Magazynu</code>: Business data entity.</li><li><code>Zamowienia</code>: Business data entity.</li></ul><h3 class="sub-sub-title">SQL Queries</h3><ul><li><code>Ilosc klientów wg płci</code>: SELECT query object.</li><li><code>Ilosc produktów wg dostepnosci</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień ceny</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień ceny_Krzyżowa</code>: CROSSTAB query object.</li><li><code>Kategorie wg lat zamówień_Krzyżowa</code>: CROSSTAB query object.</li><li><code>Klienci wydający najwięcej</code>: SELECT query object.</li><li><code>Miasta z największą ilością zamówień</code>: SELECT query object.</li><li><code>NieuzywaneKategorie</code>: SELECT query object.</li><li><code>Produkty generujące największe przychody</code>: SELECT query object.</li><li><code>Produkty w koszyku</code>: SELECT query object.</li><li><code>Produkty w przedziale cenowym</code>: SELECT query object.</li><li><code>Produkty z niskim stanem</code>: SELECT query object.</li><li><code>Usuń nieużywane kategorie</code>: DELETE query object.</li><li><code>Utwórz kategorię</code>: INSERT query object.</li><li>... and others.</li></ul><h2 class="sub-title">3.3 Business Processes</h2><p>The application enables core business workflows via its 13 form screens (part of 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules):</p><ul><li><code>Raporty</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Produkty</code>: Bound to <code>Produkty</code>.</li><li><code>Formularze</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Klienci</code>: Bound to <code>Klienci</code>.</li><li><code>Narzędzia</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Adresy podformularz</code>: Bound to <code>Adresy</code>.</li><li><code>Produkty w koszyku podformularz</code>: Bound to <code>SELECT [Produkty w koszyku].[id_klienta], [Produkty w koszyku].[nazwa], [Produkty w koszyku].[opis], [Produkty w koszyku].[cena] FROM [Produkty w koszyku]; </code>.</li><li><code>Produkty_Kategorie podformularz</code>: Bound to <code>SELECT [Produkty_Kategorie].[id_produktu], [Produkty_Kategorie].[id_kategorii] FROM Produkty_Kategorie; </code>.</li><li><code>Obniżka Ceny</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>BazaDanych</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Generator</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Magazyn</code>: Bound to <code>Stan_Magazynu</code>.</li><li><code>Menu</code>: Bound to <code>Unbound Dialog</code>.</li></ul><h2 class="sub-title">3.4 User Interaction Model</h2><p>Desktop interaction driven by Access forms and VBA event handlers. The system manages navigation between 13 forms using a central menu structure.</p>
+<h2 class="sub-title">3.2 Database Architecture</h2><p>The database architecture consists of 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules. Relational entities and SQL logic are detailed below:</p><h3 class="sub-sub-title">Relational Tables</h3><ul><li><code>Adresy</code>: Business data entity.</li><li><code>imiona_damskie</code>: Business data entity.</li><li><code>imiona_meskie</code>: Business data entity.</li><li><code>Kategorie</code>: Business data entity.</li><li><code>Klienci</code>: Business data entity.</li><li><code>Koszyk</code>: Business data entity.</li><li><code>nazwiska_damskie</code>: Business data entity.</li><li><code>nazwiska_meskie</code>: Business data entity.</li><li><code>Produkty</code>: Business data entity.</li><li><code>Produkty_Kategorie</code>: Business data entity.</li><li><code>Produkty_zamowienia</code>: Business data entity.</li><li><code>przykladowe_adresy</code>: Business data entity.</li><li><code>Stan_Magazynu</code>: Business data entity.</li><li><code>Zamowienia</code>: Business data entity.</li></ul><h3 class="sub-sub-title">SQL Queries</h3><ul><li><code>Ilosc klientów wg płci</code>: SELECT query object.</li><li><code>Ilosc produktów wg dostepnosci</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień ceny</code>: SELECT query object.</li><li><code>Kategorie wg lat zamówień ceny_Krzyżowa</code>: CROSSTAB query object.</li><li><code>Kategorie wg lat zamówień_Krzyżowa</code>: CROSSTAB query object.</li><li><code>Klienci wydający najwięcej</code>: SELECT query object.</li><li><code>Miasta z największą ilością zamówień</code>: SELECT query object.</li><li><code>NieuzywaneKategorie</code>: SELECT query object.</li><li><code>Produkty generujące największe przychody</code>: SELECT query object.</li><li><code>Produkty w koszyku</code>: SELECT query object.</li><li><code>Produkty w przedziale cenowym</code>: SELECT query object.</li><li><code>Produkty z niskim stanem</code>: SELECT query object.</li><li><code>Usuń nieużywane kategorie</code>: DELETE query object.</li><li><code>Utwórz kategorię</code>: INSERT query object.</li><li><code>Utwórz tabelę wieku klientów</code>: SELECT query object.</li><li><code>Wydatki wg wieku</code>: SELECT query object.</li><li><code>Zamowienia klientow</code>: SELECT query object.</li><li><code>Zmień dostępność produktów</code>: UPDATE query object.</li></ul><h2 class="sub-title">3.3 Business Processes</h2><p>The application enables core business workflows via its 13 form screens (part of 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules):</p><ul><li><code>Raporty</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Produkty</code>: Bound to <code>Produkty</code>.</li><li><code>Formularze</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Klienci</code>: Bound to <code>Klienci</code>.</li><li><code>Narzędzia</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Adresy podformularz</code>: Bound to <code>Adresy</code>.</li><li><code>Produkty w koszyku podformularz</code>: Bound to <code>SELECT [Produkty w koszyku].[id_klienta], [Produkty w koszyku].[nazwa], [Produkty w koszyku].[opis], [Produkty w koszyku].[cena] FROM [Produkty w koszyku]; </code>.</li><li><code>Produkty_Kategorie podformularz</code>: Bound to <code>SELECT [Produkty_Kategorie].[id_produktu], [Produkty_Kategorie].[id_kategorii] FROM Produkty_Kategorie; </code>.</li><li><code>Obniżka Ceny</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>BazaDanych</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Generator</code>: Bound to <code>Unbound Dialog</code>.</li><li><code>Magazyn</code>: Bound to <code>Stan_Magazynu</code>.</li><li><code>Menu</code>: Bound to <code>Unbound Dialog</code>.</li></ul><h2 class="sub-title">3.4 User Interaction Model</h2><p>Desktop interaction driven by Access forms and VBA event handlers. The system manages navigation between 13 forms using a central menu structure.</p>
 <h2 class="sub-title">3.5 Data Management Approach</h2><p>Relational storage with 14 business tables. Key enforcement analysis (distinguishing between Enforced and Inferred PKs):</p><ul><li><code>Adresy</code>: id_adresu (Enforced)</li><li><code>imiona_damskie</code>: id (Enforced)</li><li><code>imiona_meskie</code>: id (Enforced)</li><li><code>Kategorie</code>: id_kategorii (Enforced)</li><li><code>Klienci</code>: id_klienta (Enforced)</li><li><code>Koszyk</code>: None Defined (Heap Table)</li><li><code>nazwiska_damskie</code>: id (Enforced)</li><li><code>nazwiska_meskie</code>: id (Enforced)</li><li><code>Produkty</code>: id_produktu (Enforced)</li><li><code>Produkty_Kategorie</code>: None Defined (Heap Table)</li><li><code>Produkty_zamowienia</code>: None Defined (Heap Table)</li><li><code>przykladowe_adresy</code>: id_adresu (Enforced)</li><li><code>Stan_Magazynu</code>: id_produktu (Enforced)</li><li><code>Zamowienia</code>: id_zamowienia (Enforced)</li></ul><h2 class="sub-title">3.6 Reporting Approach</h2><p>The system generates 8 reports (within the total 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules):</p><ul><li><code>Produkty z niskim stanem</code>: Report on <code>Produkty z niskim stanem</code>.</li><li><code>Miasta z największą ilością zamówień</code>: Report on <code>Miasta z największą ilością zamówień</code>.</li><li><code>Wydatki wg wieku</code>: Report on <code>Wydatki wg wieku</code>.</li><li><code>Ilosc klientów wg płci</code>: Report on <code>Ilosc klientów wg płci</code>.</li><li><code>Diagram relacji</code>: Report on <code>Unbound Report</code>.</li><li><code>Klienci wydający najwięcej</code>: Report on <code>Klienci wydający najwięcej</code>.</li><li><code>Produkty generujące największe przychody</code>: Report on <code>Produkty generujące największe przychody</code>.</li><li><code>Zamówienia</code>: Report on <code>Zamowienia klientow</code>.</li></ul><h2 class="sub-title">3.7 VBA Automation</h2><p>Automation logic is distributed across 9 VBA modules and 0 macros (total discovery: 14 tables, 19 queries, 13 forms, 8 reports, 0 macros, and 9 VBA modules):</p><ul><li><code>Form_Formularze</code>: Contains 1 procedures.</li><li><code>Form_Klienci</code>: Contains 1 procedures.</li><li><code>Form_Narzędzia</code>: Contains 4 procedures.</li><li><code>Form_Produkty w koszyku podformularz</code>: Contains 0 procedures.</li><li><code>Form_Obniżka Ceny</code>: Contains 5 procedures.</li><li><code>Form_BazaDanych</code>: Contains 1 procedures.</li><li><code>Form_Generator</code>: Contains 12 procedures.</li><li><code>Form_Magazyn</code>: Contains 4 procedures.</li><li><code>Form_Menu</code>: Contains 1 procedures.</li></ul><h2 class="sub-title">3.8 Administrative Functions</h2><p>Includes database maintenance tools, relationship management, and property configurations native to MS Access.</p>
 <h2 class="sub-title">3.9 Security Model</h2><p>Standard desktop file security</p>
 <h2 class="sub-title">3.10 Integration Points</h2><p>Data export/import discovered via 19 queries and automated file operations.</p>
@@ -916,10 +988,288 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
   </div>
   <div class="section-number">SECTION 12</div>
   <h1 class="section-title">Data Model Requirements</h1>
-  <p>Conceptual, logical, and physical data model specifications for 14 business tables and 16 referential relationships.</p>
+  <p>Conceptual and logical data model specifications for 15 business and system tables and 16 referential relationships.</p>
+<div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;"><span style="font-size:12px; font-weight:700; color:var(--muted);">MODEL VIEWS:</span><span class="badge badge-info" style="padding:6px 12px; border-radius:4px;">ER Diagram (Chen)</span><span class="badge" style="padding:6px 12px; border:1px solid var(--primary); color:var(--primary); border-radius:4px;">Relational Schema Card</span></div>
+<h2 class="sub-title">Detailed Entity-Relationship Diagram (Chen Notation)</h2>
+<div class="chen-er-container">
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_kategorii</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Kategorie</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">id_kategorii</div>
+      <div class="chen-entity">Produkty_Kategorie</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">imie</div>
+      <div class="chen-entity">Klienci</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">Adresy</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">imie</div>
+      <div class="chen-entity">Klienci</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Koszyk</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Produkty</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Koszyk</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Produkty</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">id_kategorii</div>
+      <div class="chen-entity">Produkty_Kategorie</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Produkty</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_zamowienia</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Produkty_zamowienia</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Produkty</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">ilosc</div>
+      <div class="chen-entity">Stan_Magazynu</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_zamowienia</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">Zamowienia</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_zamowienia</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Produkty_zamowienia</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">Adresy</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">przykladowe_adresy</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">imie</div>
+      <div class="chen-entity">Klienci</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">przykladowe_adresy</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">imie</div>
+      <div class="chen-entity">Klienci</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_zamowienia</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">Zamowienia</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">przykladowe_adresy</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_adresu</div>
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-entity">Adresy</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">ilosc</div>
+      <div class="chen-entity">Stan_Magazynu</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_klienta</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Koszyk</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">ilosc</div>
+      <div class="chen-entity">Stan_Magazynu</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">nazwa</div>
+      <div class="chen-entity">Produkty</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">ilosc</div>
+      <div class="chen-entity">Stan_Magazynu</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">id_kategorii</div>
+      <div class="chen-entity">Produkty_Kategorie</div>
+    </div>
+  </div>
+  <div class="chen-diagram-row">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-attribute">ilosc</div>
+      <div class="chen-entity">Stan_Magazynu</div>
+    </div>
+    <div class="chen-relationship">
+      <span>RELATES TO</span>
+      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>
+      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+      <div class="chen-attribute">id_zamowienia</div>
+      <div class="chen-attribute">id_produktu</div>
+      <div class="chen-entity">Produkty_zamowienia</div>
+    </div>
+  </div>
+</div>
+<div style="margin:40px 0; border-top:1px dashed var(--border);"></div>
+<h2 class="sub-title">Relational Data Model & Logical Schema</h2>
 <div class="erd-container">
   <div class="erd-visual-header">
-    <span>Entity Relationship Connections & Foreign Keys (16 Relations Identified)</span>
+    <span>15 tables &bull; 16 relationships</span>
     <div class="erd-legend">
       <span>1 = One (PK) &nbsp; <span style="color:#2563eb;">&mdash;&mdash;●&mdash;&mdash;&raquo;</span> &nbsp; &infin; = Many (FK)</span>
     </div>
@@ -1333,7 +1683,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
   <div class="er-table">
   <div class="er-table-head">
     <span>Adresy</span>
-    <span style="font-size:10px; opacity:0.8;">7 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> <span class="badge-fk">FK</span> id_adresu<span class="fk-target-badge">&rarr; przykladowe_adresy.id_adresu</span></span>
@@ -1374,7 +1724,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Kategorie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id_kategorii</span>
@@ -1393,7 +1743,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Klienci</span>
-    <span style="font-size:10px; opacity:0.8;">6 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id_klienta</span>
@@ -1431,7 +1781,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Koszyk</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-fk">FK</span> id_klienta<span class="fk-target-badge">&rarr; Klienci.id_klienta</span></span>
@@ -1452,7 +1802,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Produkty</span>
-    <span style="font-size:10px; opacity:0.8;">6 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> <span class="badge-fk">FK</span> id_produktu<span class="fk-target-badge">&rarr; Stan_Magazynu.id_produktu</span></span>
@@ -1491,7 +1841,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Produkty_Kategorie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-fk">FK</span> id_produktu<span class="fk-target-badge">&rarr; Stan_Magazynu.id_produktu</span></span>
@@ -1512,7 +1862,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Produkty_zamowienia</span>
-    <span style="font-size:10px; opacity:0.8;">4 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-fk">FK</span> id_zamowienia<span class="fk-target-badge">&rarr; Zamowienia.id_zamowienia</span></span>
@@ -1541,7 +1891,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Stan_Magazynu</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> <span class="badge-fk">FK</span> id_produktu<span class="fk-target-badge">&rarr; Produkty.id_produktu</span></span>
@@ -1564,7 +1914,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>Zamowienia</span>
-    <span style="font-size:10px; opacity:0.8;">6 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id_zamowienia</span>
@@ -1600,7 +1950,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>imiona_damskie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id</span>
@@ -1616,7 +1966,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>imiona_meskie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id</span>
@@ -1632,7 +1982,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>nazwiska_damskie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id</span>
@@ -1648,7 +1998,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>nazwiska_meskie</span>
-    <span style="font-size:10px; opacity:0.8;">2 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> id</span>
@@ -1664,7 +2014,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
 <div class="er-table">
   <div class="er-table-head">
     <span>przykladowe_adresy</span>
-    <span style="font-size:10px; opacity:0.8;">7 cols</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
   </div>
   <div class="er-field">
   <span class="fname"><span class="badge-pk">PK</span> <span class="badge-fk">FK</span> id_adresu<span class="fk-target-badge">&rarr; Adresy.id_adresu</span></span>
@@ -1701,6 +2051,50 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
   <div class="er-card-rel-tag">&darr; Child of: Klienci</div>
 </div>
 
+</div>
+<div class="er-table">
+  <div class="er-table-head">
+    <span>USysApplicationLog</span>
+    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>
+  </div>
+  <div class="er-field">
+  <span class="fname"><span class="badge-pk">PK</span> ID</span>
+  <span class="ftype">Long Integer</span>
+</div>
+<div class="er-field">
+  <span class="fname">SourceObject</span>
+  <span class="ftype">Short Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Data Macro Instance ID</span>
+  <span class="ftype">Short Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Error Number</span>
+  <span class="ftype">Long Integer</span>
+</div>
+<div class="er-field">
+  <span class="fname">Category</span>
+  <span class="ftype">Short Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Object Type</span>
+  <span class="ftype">Short Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Description</span>
+  <span class="ftype">Long Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Context</span>
+  <span class="ftype">Short Text</span>
+</div>
+<div class="er-field">
+  <span class="fname">Created</span>
+  <span class="ftype">Date/Time</span>
+</div>
+
+  
 </div>
 
 </div>
@@ -1824,7 +2218,7 @@ WHERE (((Produkty.dostepny)=True) AND ((Stan_Magazynu.ilosc)&lt;[Mark products u
   <div class="section-number">SECTION 13</div>
   <h1 class="section-title">Core Business Tables</h1>
   <p>Primary business entities central to the application domain.</p>
-<div class="table-wrapper"><table class="table-core"><thead><tr><th>Table Name</th><th>PK Status</th><th>Field Count</th><th>Row Count</th></tr></thead><tbody><tr><td><code>Adresy</code></td><td>id_adresu (Enforced)</td><td>7</td><td>500</td></tr><tr><td><code>Kategorie</code></td><td>id_kategorii (Enforced)</td><td>2</td><td>4</td></tr><tr><td><code>Klienci</code></td><td>id_klienta (Enforced)</td><td>6</td><td>500</td></tr><tr><td><code>Koszyk</code></td><td>None Defined (Heap Table)</td><td>2</td><td>0</td></tr><tr><td><code>Produkty</code></td><td>id_produktu (Enforced)</td><td>6</td><td>7</td></tr><tr><td><code>Produkty_Kategorie</code></td><td>None Defined (Heap Table)</td><td>2</td><td>10</td></tr><tr><td><code>Produkty_zamowienia</code></td><td>None Defined (Heap Table)</td><td>4</td><td>3437</td></tr><tr><td><code>Stan_Magazynu</code></td><td>id_produktu (Enforced)</td><td>2</td><td>5</td></tr><tr><td><code>Zamowienia</code></td><td>id_zamowienia (Enforced)</td><td>6</td><td>1811</td></tr><tr><td><code>imiona_damskie</code></td><td>id (Enforced)</td><td>2</td><td>301</td></tr></tbody></table></div>
+<div class="table-wrapper"><table class="table-core"><thead><tr><th>Table Name</th><th>PK Status</th><th>Field Count</th><th>Row Count</th></tr></thead><tbody><tr><td><code>Adresy</code></td><td>id_adresu (Enforced)</td><td>7</td><td>500</td></tr><tr><td><code>Kategorie</code></td><td>id_kategorii (Enforced)</td><td>2</td><td>4</td></tr><tr><td><code>Klienci</code></td><td>id_klienta (Enforced)</td><td>6</td><td>500</td></tr><tr><td><code>Koszyk</code></td><td>None Defined (Heap Table)</td><td>2</td><td>0</td></tr><tr><td><code>Produkty</code></td><td>id_produktu (Enforced)</td><td>6</td><td>7</td></tr><tr><td><code>Produkty_Kategorie</code></td><td>None Defined (Heap Table)</td><td>2</td><td>10</td></tr><tr><td><code>Produkty_zamowienia</code></td><td>None Defined (Heap Table)</td><td>4</td><td>3437</td></tr><tr><td><code>Stan_Magazynu</code></td><td>id_produktu (Enforced)</td><td>2</td><td>5</td></tr><tr><td><code>Zamowienia</code></td><td>id_zamowienia (Enforced)</td><td>6</td><td>1811</td></tr><tr><td><code>imiona_damskie</code></td><td>id (Enforced)</td><td>2</td><td>301</td></tr><tr><td><code>imiona_meskie</code></td><td>id (Enforced)</td><td>2</td><td>300</td></tr><tr><td><code>nazwiska_damskie</code></td><td>id (Enforced)</td><td>2</td><td>201</td></tr><tr><td><code>nazwiska_meskie</code></td><td>id (Enforced)</td><td>2</td><td>197</td></tr><tr><td><code>przykladowe_adresy</code></td><td>id_adresu (Enforced)</td><td>7</td><td>203</td></tr></tbody></table></div>
   <div class="report-footer">
     <span>Online_Shop</span>
     <span>Section 13 &bull; Core Business Tables</span>
