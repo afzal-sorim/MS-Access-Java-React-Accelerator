@@ -1384,15 +1384,23 @@ async def get_file_content(job_id: str, path: str, db: AsyncSession = Depends(ge
     # Security check: ensure path is within output_path
     output_dir = (Path(job.output_path) if job.output_path else OUTPUT_DIR / job_id).resolve()
     target_path = (output_dir / path).resolve()
+    
+    # Also check removed directory
+    removed_dir = output_dir.with_name(f"{output_dir.name}_removed").resolve()
+    removed_target_path = (removed_dir / path).resolve()
 
-    if not str(target_path).startswith(str(output_dir)):
+    if not str(target_path).startswith(str(output_dir)) and not str(removed_target_path).startswith(str(removed_dir)):
          raise HTTPException(status_code=403, detail="Access denied")
 
+    final_path = target_path
     if not target_path.exists() or not target_path.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
+        if removed_target_path.exists() and removed_target_path.is_file():
+            final_path = removed_target_path
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
 
     try:
-        content = target_path.read_text(encoding="utf-8")
+        content = final_path.read_text(encoding="utf-8")
         return {"content": content, "path": path}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
@@ -1458,6 +1466,76 @@ async def download_result(job_id: str, db: AsyncSession = Depends(get_db)):
     return FileResponse(
         path=zip_path,
         filename=f"{job.project_name}.zip",
+        media_type="application/zip",
+    )
+
+
+class RemoveFilesRequest(BaseModel):
+    files: list[str]
+
+@app.post("/api/jobs/{job_id}/remove-files")
+async def remove_files(job_id: str, request: RemoveFilesRequest, db: AsyncSession = Depends(get_db)):
+    """Remove specific files from the generated project and move them to a removed_files directory."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail="Output not found")
+
+    output_dir = Path(job.output_path)
+    removed_dir = output_dir.parent / f"{output_dir.name}_removed"
+    removed_dir.mkdir(parents=True, exist_ok=True)
+
+    removed_files = []
+    for file_path in request.files:
+        try:
+            import os
+            clean_path = os.path.normpath(file_path).lstrip('\\/')
+            if '..' in clean_path:
+                continue
+
+            src_file = output_dir / clean_path
+            
+            # Security check
+            if not str(src_file.resolve()).startswith(str(output_dir.resolve())):
+                continue
+
+            if src_file.exists() and src_file.is_file():
+                dest_file = removed_dir / clean_path
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(src_file), str(dest_file))
+                removed_files.append(clean_path)
+        except Exception as e:
+            logger.error(f"Error removing file {file_path}: {e}")
+
+    return {"status": "success", "removed": removed_files}
+
+
+@app.get("/api/jobs/{job_id}/download-removed")
+async def download_removed_files(job_id: str, db: AsyncSession = Depends(get_db)):
+    """Download the removed files as a ZIP."""
+    job_repo = JobRepository(db)
+    job = await job_repo.get_simple(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail="Output not found")
+
+    output_dir = Path(job.output_path)
+    removed_dir = output_dir.parent / f"{output_dir.name}_removed"
+
+    if not removed_dir.exists() or not any(removed_dir.iterdir()):
+        raise HTTPException(status_code=404, detail="No removed files found")
+
+    zip_path = output_dir.parent / f"{output_dir.name}_removed.zip"
+    shutil.make_archive(str(zip_path.with_suffix('')), "zip", removed_dir)
+
+    return FileResponse(
+        path=zip_path,
+        filename=f"{job.project_name}_removed_files.zip",
         media_type="application/zip",
     )
 
