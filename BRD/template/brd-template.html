@@ -390,6 +390,78 @@ td code, th code {
 .er-card-rel-section { border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 6px 10px; display: flex; flex-direction: column; gap: 3px; }
 .er-card-rel-tag { font-size: 9.5px; color: #334155; }
 
+/* Chen-style ER Diagram Styles */
+.chen-er-container {
+    width: 100%;
+    margin: 20px 0;
+    padding: 30px;
+    background: #fdfdfd;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    align-items: center;
+    overflow-x: auto;
+}
+.chen-diagram-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    width: 100%;
+}
+.chen-entity {
+    border: 2px solid #1e3a8a;
+    padding: 12px 24px;
+    background: #fff;
+    font-weight: bold;
+    color: #1e3a8a;
+    min-width: 140px;
+    text-align: center;
+    box-shadow: 4px 4px 0px rgba(30, 58, 138, 0.1);
+    position: relative;
+}
+.chen-relationship {
+    width: 80px;
+    height: 80px;
+    background: #f8fafc;
+    border: 2px solid #64748b;
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.chen-relationship span {
+    transform: rotate(-45deg);
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    text-align: center;
+}
+.chen-attribute {
+    border: 1px solid #94a3b8;
+    border-radius: 50%;
+    padding: 6px 12px;
+    background: #fff;
+    font-size: 10px;
+    min-width: 80px;
+    text-align: center;
+    color: #64748b;
+}
+.chen-line {
+    position: absolute;
+    background: #94a3b8;
+    z-index: -1;
+}
+.chen-cardinality {
+    position: absolute;
+    font-size: 12px;
+    font-weight: bold;
+    color: #1e3a8a;
+}
+
 /* Technical architecture flow */
 .arch-diagram {
     width: 100%;

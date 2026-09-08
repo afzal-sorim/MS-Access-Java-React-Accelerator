@@ -1489,6 +1489,122 @@ a:hover {
 
 @media (max-width: 768px) {
 
+    .wizard-sidebar {
+        display: none !important;
+    }
+
+    .wizard-main-content {
+        height: auto !important;
+        min-height: calc(100vh - 64px);
+        padding: 0.6rem 0.25rem !important;
+        gap: 0.5rem !important;
+    }
+
+    .wizard-step-card {
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
+    }
+
+    .step1-header {
+        gap: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .step1-header > div:first-child {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 7px !important;
+    }
+
+    .step1-header > div:first-child svg {
+        width: 21px !important;
+        height: 18px !important;
+    }
+
+    .step1-header h2 {
+        font-size: 0.72rem !important;
+    }
+
+    .step1-header p {
+        font-size: 0.48rem !important;
+        margin-top: 0.15rem !important;
+        line-height: 1.25 !important;
+    }
+
+    .step1-mode-buttons {
+        gap: 0.35rem !important;
+        margin-bottom: 0.6rem !important;
+    }
+
+    .step1-mode-buttons button {
+        padding: 0.35rem 0.65rem !important;
+        border-radius: 6px !important;
+        gap: 0.25rem !important;
+        font-size: 0.52rem !important;
+    }
+
+    .step1-mode-buttons svg {
+        width: 9px !important;
+        height: 9px !important;
+    }
+
+    .step1-selected-file {
+        border-radius: 9px !important;
+        padding: 0.6rem !important;
+    }
+
+    .step1-selected-file > div:first-child {
+        gap: 0.5rem !important;
+    }
+
+    .step1-selected-file > div:first-child > div:first-child {
+        width: 27px !important;
+        height: 27px !important;
+        border-radius: 7px !important;
+    }
+
+    .step1-selected-file h3 {
+        font-size: 0.58rem !important;
+    }
+
+    .step1-selected-file p {
+        font-size: 0.45rem !important;
+    }
+
+    .step1-selected-file button {
+        padding: 0.2rem 0.45rem !important;
+        border-radius: 5px !important;
+        font-size: 0.45rem !important;
+    }
+
+    .step1-selected-file .grid-3 {
+        gap: 0.35rem !important;
+        margin-top: 0.6rem !important;
+        padding-top: 0.6rem !important;
+    }
+
+    .step1-selected-file .stat-card {
+        min-height: 3rem !important;
+        padding: 0.35rem !important;
+        border-radius: 7px !important;
+    }
+
+    .step1-selected-file .stat-card-value {
+        font-size: 0.82rem !important;
+    }
+
+    .step1-selected-file .stat-card-label {
+        font-size: 0.4rem !important;
+    }
+
+    .step1-selected-file .alert {
+        margin-top: 0.6rem !important;
+        padding: 0.45rem 0.55rem !important;
+        font-size: 0.42rem !important;
+        border-radius: 7px !important;
+    }
+
     .app-header {
         height: 64px;
         padding: 0 16px;
