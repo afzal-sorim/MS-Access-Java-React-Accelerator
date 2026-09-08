@@ -232,6 +232,54 @@ export async function getFileContent(jobId, path) {
 }
 
 /**
+ * Recursively fetch all generated frontend source files and contents for Sandpack.
+ */
+export async function getJobFrontendFiles(jobId) {
+    const fileCategories = await listJobFiles(jobId);
+    const frontendTree = fileCategories.frontend || [];
+
+    const collectFiles = (nodes) => {
+        let files = [];
+        for (const node of nodes) {
+            if (node.type === 'file') {
+                files.push(node);
+            } else if (node.type === 'directory' && node.children) {
+                files = files.concat(collectFiles(node.children));
+            }
+        }
+        return files;
+    };
+
+    const fileList = collectFiles(frontendTree);
+    if (fileList.length === 0) {
+        return {};
+    }
+
+    const fileContents = await Promise.all(
+        fileList.map(async (file) => {
+            try {
+                const res = await getFileContent(jobId, file.path);
+                let cleanPath = file.path.replace(/^frontend[/\\]/, '').replace(/\\/g, '/');
+                if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+                return { path: cleanPath, content: res.content };
+            } catch (err) {
+                console.warn(`Failed to fetch file content for ${file.path}:`, err);
+                return null;
+            }
+        })
+    );
+
+    const sandpackFiles = {};
+    for (const item of fileContents) {
+        if (item && item.content !== undefined) {
+            sandpackFiles[item.path] = item.content;
+        }
+    }
+
+    return sandpackFiles;
+}
+
+/**
  * Get database schema for ER diagram.
  */
 export async function getJobDbSchema(jobId) {

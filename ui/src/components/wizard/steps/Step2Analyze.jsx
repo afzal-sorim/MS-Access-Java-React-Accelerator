@@ -87,8 +87,8 @@ export default function Step2Analyze() {
         if (fileMetadata?.size) {
             return (fileMetadata.size / (1024 * 1024)).toFixed(2) + ' MB';
         }
-        if (fileMetadata?.formattedSize) return fileMetadata.formattedSize;
-        return '3.23 MB';
+        // if (fileMetadata?.formattedSize) return fileMetadata.formattedSize;
+        // return '3.23 MB';
     };
 
     // Client-side quick binary parser for immediate baseline discovery

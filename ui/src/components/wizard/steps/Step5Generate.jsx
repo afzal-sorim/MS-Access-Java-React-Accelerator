@@ -1030,18 +1030,9 @@ export default function Step5Generate() {
                     aria-label="Solution Explorer"
                     onClick={() => setExplorerOpen(false)}
                     style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '75vw',
-                        height: '100vh',
-                        zIndex: 2000,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '1.5rem',
-                        overflow: 'auto',
-                        background: 'rgba(15, 23, 42, 0.22)',
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '1.5rem', background: 'rgba(15, 23, 42, 0.4)',
                     }}
                 >
                     <div
@@ -1051,25 +1042,36 @@ export default function Step5Generate() {
                             height: 'min(820px, calc(100vh - 2rem))',
                             display: 'flex',
                             flexDirection: 'column',
-                            overflow: 'hidden',
                             background: '#fff',
-                            borderRadius: '14px',
-                            boxShadow: '0 24px 80px rgba(15, 23, 42, 0.35)',
+                            borderRadius: '12px',
+                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+                            padding: '1.5rem',
+                            overflow: 'hidden'
                         }}
                     >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
-                            <strong style={{ color: '#1e293b' }}>Solution Explorer</strong>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Solution Explorer</h3>
                             <button
                                 type="button"
                                 onClick={() => setExplorerOpen(false)}
-                                aria-label="Close Solution Explorer"
-                                title="Close Solution Explorer"
-                                style={{ border: '1px solid #cbd5e1', borderRadius: '8px', background: '#fff', color: '#475569', cursor: 'pointer', padding: '0.35rem 0.6rem', fontSize: '1rem' }}
+                                style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
                             >
-                                X
+                                &times;
                             </button>
                         </div>
-                        <div style={{ flex: 1, minHeight: 0 }}>
+                        
+                        <div style={{ flex: 1, minHeight: 0, border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', position: 'relative' }}>
+                            {!generationComplete && (
+                                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.8)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: '#fff', padding: '1rem 1.5rem', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                                        <div className="spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>
+                                            {isGenerating ? 'Generating project...' : 'Starting generation...'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            
                             {(generationJobId || analysisJobId) ? (
                                 <FileExplorer
                                     jobId={generationJobId || analysisJobId}
@@ -1081,6 +1083,17 @@ export default function Step5Generate() {
                                 </div>
                             )}
                         </div>
+                        
+                        {generationComplete && generationResult && (
+                            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => downloadResult(generationJobId, config.project_name)}
+                                >
+                                    Download Project ZIP
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
