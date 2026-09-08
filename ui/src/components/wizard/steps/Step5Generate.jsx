@@ -72,7 +72,7 @@ function getCompletedFrontendSteps(backendState) {
 /**
  * ER Diagram Component
  */
-export function ERDiagram({ schema }) {
+export function ERDiagram({ schema, hideHeader = false }) {
     if (!schema || !schema.tables) return null;
 
     const normalizeName = (name) => String(name || '').replace(/[\[\]`"]+/g, '').trim().toLowerCase();
@@ -90,19 +90,21 @@ export function ERDiagram({ schema }) {
     return (
         <div style={{ background: '#f8fafc', minHeight: '100%', position: 'relative' }}>
             {/* Header */}
-            <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#fff' }}>🗄️</div>
-                    <div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>Database Entity-Relationship Diagram</div>
-                        <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{schema.tables.length} tables · {schema.relationships?.length || 0} relationships</div>
+            {!hideHeader && (
+                <div style={{ padding: '1.25rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'linear-gradient(135deg, #0ea5e9, #6366f1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#fff' }}>🗄️</div>
+                        <div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>Database Entity-Relationship Diagram</div>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{schema.tables.length} tables · {schema.relationships?.length || 0} relationships</div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔑 PK = Primary Key</span>
+                        <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔗 FK = Foreign Key</span>
                     </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔑 PK = Primary Key</span>
-                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔗 FK = Foreign Key</span>
-                </div>
-            </div>
+            )}
 
             {/* Animation Style */}
             <style>

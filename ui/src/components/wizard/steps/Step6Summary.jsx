@@ -1810,6 +1810,7 @@ export default function Step6Summary({ onReachedIntervention }) {
     // Shared helper to fetch or construct rich database schema
     const loadDatabaseSchema = useCallback(async () => {
         if (schemaData && schemaData.tables && schemaData.tables.length > 0) {
+            setLoadingSchema(false);
             return schemaData;
         }
         setLoadingSchema(true);
@@ -1911,8 +1912,14 @@ export default function Step6Summary({ onReachedIntervention }) {
 
     // Handle opening Database Entity-Relationship Diagram
     const handleOpenEntityDiagram = useCallback(async () => {
+        console.log("Opening ER Diagram Modal...");
         setShowErModal(true);
-        await loadDatabaseSchema();
+        try {
+            await loadDatabaseSchema();
+        } catch (err) {
+            console.error("Error loading schema:", err);
+            setLoadingSchema(false);
+        }
     }, [loadDatabaseSchema]);
 
     // Human Intervention Items
@@ -2614,30 +2621,6 @@ export default function Step6Summary({ onReachedIntervention }) {
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                         <span className="s6-deliverable-badge active">1 Script</span>
-                                        <button
-                                            type="button"
-                                            className="s6-row-action-pill code"
-                                            onClick={() => handleOpenFilePreview({ name: 'schema.sql', path: 'database/schema.sql', type: 'file' })}
-                                            title="Show PostgreSQL Schema SQL Code"
-                                        >
-                                            <EyeIcon /> Show Code
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="s6-row-action-pill schema"
-                                            onClick={handleOpenStaticSchema}
-                                            title="View Static Relational Database Schema (Tables & Columns)"
-                                        >
-                                            📋 View Schema
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="s6-row-action-pill diagram"
-                                            onClick={handleOpenEntityDiagram}
-                                            title="View Database Entity Diagram"
-                                        >
-                                            📊 Entity Diagram
-                                        </button>
                                     </div>
                                 </td>
                                 <td>
@@ -2822,9 +2805,25 @@ export default function Step6Summary({ onReachedIntervention }) {
 
             {/* ── ENTITY-RELATIONSHIP DIAGRAM MODAL ── */}
             {showErModal && typeof document !== 'undefined' && createPortal(
-                <div className="s6-modal-overlay" onClick={() => setShowErModal(false)}>
+                <div className="s6-modal-backdrop" onClick={() => setShowErModal(false)} style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    background: 'rgba(15, 23, 42, 0.72)',
+                    backdropFilter: 'blur(5px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 999999,
+                    padding: '1.5rem',
+                    boxSizing: 'border-box'
+                }}>
                     <div
-                        className="s6-modal-box s6-modal-box--erd"
+                        className="s6-modal-container"
                         onClick={e => e.stopPropagation()}
                         style={{
                             maxWidth: '1100px',
@@ -2835,7 +2834,8 @@ export default function Step6Summary({ onReachedIntervention }) {
                             borderRadius: '16px',
                             overflow: 'hidden',
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-                            background: '#ffffff'
+                            background: '#ffffff',
+                            margin: 'auto'
                         }}
                     >
                         <div
@@ -2868,33 +2868,15 @@ export default function Step6Summary({ onReachedIntervention }) {
                                         Database Entity-Relationship Diagram
                                     </h2>
                                     <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                                        PostgreSQL 18 relational schema, primary keys, and foreign relationships
+                                        {schemaData?.tables?.length || 0} tables · {schemaData?.relationships?.length || 0} relationships
                                     </span>
                                 </div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                <button
-                                    type="button"
-                                    className="s6-schema-btn s6-schema-btn--code"
-                                    onClick={() => {
-                                        setShowErModal(false);
-                                        handleOpenFilePreview({ name: 'schema.sql', path: 'database/schema.sql', type: 'file' });
-                                    }}
-                                    title="Show PostgreSQL Schema SQL Code"
-                                >
-                                    <EyeIcon /> Show Code
-                                </button>
-                                <button
-                                    type="button"
-                                    className="s6-schema-btn s6-schema-btn--schema"
-                                    onClick={() => {
-                                        setShowErModal(false);
-                                        handleOpenStaticSchema();
-                                    }}
-                                    title="View Static Relational Schema"
-                                >
-                                    <span>📋</span> View Schema
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
+                                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔑 PK = Primary Key</span>
+                                    <span style={{ background: '#fff', color: '#64748b', fontSize: '0.65rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0' }}>🔗 FK = Foreign Key</span>
+                                </div>
                                 <button
                                     type="button"
                                     onClick={() => setShowErModal(false)}
@@ -2924,7 +2906,7 @@ export default function Step6Summary({ onReachedIntervention }) {
                                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Rendering Entity-Relationship Diagram...</span>
                                 </div>
                             ) : (
-                                <ERDiagram schema={schemaData} />
+                                <ERDiagram schema={schemaData} hideHeader={true} />
                             )}
                         </div>
                     </div>
