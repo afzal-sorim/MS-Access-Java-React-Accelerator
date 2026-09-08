@@ -1202,6 +1202,7 @@ async def get_job(job_id: str, db: AsyncSession = Depends(get_db)):
 async def get_job_discovery(job_id: str, db: AsyncSession = Depends(get_db)):
     """Get full real extracted discovery objects for any database."""
     job_repo = JobRepository(db)
+    ir_repo = IRRepository(db)
     job = await job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -1222,17 +1223,44 @@ async def get_job_discovery(job_id: str, db: AsyncSession = Depends(get_db)):
             except Exception:
                 pass
 
+    # Enrich with IR data if available for detailed columns and relationships
+    ir_model = await ir_repo.get(job_id)
+    ir_data = ir_model.data if ir_model else {}
+
+    tables = []
+    if ir_data.get("tables"):
+        for t in ir_data["tables"]:
+            tables.append({
+                "name": t.get("name"),
+                "columns": [
+                    {
+                        "name": c.get("name"),
+                        "access_type": c.get("access_type"),
+
+                        "pg_type": c.get("sql_type"),
+                        "is_pk": c.get("primary_key", False),
+                        "is_fk": c.get("is_lookup", False) or any(r.get("child_table") == t.get("name") and c.get("name") in r.get("child_columns", []) for r in ir_data.get("relationships", []))
+                    }
+                    for c in t.get("columns", [])
+                ],
+                "has_primary_key": any(c.get("primary_key") for c in t.get("columns", []))
+            })
+    else:
+        tables = extraction.get("tables", [])
+
+    relationships = ir_data.get("relationships") or extraction.get("relationships", [])
+
     return {
         "job_id": job.id,
-        "tables": extraction.get("tables", []),
+        "tables": tables,
         "queries": extraction.get("queries", []),
         "forms": extraction.get("forms", []),
         "reports": extraction.get("reports", []),
         "macros": extraction.get("macros", []),
         "modules": extraction.get("modules", []),
-        "relationships": extraction.get("relationships", []),
+        "relationships": relationships,
         "statistics": {
-            "tables": job.tables_count if job.tables_count is not None else len(extraction.get("tables", [])),
+            "tables": job.tables_count if job.tables_count is not None else len(tables),
             "queries": job.queries_count if job.queries_count is not None else len(extraction.get("queries", [])),
             "forms": job.forms_count if job.forms_count is not None else len(extraction.get("forms", [])),
             "reports": job.reports_count if job.reports_count is not None else len(extraction.get("reports", [])),

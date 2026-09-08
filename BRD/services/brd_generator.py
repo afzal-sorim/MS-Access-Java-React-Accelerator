@@ -103,11 +103,27 @@ async def generate_brd_for_job(
         logger.info("Successfully received structured narratives from Ollama.")
     except Exception as e:
         logger.warning("Ollama unavailable or error during BRD generation (%s); using factual baseline narratives.", e)
+
         narratives = {
-            "doc_purpose_description": f"This document specifies the technical and business baseline for modernizing the {project_name} Access application.",
-            "app_purpose_description": f"The {project_name} application manages operational business data across {facts.get('tables_count', 0)} data entities, {facts.get('queries_count', 0)} queries, and {facts.get('forms_count', 0)} user forms.",
-            "app_modernization_context": f"Conversion of {project_name} to Spring Boot ({facts.get('spring_boot_version', '4.1.0')}) and React ({facts.get('react_version', '19.2.8')}) eliminates single-user file-locking limitations.",
-            "detailed_purpose": f"Modernized platform architecture for {project_name} with automated database schema migration to PostgreSQL ({facts.get('postgres_version', '18')}).",
+            "executive_summary_overview": f"The {project_name} application is a legacy Microsoft Access solution managing {facts.get('tables_count', 0)} tables and {facts.get('forms_count', 0)} forms.",
+            "executive_summary_business_need": "To eliminate file-locking bottlenecks and provide a scalable, modern web-based architecture.",
+            "executive_summary_functional_scope": f"Migration of {facts.get('tables_count', 0)} entities, {facts.get('queries_count', 0)} queries, {facts.get('forms_count', 0)} screens, and {facts.get('vba_modules_count', 0)} VBA modules.",
+            "existing_system_overview": (
+                f"The {project_name} application is a comprehensive business solution built on the Microsoft Access platform, encapsulated within the {facts.get('source_file', 'Database.accdb')} file container. "
+                f"This legacy system serves as a monolithic desktop-based environment where data storage, business logic, and user interface components are tightly integrated. "
+                f"The application leverages the JET/ACE database engine to manage a schema of {facts.get('tables_count', 0)} relational tables and {facts.get('queries_count', 0)} SQL-based queries. "
+                f"Users interact through {facts.get('forms_count', 0)} dedicated form screens. "
+                f"Automated business processes are driven by {facts.get('vba_modules_count', 0)} VBA modules."
+            ),
+            "database_architecture": f"Monolithic desktop file containing {facts.get('tables_count', 0)} business tables, {facts.get('queries_count', 0)} queries, and relational integrity constraints.",
+            "business_processes": "Data entry via desktop forms, batch processing via SQL queries, and routine execution via VBA procedures.",
+            "user_interaction_model": "Form-driven desktop interaction using JET/ACE database bindings for real-time data updates.",
+            "data_management_approach": f"Relational database storage containing {facts.get('tables_count', 0)} business tables with primary keys, foreign key relationships, and field validation properties.",
+            "reporting_approach": f"{facts.get('reports_count', 0)} Access reports generated directly within the desktop Access runtime environment.",
+            "vba_automation": f"{facts.get('vba_modules_count', 0)} VBA code modules containing event routines and complex business logic automation.",
+            "administrative_functions": "Database compact/repair utilities, relationship builder, and Access property sheets for configuration.",
+            "security_model": "Workstation file-level permissions and MS Access startup property configurations.",
+            "integration_points": "ODBC linked tables, file system operations, and external data exports to Excel/CSV."
         }
 
     # 5. Render HTML Template

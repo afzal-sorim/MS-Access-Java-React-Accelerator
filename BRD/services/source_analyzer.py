@@ -146,69 +146,65 @@ def map_access_to_postgres(col: Dict[str, Any]) -> str:
     return "VARCHAR(255)"
 
 
-def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse real VBA module code for header comments, procedure signatures, and behavioral summaries (spec Step 3)."""
-    mname = m.get("name", "Module")
-    mtype = m.get("module_type", "STANDARD")
-def describe_vba_procedure(pname: str, kind: str, params: str, ret_type: str, comments: str, mod_name: str) -> str:
-    """Infer a deep, specific behavioral description for an individual VBA routine."""
+def describe_vba_procedure(pname: str, kind: str, params: str, ret_type: str, comments: str, mod_name: str, body: str = "") -> str:
+    """Infer a deep, specific behavioral description for an individual VBA routine.
+    Analyzes body text for table/control references (spec Step 3).
+    """
     plower = pname.lower()
-    mlower = mod_name.lower()
+    body_lower = body.lower()
 
-    # Specialized Mathematical & Statistical Functions
-    if plower in ("arccos", "acos"):
-        return "Calculates the inverse cosine (arc cosine) of a real numeric angle value in radians."
-    elif plower in ("arcsin", "asin"):
-        return "Calculates the inverse sine (arc sine) of a real numeric angle value in radians."
-    elif plower in ("arctan", "atan", "atan2"):
-        return "Calculates the inverse tangent (arc tangent / 2-argument arc tangent) of numeric coordinates."
-    elif plower in ("arccosec", "acsc"):
-        return "Calculates the inverse cosecant of a numeric angle value."
-    elif plower in ("arccotan", "acot"):
-        return "Calculates the inverse cotangent of a numeric angle value."
-    elif plower in ("arcsec", "asec"):
-        return "Calculates the inverse secant of a numeric angle value."
-    elif plower in ("cosec", "csc"):
-        return "Calculates the cosecant (1 / sin(x)) of a numeric angle in radians."
-    elif plower in ("cotan", "cot"):
-        return "Calculates the cotangent (1 / tan(x)) of a numeric angle in radians."
-    elif plower in ("sec", "secant"):
-        return "Calculates the secant (1 / cos(x)) of a numeric angle in radians."
-    elif "greatarcdistance" in plower or ("distance" in plower and ("3d" in plower or "xyz" in mlower)):
-        return "Calculates 3D Euclidean spatial distance or spherical great-arc distance between coordinate points."
-    elif "area" in plower or "volume" in plower or plower.startswith(("acircle", "arect", "asphere", "vcone", "vcylinder", "vsphere")):
-        return f"Computes geometric area and volumetric metrics for spatial shapes ({pname})."
+    # Heuristic: Identify tables/controls touched
+    touched_tables = re.findall(r'(?:from|join|update|into|openrecordset\s*\(\s*["\']|currentdb\.execute\s*["\'])\s*([\[\]a-zA-Z0-9_]+)', body, re.I)
+    touched_controls = re.findall(r'(?:Me!|Me\.|\bForms!.*!)\s*([a-zA-Z0-9_]+)', body, re.I)
+    # Field mutations (Assignment to !Field or .Field)
+    field_mutations = re.findall(r'(?:!|\.)([a-zA-Z0-9_]+)\s*=', body)
 
-    # Calendar & Date Functions
-    elif "weekending" in plower or "week_ending" in plower or plower == "endofweek":
-        return "Calculates the week-ending Saturday/Sunday date boundary for a given input transaction date."
-    elif "quarter" in plower:
-        return "Derives calendar/fiscal quarter (Q1-Q4) for a given date parameter."
-    elif "monthcal" in plower or "calendar" in plower:
-        return "Renders interactive month calendar view controls and handles date selection events."
-    elif "daysinmonth" in plower:
-        return "Calculates the total number of calendar days in a given month and year (accounting for leap years)."
-    elif "leapyear" in plower:
-        return "Determines whether a given calendar year is a leap year."
+    tables_clean = sorted(list(set(t.strip("[]") for t in touched_tables if not is_system_object(t))))
+    controls_clean = sorted(list(set(c for c in touched_controls)))
+    # Filter common property names from field mutations
+    props = {"value", "visible", "enabled", "caption", "locked", "backcolor", "forecolor", "width", "height", "top", "left"}
+    fields_clean = sorted(list(set(f for f in field_mutations if f.lower() not in props)))
 
-    # Outlook & Email Operations
-    elif "mail" in plower or "send" in plower or "outlook" in mlower or "pushappointments" in plower:
-        return "Constructs MAPI email message, attaches generated reports, or syncs calendar appointments with Outlook."
+    impact = []
+    if tables_clean:
+        impact.append(f"touches tables ({', '.join(tables_clean)})")
+    if controls_clean:
+        impact.append(f"interacts with UI controls ({', '.join(controls_clean)})")
+    if fields_clean:
+        impact.append(f"modifies fields ({', '.join(fields_clean)})")
 
-    # File & Path Operations
-    elif "file" in plower or "path" in plower or "dir" in plower or "trailingslash" in plower:
-        return "Executes local file system I/O, file path verification, load/save operations, or disk directory checks."
+    impact_str = " Routine " + ", ".join(impact) + "." if impact else ""
 
-    if comments and len(comments) > 25 and not comments.lower().startswith("execution routine"):
-        return comments
-    elif comments and len(comments) > 3:
-        return f"{comments} — Executes procedure {pname}({params}) returning {ret_type} in {mod_name}."
+    # Specific Behaviors
+    behavior = ""
+    if "openform" in body_lower:
+        fmatch = re.search(r'openform\s*["\']([^"\']+)["\']', body, re.I)
+        behavior = f"Triggers navigation to form '{fmatch.group(1)}'" if fmatch else "Triggers UI navigation"
+    elif "openreport" in body_lower:
+        rmatch = re.search(r'openreport\s*["\']([^"\']+)["\']', body, re.I)
+        behavior = f"Generates report '{rmatch.group(1)}'" if rmatch else "Generates report"
+    elif "outputto" in body_lower or "transferspreadsheet" in body_lower or "transfertext" in body_lower:
+        behavior = "Performs external data export/import (Excel/PDF/CSV)"
+    elif "sendobject" in body_lower or "outlook.application" in body_lower:
+        behavior = "Sends automated email communication"
+    elif any(k in body_lower for k in (".addnew", ".edit", ".delete", "db.execute", "currentdb.execute")):
+        behavior = "Performs data mutation on underlying recordsets"
+    elif "validate" in plower or "check" in plower or "isvalid" in plower:
+        behavior = "Validates business data integrity constraints"
+    elif plower in ("arccos", "acos", "arcsin", "asin", "arctan", "atan"):
+        behavior = "Calculates trigonometric inverse functions"
+    elif any(k in plower for k in ("calc", "total", "sum", "average")):
+        behavior = "Performs business logic calculations"
 
-    # Generic Fallback with Specific Context
-    if "sub" in kind.lower():
-        return f"Subroutine executing operational procedure {pname}({params}) in {mod_name}."
-    else:
-        return f"Function returning {ret_type} derived from parameter inputs ({params}) in {mod_name}."
+    # Error Handling Detection
+    err_note = ""
+    if "on error goto" in body_lower:
+        err_note = " Includes structured error handling."
+    elif "on error resume next" in body_lower:
+        err_note = " Uses 'Resume Next' error suppression (requires review)."
+
+    final_desc = behavior if behavior else (comments if len(comments) > 10 else f"Executes {kind} {pname}")
+    return f"{final_desc}.{impact_str}{err_note}"
 
 
 def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
@@ -246,9 +242,15 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
         re.M,
     )
 
-    for match in proc_pattern.finditer(src):
+    # Find the range of each procedure to get its body
+    proc_matches = list(proc_pattern.finditer(src))
+    for i, match in enumerate(proc_matches):
         kind, pname, params, ret_type = match.groups()
         proc_start = match.start()
+        # Body goes until the start of next proc or end of string
+        proc_end = proc_matches[i+1].start() if i + 1 < len(proc_matches) else len(src)
+        body = src[proc_start:proc_end]
+
         before_text = src[max(0, proc_start - 300) : proc_start]
         after_text = src[match.end() : match.end() + 200]
 
@@ -268,7 +270,7 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
         params_clean = params.strip() if params else ""
         ret_clean = ret_type.strip() if ret_type else ("Void" if "Sub" in kind_clean else "Object")
 
-        deep_desc = describe_vba_procedure(pname_clean, kind_clean, params_clean, ret_clean, inline_desc, mname)
+        deep_desc = describe_vba_procedure(pname_clean, kind_clean, params_clean, ret_clean, inline_desc, mname, body)
 
         procedures.append(
             {
@@ -279,8 +281,10 @@ def parse_vba_module(m: Dict[str, Any]) -> Dict[str, Any]:
                 "comments": inline_desc,
                 "signature": f"{kind_clean} {pname_clean}({params_clean}){' As ' + ret_clean if ret_type else ''}",
                 "behavioral_description": deep_desc,
+                "body": body[:500], # Keep a snippet
             }
         )
+
 
     # 3. Behavioral Description Synthesis (Reflect what it ACTUALLY DOES)
     behavioral_desc = ""
@@ -343,23 +347,85 @@ def parse_form_object(f: Dict[str, Any]) -> Dict[str, Any]:
 
     ct_summary = ", ".join([f"{count} {ctype}s" for ctype, count in control_types.items()]) or "UI controls"
     event_list = list(events.keys()) if isinstance(events, dict) else []
-    ev_summary = ", ".join(event_list[:5]) if event_list else "Standard UI actions"
+    ev_summary = ", ".join(event_list) if event_list else "Standard UI actions"
+
+    # Identify navigation targets in events or name
+    nav_targets = []
+    if isinstance(events, dict):
+        for e_body in events.values():
+            if isinstance(e_body, str):
+                f_targets = re.findall(r'OpenForm\s*["\']([^"\']+)["\']', e_body, re.I)
+                r_targets = re.findall(r'OpenReport\s*["\']([^"\']+)["\']', e_body, re.I)
+                nav_targets.extend([{"type": "Form", "name": t} for t in f_targets])
+                nav_targets.extend([{"type": "Report", "name": t} for t in r_targets])
 
     desc = (
         f"Interactive user screen bound to record source <code>{recsource}</code>. "
         f"Contains {len(ctrls)} controls ({ct_summary}) facilitating data entry, search, and validation. "
         f"Handles events: {ev_summary}."
     )
+    if nav_targets:
+        desc += " Facilitates navigation to: " + ", ".join([f"{t['type']} {t['name']}" for t in nav_targets[:3]]) + "."
 
     return {
         "name": fname,
         "record_source": recsource,
         "controls": ctrls,
         "controls_count": len(ctrls),
-        "control_names_sample": control_names[:8],
+        "control_names_sample": control_names[:12],
         "events": events,
         "events_summary": ev_summary,
+        "navigation_targets": nav_targets,
         "behavioral_description": desc,
+    }
+
+
+def parse_query_object(q: Dict[str, Any]) -> Dict[str, Any]:
+    """Analyze Access SQL to identify type, tables, fields, and parameters (spec Step 3)."""
+    qname = q.get("name", "Query")
+    sql = q.get("sql") or ""
+    sql_upper = sql.upper().strip()
+
+    # Identify Query Type
+    qtype = "SELECT"
+    if sql_upper.startswith("INSERT INTO"): qtype = "INSERT"
+    elif sql_upper.startswith("UPDATE "): qtype = "UPDATE"
+    elif sql_upper.startswith("DELETE "): qtype = "DELETE"
+    elif " SELECT " in sql_upper and " INTO " in sql_upper: qtype = "MAKE-TABLE"
+    elif sql_upper.startswith("TRANSFORM "): qtype = "CROSSTAB"
+    elif sql_upper.startswith("ALTER TABLE"): qtype = "DDL (ALTER)"
+    elif sql_upper.startswith("CREATE TABLE"): qtype = "DDL (CREATE)"
+
+    # Identify Tables
+    touched_tables = re.findall(r'(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([\[\]a-zA-Z0-9_]+)', sql, re.I)
+    tables_clean = sorted(list(set(t.strip("[]") for t in touched_tables if not is_system_object(t))))
+
+    # Identify Parameters (e.g. [Enter Date])
+    params = re.findall(r'\[([^\]]+)\]', sql)
+    real_params = []
+    for p in params:
+        # Heuristic: Parameters usually have spaces or aren't known tables
+        if p not in tables_clean and (" " in p or "?" in p or ":" in p or len(p) > 15):
+            if p not in real_params:
+                real_params.append(p)
+
+    # Detect Aggregates
+    has_aggregates = any(w in sql_upper for w in ("SUM(", "COUNT(", "AVG(", "MAX(", "MIN(", "GROUP BY"))
+
+    purpose = f"Data retrieval from {', '.join(tables_clean)}" if qtype == "SELECT" else f"Data mutation ({qtype}) affecting {', '.join(tables_clean)}"
+    if has_aggregates:
+        purpose += " with summary aggregations"
+    if real_params:
+        purpose += f". Requires parameters: {', '.join(real_params)}"
+
+    return {
+        "name": qname,
+        "sql": sql,
+        "type": qtype,
+        "tables": tables_clean,
+        "parameters": real_params,
+        "has_aggregates": has_aggregates,
+        "behavioral_description": purpose
     }
 
 
@@ -630,23 +696,40 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
     for tbl in all_tables:
         cols = tbl.get("columns", [])
         indexes = tbl.get("indexes", [])
-        real_pk_cols: List[str] = []
+        enforced_pk_cols: List[str] = []
+        inferred_pk_cols: List[str] = []
+
+        # 1. Check for real enforced PK index
         if isinstance(indexes, list):
             for idx in indexes:
                 if isinstance(idx, dict) and (idx.get("primary") or idx.get("name", "").lower() in ("primarykey", "pk")):
                     idx_cols = idx.get("columns") or []
                     if isinstance(idx_cols, list):
                         for ic in idx_cols:
-                            if ic not in real_pk_cols:
-                                real_pk_cols.append(ic)
+                            if ic not in enforced_pk_cols:
+                                enforced_pk_cols.append(ic)
+
+        # 2. Check for inferred PK via naming or AutoNumber
         for col in cols:
-            if col.get("is_pk") or col.get("primary_key") or col.get("pk") or col.get("auto_number"):
-                cname = col.get("name")
-                if cname and cname not in real_pk_cols:
-                    real_pk_cols.append(cname)
+            cname = col.get("name")
+            if not cname: continue
+            is_convention = cname.lower() in ("id", f"{tbl.get('name','').lower()}id", f"{tbl.get('name','').lower()}_id")
+            if col.get("is_pk") or col.get("primary_key") or col.get("pk") or col.get("auto_number") or is_convention:
+                if cname not in enforced_pk_cols and cname not in inferred_pk_cols:
+                    inferred_pk_cols.append(cname)
+
+        real_pk_cols = enforced_pk_cols + inferred_pk_cols
         tbl["primary_key"] = real_pk_cols
+        tbl["enforced_pk_cols"] = enforced_pk_cols
+        tbl["inferred_pk_cols"] = inferred_pk_cols
         tbl["has_primary_key"] = len(real_pk_cols) > 0
-        tbl["pk_status"] = ", ".join(real_pk_cols) if real_pk_cols else "None Defined (Heap Table)"
+
+        if enforced_pk_cols:
+            tbl["pk_status"] = ", ".join(enforced_pk_cols) + " (Enforced)"
+        elif inferred_pk_cols:
+            tbl["pk_status"] = ", ".join(inferred_pk_cols) + " (Inferred PK: naming convention, not enforced in source)"
+        else:
+            tbl["pk_status"] = "None Defined (Heap Table)"
 
     # Infer logical foreign key relationships across tables if MSysRelationships is empty or partial
     seen_rels = {(r["parent_table"].lower(), r["child_table"].lower()) for r in relationships}
@@ -730,9 +813,12 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
             "name": tname,
             "columns": enhanced_cols,
             "primary_key": real_pk_cols,
+            "enforced_pk_cols": tbl.get("enforced_pk_cols", []),
+            "inferred_pk_cols": tbl.get("inferred_pk_cols", []),
             "has_primary_key": has_pk,
-            "pk_status": ", ".join(real_pk_cols) if has_pk else "None Defined (Heap Table)",
+            "pk_status": tbl.get("pk_status"),
             "row_count": tbl.get("row_count"),
+            "sample_data": tbl.get("data", [])[:5] or tbl.get("sample_rows", [])[:5],
             "is_system": is_system_object(tname),
             "indexes": indexes,
         }
@@ -748,16 +834,17 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
     if isinstance(raw_queries, dict):
         for k, v in raw_queries.items():
             if not is_system_object(k):
-                sql_text = v.get("sql") if isinstance(v, dict) else str(v)
-                queries.append({"name": k, "sql": sql_text, "type": "SELECT"})
+                qdict = v if isinstance(v, dict) else {"sql": str(v)}
+                qdict["name"] = k
+                queries.append(parse_query_object(qdict))
     elif isinstance(raw_queries, list):
         for item in raw_queries:
             if isinstance(item, str) and not is_system_object(item):
-                queries.append({"name": item, "sql": f"SELECT * FROM [{item}]", "type": "SELECT"})
+                queries.append(parse_query_object({"name": item, "sql": f"SELECT * FROM [{item}]"}))
             elif isinstance(item, dict):
                 qname = item.get("name") or "Query"
                 if not is_system_object(qname):
-                    queries.append(item)
+                    queries.append(parse_query_object(item))
 
     # 9. Extract Forms & Parse Behaviors (Step 3)
     raw_forms = extraction_data.get("forms") or ir_data.get("forms") or []
@@ -831,6 +918,13 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
                 if not is_system_object(mname):
                     vba_modules.append(parse_vba_module(item))
 
+    # Identify VBA-driven exports as substitute reports if formal reports are low
+    vba_exports = []
+    for m in vba_modules:
+        src = m.get("source", "").lower()
+        if "outputto" in src or "transferspreadsheet" in src or "transfertext" in src:
+            vba_exports.append(m["name"])
+
     # 13. Dynamic / Runtime Objects Scanner (Step 4)
     static_table_names = set(t["name"].lower() for t in business_tables)
     runtime_objects = scan_dynamic_runtime_objects(vba_modules, static_table_names)
@@ -899,6 +993,7 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
         "has_outlook": any(k in all_obj_names_text for k in ["modoutlook", "sendmail", "outlook_integration", "email_report"]),
         "has_math_modules": any(k in all_obj_names_text for k in ["modmathxyz", "modmathstatistics", "modmathareavolume"]),
         "has_sql_server": any(k in all_obj_names_text for k in ["odbc", "sqlserver", "dsn", "passthrough"]),
+        "has_vba_exports": len(vba_exports) > 0,
     }
 
     return {
@@ -907,6 +1002,10 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
         "source_file": source_name,
         "source_full_path": source_file,
         "source_file_size": source_size,
+        "source_file_created": extraction_data.get("file_created", "Unknown"),
+        "source_file_modified": extraction_data.get("file_modified", "Unknown"),
+        "access_version": extraction_data.get("access_version", "MS Access 2007-2016 (ACE)"),
+        "security_info": extraction_data.get("security_summary", "Standard desktop file security"),
         "created_at": job.created_at,
         "java_version": job.java_version or 25,
         "spring_boot_version": job.spring_boot_version or "4.1.0",
@@ -928,6 +1027,7 @@ async def extract_project_facts(job_id: str, session: AsyncSession) -> Dict[str,
         "macros_count": len(macros),
         "vba_modules": vba_modules,
         "vba_modules_count": len(vba_modules),
+        "vba_exports": vba_exports,
         "runtime_objects": runtime_objects,
         "runtime_objects_count": len(runtime_objects),
         "relationships": relationships,

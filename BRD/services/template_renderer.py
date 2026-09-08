@@ -97,6 +97,26 @@ def render_brd_template(
     total_loc = facts.get("total_loc", 100)
     total_discovered_objects = tables_count + system_tables_count + queries_count + forms_count + reports_count + macros_count + vba_count
 
+    # Helper lists for naming objects and consistent summaries
+    table_list_names = ", ".join([f"<code>{esc(t.get('name'))}</code>" for t in tables])
+    query_list_names = ", ".join([f"<code>{esc(q.get('name'))}</code>" for q in queries])
+    form_list_names = ", ".join([f"<code>{esc(f.get('name'))}</code>" for f in forms])
+    report_list_names = ", ".join([f"<code>{esc(r.get('name'))}</code>" for r in reports])
+    vba_list_names = ", ".join([f"<code>{esc(v.get('name'))}</code>" for v in vba_modules])
+    macro_list_names = ", ".join([f"<code>{esc(m.get('name'))}</code>" for m in macros])
+
+    obj_summary_long = (
+        f"{tables_count} tables, {queries_count} queries, {forms_count} forms, "
+        f"{reports_count} reports, {macros_count} macros, and {vba_count} VBA modules"
+    )
+
+    # Sorted collections for consistent rendering
+    tables_sorted = sorted(tables, key=lambda x: x.get("name", ""))
+    queries_sorted = sorted(queries, key=lambda x: x.get("name", ""))
+    forms_sorted = sorted(forms, key=lambda x: x.get("name", ""))
+    reports_sorted = sorted(reports, key=lambda x: x.get("name", ""))
+    vba_sorted = sorted(vba_modules, key=lambda x: x.get("name", ""))
+
     java_ver = facts.get("java_version", 25)
     spring_ver = facts.get("spring_boot_version", "4.1.0")
     react_ver = facts.get("react_version", "19.2.8")
@@ -114,22 +134,47 @@ def render_brd_template(
     # Track active Table of Contents items
     toc_items: List[Tuple[str, str]] = []
 
+    # Track removed/replaced sections for changelog
+    removed_sections: List[str] = []
+
     # Map of all section replacement placeholders
     sec_replacements: Dict[str, str] = {}
 
-    def add_section(sec_key: str, sec_num: str, title: str, content_html: str, condition: bool = True):
+    current_sec_num = 1
+    def add_section(sec_key: str, title: str, content_html: str, condition: bool = True):
+        nonlocal current_sec_num
         if condition and content_html:
-            toc_items.append((sec_num, title))
-            sec_replacements[sec_key] = make_page(sec_num, title, content_html, project_name)
+            snum = str(current_sec_num)
+            toc_items.append((snum, title))
+            sec_replacements[sec_key] = make_page(snum, title, content_html, project_name)
+            current_sec_num += 1
         else:
             sec_replacements[sec_key] = ""
+            if not condition:
+                removed_sections.append(title)
+
+    # -------------------------------------------------------------
+    # 0. CHANGELOG (Internal / Top of Output)
+    # -------------------------------------------------------------
+    changelog_html = ""
+    if removed_sections:
+        changelog_html = (
+            '<div class="info-callout" style="border-left-color: var(--warning); background: #fffcf5;">'
+            '<strong>Dynamic Template Changelog:</strong> The following template sections were removed or replaced '
+            'because no corresponding tables or entities were found in the source database:<br/><ul>'
+            + "".join([f"<li>Removed <strong>{esc(s)}</strong>: No matching entity discovered.</li>" for s in removed_sections])
+            + '</ul></div>'
+        )
 
     # -------------------------------------------------------------
     # 1. DOCUMENT CONTROL
     # -------------------------------------------------------------
     c1 = (
+        f'{changelog_html}\n'
         f'<h2 class="sub-title">1.1 Document Purpose</h2>\n'
-        f'<p>This Business Requirements Document (BRD) specifies the comprehensive technical, functional, and data specifications extracted directly from the uploaded application file <code>{esc(source_file)}</code>. It serves as the primary technical specification document for <strong>{esc(project_name)}</strong>.</p>\n'
+        f'<p>This Business Requirements Document (BRD) specifies the comprehensive technical, functional, and data specifications extracted directly from the uploaded application file <code>{esc(source_file)}</code>. '
+        f'It serves as the primary technical specification document for <strong>{esc(project_name)}</strong>, covering the full architecture of {obj_summary_long}. '
+        f'This document defines the schema fidelity, business rules, user interface workflows, and data processing logic required for successful migration.</p>\n'
         f'<h2 class="sub-title">1.2 Document Version History</h2>\n'
         f'<div class="table-wrapper"><table class="table-doc-history"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:30%;"><col style="width:35%;"></colgroup>'
         f'<thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes / Description</th></tr></thead>'
@@ -140,50 +185,130 @@ def render_brd_template(
         f'<h2 class="sub-title">1.5 Reviewers and Approvers</h2><p>Technical Architecture Review Board.</p>\n'
         f'<h2 class="sub-title">1.6 Document Status</h2><p><span class="badge badge-success">{esc(doc_status)}</span></p>\n'
         f'<h2 class="sub-title">1.7 Confidentiality and Distribution</h2><p>Internal Enterprise Use Only — Contains proprietary data models and application logic for <code>{esc(source_file)}</code>.</p>\n'
-        f'<h2 class="sub-title">1.8 Reference Documents</h2><p>Source Repository: <code>{esc(source_file)}</code> ({facts.get("source_file_size", 0):,} bytes).</p>'
+        f'<h2 class="sub-title">1.8 Reference Documents</h2>'
+        f'<p>Source File: <code>{esc(source_file)}</code> ({facts.get("source_file_size", 0):,} bytes)<br/>'
+        f'Format: {esc(facts.get("access_version", "MS Access 2007-2016 (ACE)"))}<br/>'
+        f'Created: {esc(facts.get("source_file_created", "Unknown"))}<br/>'
+        f'Last Modified: {esc(facts.get("source_file_modified", "Unknown"))}<br/>'
+        f'Description: Primary relational database container and application frontend for {esc(project_name)}.</p>'
     )
-    add_section("SECTION_1_DOCUMENT_CONTROL", "1", "Document Control", c1)
+    add_section("SECTION_1_DOCUMENT_CONTROL", "Document Control", c1)
 
     # -------------------------------------------------------------
     # 2. EXECUTIVE SUMMARY
     # -------------------------------------------------------------
+    functional_overview = narratives.get("executive_summary_overview")
+    if not functional_overview:
+        core_entities = ", ".join([t.get("name") for t in tables[:3]])
+        functional_overview = f"The {esc(project_name)} application is a specialized solution focused on managing {esc(core_entities)} and associated business workflows. It integrates data storage, query logic, and user interfaces into a single Access-based environment."
+
+    # Derived business need based on feature flags
+    business_need_context = "modernizing legacy data workflows"
+    if feature_flags.get("has_trap_management"): business_need_context = "optimizing trap operational tracking and field data collection"
+    elif feature_flags.get("has_work_management"): business_need_context = "enhancing maintenance work order management and asset tracking"
+    elif feature_flags.get("has_contact_management"): business_need_context = "centralizing contact and relationship management data"
+
     c2 = (
-        f'<h2 class="sub-title">2.1 Application Overview</h2><p>The application <strong>{esc(project_name)}</strong> (<code>{esc(source_file)}</code>) is a Microsoft Access desktop application containing <strong>{tables_count} business tables</strong>, <strong>{queries_count} SQL queries</strong>, <strong>{forms_count} user forms</strong>, <strong>{reports_count} reports</strong>, and <strong>{vba_count} VBA code modules</strong> ({total_loc:,} total LOC).</p>\n'
-        f'<h2 class="sub-title">2.2 Business Need</h2><p>Document and catalog 100% of the operational data structures, form interfaces, query data views, printable report layouts, and VBA business rules present in <code>{esc(source_file)}</code>.</p>\n'
-        f'<h2 class="sub-title">2.3 Functional Scope</h2><p>Preserve and specify all {tables_count} relational database entities, {queries_count} SQL queries, {forms_count} form screens, {reports_count} reports, and {vba_count} VBA code modules.</p>\n'
-        f'<h2 class="sub-title">2.4 Key Stakeholders</h2><p>Business Operations Users, Application Administrators, Database Engineers, Executive Leadership.</p>\n'
-        f'<h2 class="sub-title">2.5 Success Criteria</h2><p>Complete data fidelity, thorough documentation of all business rules, and 100% specification coverage of all database objects in <code>{esc(source_file)}</code>.</p>'
+        f'<h2 class="sub-title">2.1 Application Overview</h2><p>{functional_overview} The legacy system contains {obj_summary_long}.</p>\n'
+        f'<h2 class="sub-title">2.2 Business Need</h2><p>{esc(narratives.get("executive_summary_business_need", f"The migration is driven by the necessity of {business_need_context} while overcoming JET/ACE engine limitations such as multi-user record locking and file size constraints. Preservation of the {vba_count} VBA modules and {queries_count} SQL objects is critical for operational continuity."))}</p>\n'
+        f'<h2 class="sub-title">2.3 Functional Scope</h2>'
+        f'<p>The extraction process has identified and cataloged the following components:</p>'
+        f'<ul>'
+        f'<li><strong>{tables_count} Tables:</strong> {table_list_names}</li>'
+        f'<li><strong>{queries_count} Queries:</strong> {query_list_names}</li>'
+        f'<li><strong>{forms_count} Forms:</strong> {form_list_names}</li>'
+        f'<li><strong>{reports_count} Reports:</strong> {report_list_names if reports else "None"}</li>'
+        f'<li><strong>{macros_count} Macros:</strong> {macro_list_names if macros else "None"}</li>'
+        f'<li><strong>{vba_count} VBA Modules:</strong> {vba_list_names if vba_modules else "None"}</li>'
+        f'</ul>'
+        f'<h2 class="sub-title">2.4 Key Stakeholders</h2>'
+        f'<ul>'
+        f'<li><strong>Database Administrators:</strong> Manage {tables_count} relational tables.</li>'
+        f'<li><strong>Data Engineers:</strong> Maintain {queries_count} SQL query definitions.</li>'
+        f'<li><strong>Business Operations:</strong> Primary users of {forms_count} form screens.</li>'
+        f'<li><strong>Management:</strong> Consumers of {reports_count} operational reports.</li>'
+        f'<li><strong>Automation Leads:</strong> Oversee {macros_count} macros and {vba_count} modules.</li>'
+        f'</ul>'
+        f'<h2 class="sub-title">2.5 Success Criteria</h2>'
+        f'<ul>'
+        f'<li><strong>Tables:</strong> 100% mapping of {tables_count} tables.</li>'
+        f'<li><strong>Queries:</strong> 100% translation of {queries_count} SQL objects.</li>'
+        f'<li><strong>Forms:</strong> 100% replication of {forms_count} form workflows.</li>'
+        f'<li><strong>Reports:</strong> 100% preservation of {reports_count} report definitions.</li>'
+        f'<li><strong>Macros:</strong> 100% cataloging of {macros_count} macros.</li>'
+        f'<li><strong>VBA:</strong> 100% documentation of {vba_count} modules.</li>'
+        f'</ul>'
     )
-    add_section("SECTION_2_EXECUTIVE_SUMMARY", "2", "Executive Summary", c2)
+    add_section("SECTION_2_EXECUTIVE_SUMMARY", "Executive Summary", c2)
 
     # -------------------------------------------------------------
     # 3. EXISTING SYSTEM OVERVIEW
     # -------------------------------------------------------------
+    core_tbl_names = ", ".join([f"<code>{esc(t.get('name'))}</code>" for t in tables[:3]])
+    table_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('description') or 'Business data entity.')}</li>" for t in tables])
+    query_bullets = "".join([f"<li><code>{esc(q.get('name'))}</code>: {esc(q.get('type', 'SELECT'))} query object.</li>" for q in queries])
+    form_bullets = "".join([f"<li><code>{esc(f.get('name'))}</code>: Bound to <code>{esc(f.get('record_source', 'Unbound'))}</code>.</li>" for f in forms])
+    report_bullets = "".join([f"<li><code>{esc(r.get('name'))}</code>: Report on <code>{esc(r.get('record_source', 'Unbound'))}</code>.</li>" for r in reports]) if reports else "<li>None.</li>"
+    vba_bullets = "".join([f"<li><code>{esc(v.get('name'))}</code>: Contains {len(v.get('procedures', []))} procedures.</li>" for v in vba_modules]) if vba_modules else "<li>None.</li>"
+    pk_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('pk_status', 'Not defined'))}</li>" for t in tables])
+
     c3 = (
-        f'<h2 class="sub-title">3.1 Current Application Overview</h2><p>Microsoft Access file database application packaged in <code>{esc(source_file)}</code>.</p>\n'
-        f'<h2 class="sub-title">3.2 Database Architecture</h2><p>Monolithic desktop file containing {tables_count} business tables, {system_tables_count} system objects, {queries_count} queries, {forms_count} forms, {reports_count} reports, and {vba_count} VBA modules.</p>\n'
-        f'<h2 class="sub-title">3.3 Business Processes</h2><p>Data entry via desktop forms, batch processing via SQL queries, and routine execution via VBA procedures.</p>\n'
-        f'<h2 class="sub-title">3.4 User Interaction Model</h2><p>Form-driven desktop interaction using JET/ACE database bindings.</p>\n'
-        f'<h2 class="sub-title">3.5 Data Management Approach</h2><p>Relational database storage containing {tables_count} business tables with primary keys, foreign key relationships, and field validation properties.</p>\n'
-        f'<h2 class="sub-title">3.6 Reporting Approach</h2><p>{reports_count} Access reports generated directly within the desktop Access runtime.</p>\n'
-        f'<h2 class="sub-title">3.7 VBA Automation</h2><p>{vba_count} VBA code modules containing event routines and business logic.</p>\n'
-        f'<h2 class="sub-title">3.8 Administrative Functions</h2><p>Database compact/repair, relationship builder, and Access property sheets.</p>\n'
-        f'<h2 class="sub-title">3.9 Security Model</h2><p>Workstation file permissions and MS Access startup property configurations.</p>\n'
-        f'<h2 class="sub-title">3.10 Integration Points</h2><p>ODBC linked tables, file system operations, and external data exports.</p>'
+        f'<h2 class="sub-title">3.1 Current Application Overview</h2>\n'
+        f'<p>The {esc(project_name)} system is a monolithic Access application encapsulated in <code>{esc(source_file)}</code>. '
+        f'The architecture is centered on a relational schema comprising {obj_summary_long}, providing a unified environment for data storage and management.</p>\n'
+        f'<h2 class="sub-title">3.2 Database Architecture</h2>'
+        f'<p>The database architecture consists of {obj_summary_long}. Relational entities and SQL logic are detailed below:</p>'
+        f'<h3 class="sub-sub-title">Relational Tables</h3><ul>{table_bullets}</ul>'
+        f'<h3 class="sub-sub-title">SQL Queries</h3><ul>{query_bullets}</ul>'
+        f'<h2 class="sub-title">3.3 Business Processes</h2>'
+        f'<p>The application enables core business workflows via its {forms_count} form screens (part of {obj_summary_long}):</p><ul>{form_bullets}</ul>'
+        f'<h2 class="sub-title">3.4 User Interaction Model</h2><p>Desktop interaction driven by Access forms and VBA event handlers. The system manages navigation between {forms_count} forms using '
+        f'{"a central menu structure" if any("menu" in f.get("name","").lower() for f in forms) else "direct command-button navigation"}.</p>\n'
+        f'<h2 class="sub-title">3.5 Data Management Approach</h2>'
+        f'<p>Relational storage with {tables_count} business tables. Key enforcement analysis (distinguishing between Enforced and Inferred PKs):</p><ul>{pk_bullets}</ul>'
+        f'<h2 class="sub-title">3.6 Reporting Approach</h2><p>The system generates {reports_count} reports (within the total {obj_summary_long}):</p><ul>{report_bullets}</ul>'
+        f'<h2 class="sub-title">3.7 VBA Automation</h2><p>Automation logic is distributed across {vba_count} VBA modules and {macros_count} macros (total discovery: {obj_summary_long}):</p><ul>{vba_bullets}</ul>'
+        f'<h2 class="sub-title">3.8 Administrative Functions</h2><p>Includes database maintenance tools, relationship management, and property configurations native to MS Access.</p>\n'
+        f'<h2 class="sub-title">3.9 Security Model</h2><p>{esc(facts.get("security_info", "Access is controlled via filesystem permissions and database-level passwords where configured."))}</p>\n'
+        f'<h2 class="sub-title">3.10 Integration Points</h2><p>Data export/import discovered via {queries_count} queries and automated file operations.</p>'
     )
-    add_section("SECTION_3_EXISTING_SYSTEM", "3", "Existing System Overview", c3)
+    add_section("SECTION_3_EXISTING_SYSTEM", "Existing System Overview", c3)
 
     # -------------------------------------------------------------
     # 4. BUSINESS CONTEXT & OBJECTIVES
     # -------------------------------------------------------------
+    # Derive domain from feature flags or core tables
+    domain = "General Business Operations"
+    if feature_flags.get("has_trap_management"): domain = "Environmental Monitoring & Trap Management"
+    elif feature_flags.get("has_work_management"): domain = "Asset Maintenance & Work Order Management"
+    elif feature_flags.get("has_contact_management"): domain = "Customer Relationship Management (CRM)"
+
+    core_workflows = []
+    for f in forms_sorted[:3]:
+        rs = f.get('record_source', 'data')
+        core_workflows.append(f"Managing {esc(rs)} via the <code>{esc(f['name'])}</code> interface")
+
+    workflow_list = "<ul>" + "".join([f"<li>{w}</li>" for w in core_workflows]) + "</ul>" if core_workflows else "<p>Operational workflows derived from core relational tables.</p>"
+
+    enforced_pks = sum(1 for t in tables if t.get("enforced_pk_cols"))
+    inferred_pks = sum(1 for t in tables if t.get("inferred_pk_cols"))
+
+    report_names = [f"<code>{esc(r['name'])}</code>" for r in reports_sorted[:5]]
+    report_context = f"Maintain reporting fidelity for {len(reports)} reports, including {', '.join(report_names)}." if reports else "No printable reports exist in this application; objectives focus on data integrity."
+
+    vba_names = [f"<code>{esc(v['name'])}</code>" for v in vba_sorted[:3]]
+    vba_context = f"Document all subroutines across {vba_count} VBA modules ({', '.join(vba_names)})." if vba_modules else "No VBA automation exists in this application."
+
     c4 = (
-        f'<h2 class="sub-title">4.1 Business Context</h2><p>Comprehensive functional and technical specifications for <code>{esc(project_name)}</code> (<code>{esc(source_file)}</code>).</p>\n'
-        f'<h2 class="sub-title">4.2 Operational Objectives</h2><p>Catalog all operational data workflows and business logic embedded in <code>{esc(source_file)}</code>.</p>\n'
-        f'<h2 class="sub-title">4.3 Data Management Objectives</h2><p>Document relational schemas, primary keys, foreign key constraints, and field validation rules.</p>\n'
-        f'<h2 class="sub-title">4.4 Reporting Objectives</h2><p>Document printable report layouts, record sources, and sorting/grouping specifications.</p>\n'
-        f'<h2 class="sub-title">4.5 Automation Objectives</h2><p>Document all subroutines, functions, and event handlers across {vba_count} VBA modules.</p>'
+        f'<h2 class="sub-title">4.1 Business Context</h2><p>This application serves the <strong>{esc(domain)}</strong> domain, '
+        f'supporting real-world processes extracted from <code>{esc(source_file)}</code>.</p>\n'
+        f'<h2 class="sub-title">4.2 Operational Objectives</h2><p>The system aims to support the following specific data workflows:</p>{workflow_list}\n'
+        f'<h2 class="sub-title">4.3 Data Management Objectives</h2><p>Document {tables_count} relational tables. '
+        f'Analysis shows {enforced_pks} tables with enforced PKs and {inferred_pks} tables using inferred naming conventions (to be enforced in target).</p>\n'
+        f'<h2 class="sub-title">4.4 Reporting Objectives</h2><p>{report_context}</p>\n'
+        f'<h2 class="sub-title">4.5 Automation Objectives</h2><p>{vba_context}</p>'
     )
-    add_section("SECTION_4_BUSINESS_CONTEXT", "4", "Business Context and Objectives", c4)
+    add_section("SECTION_4_BUSINESS_CONTEXT", "Business Context and Objectives", c4)
 
     # -------------------------------------------------------------
     # 5. STAKEHOLDER ANALYSIS
@@ -199,7 +324,7 @@ def render_brd_template(
         f'<tr><td>Management Users</td><td>Leadership</td><td>Reliable reporting, operational stability, and complete data documentation</td></tr>'
         f'</tbody></table></div>'
     )
-    add_section("SECTION_5_STAKEHOLDER_ANALYSIS", "5", "Stakeholder Analysis", c5)
+    add_section("SECTION_5_STAKEHOLDER_ANALYSIS", "Stakeholder Analysis", c5)
 
     # -------------------------------------------------------------
     # 6. USER ROLES AND ACCESS REQUIREMENTS
@@ -215,66 +340,104 @@ def render_brd_template(
         f'<tr><td>Developer / Support</td><td>Technical Maintenance</td><td>API access, audit logs, and system diagnostics</td></tr>'
         f'</tbody></table></div>'
     )
-    add_section("SECTION_6_USER_ROLES", "6", "User Roles and Access Requirements", c6)
+    add_section("SECTION_6_USER_ROLES", "User Roles and Access Requirements", c6)
 
     # -------------------------------------------------------------
     # 7. OVERALL FUNCTIONAL SCOPE
     # -------------------------------------------------------------
+    # 7.1 Startup
+    startup_obj = "None"
+    for m in macros:
+        if m.get("name") == "AutoExec": startup_obj = "AutoExec Macro"
+    if startup_obj == "None":
+        for f in forms:
+            if any(k in f.get("name","").lower() for k in ("main", "menu", "switchboard", "startup")):
+                startup_obj = f"Startup Form (<code>{esc(f['name'])}</code>)"
+                break
+
+    # 7.2 Navigation
+    nav_desc = f"Navigation between {forms_count} screens."
+    main_menu = next((f for f in forms if "menu" in f.get("name","").lower()), None)
+    if main_menu:
+        targets = main_menu.get("navigation_targets", [])
+        if targets:
+            nav_desc = f"The <code>{esc(main_menu['name'])}</code> acts as the primary hub, providing paths to {', '.join([esc(t['name']) for t in targets[:3]])}."
+
+    # 7.3 Admin
+    admin_tables = [t['name'] for t in tables if any(k in t['name'].lower() for k in ("defaults", "config", "sys_", "setup", "admin"))]
+    admin_desc = f"Includes {len(admin_tables)} administrative/lookup tables (e.g. {', '.join([f'<code>{esc(a)}</code>' for a in admin_tables[:3]])})." if admin_tables else "Administrative functions are handled via standard Access property configurations."
+
+    # 7.4 Record Management
+    vba_crud = any("openrecordset" in m.get("source","").lower() or "execute" in m.get("source","").lower() for m in vba_modules)
+    crud_desc = "Standard Access JET engine record management"
+    if vba_crud:
+        crud_desc = "Custom CRUD operations wired to VBA event handlers for data validation and consistency."
+
+    # 7.5 Search/Filter
+    search_forms = [f['name'] for f in forms if any(k in (f.get("behavioral_description") or "").lower() for k in ("search", "filter", "find"))]
+    search_desc = f"Search functionality implemented on {len(search_forms)} forms (e.g. {', '.join([f'<code>{esc(s)}</code>' for s in search_forms[:2]])})." if search_forms else "Basic Access 'Find' and 'Filter' features are available across all bound forms."
+
     c7 = (
-        f'<h2 class="sub-title">7.1 Application Startup and Initialization</h2><p>Startup sequence, AutoExec processing, runtime environment validation.</p>\n'
-        f'<h2 class="sub-title">7.2 Main Menu and Navigation</h2><p>Form navigation across {forms_count} screens and menu categories.</p>\n'
-        f'<h2 class="sub-title">7.3 Database Administration</h2><p>Relational table management ({tables_count} business tables) and configuration settings.</p>\n'
-        f'<h2 class="sub-title">7.4 Record Management</h2><p>CRUD operations: Add Record, Edit, Save, Delete, Undo, First/Previous/Next/Last navigation.</p>\n'
-        f'<h2 class="sub-title">7.5 Search and Filtering</h2><p>Find Record, Filter by Selection, Query Filters, and Filter Removal.</p>'
+        f'<h2 class="sub-title">7.1 Application Startup and Initialization</h2><p>Detected Startup: {startup_obj}.</p>\n'
+        f'<h2 class="sub-title">7.2 Main Menu and Navigation</h2><p>{nav_desc}</p>\n'
+        f'<h2 class="sub-title">7.3 Database Administration</h2><p>{admin_desc}</p>\n'
+        f'<h2 class="sub-title">7.4 Record Management</h2><p>{crud_desc}</p>\n'
+        f'<h2 class="sub-title">7.5 Search and Filtering</h2><p>{search_desc}</p>'
     )
-    add_section("SECTION_7_OVERALL_FUNCTIONAL_SCOPE", "7", "Overall Functional Scope", c7)
+    add_section("SECTION_7_OVERALL_FUNCTIONAL_SCOPE", "Overall Functional Scope", c7)
 
     # -------------------------------------------------------------
     # 8. TRAP MANAGEMENT (Conditional)
     # -------------------------------------------------------------
     if feature_flags.get("has_trap_management"):
+        trap_tables = [t['name'] for t in tables if any(k in t['name'].lower() for k in ["trap", "pull"])]
         c8 = (
-            f'<p>Dedicated operational data management for trap types, locations, status, and trap pull tracking.</p>\n'
+            f'<p>Dedicated operational data management for trap types, locations, status, and trap pull tracking. '
+            f'Discovered entities include: {", ".join([f"<code>{esc(t)}</code>" for t in trap_tables])}.</p>\n'
             f'<div class="table-wrapper"><table class="table-trap"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup>'
             f'<thead><tr><th>Module Function</th><th>Scope & Validation Rules</th><th>Associated Tables / Objects</th></tr></thead>'
             f'<tbody>'
-            f'<tr><td>Trap Type Management</td><td>Defines trap categories, specifications, and attributes</td><td><code>TRAP_TYPE_TB</code></td></tr>'
-            f'<tr><td>Trap Location Management</td><td>Maintains trap placement coordinates and active status</td><td><code>TRAP_LCTN_TB</code></td></tr>'
-            f'<tr><td>Trap Pull Data Entry</td><td>Records trap pull events, dates, and historical counts</td><td><code>TRAP_PULL_TB</code></td></tr>'
+            f'<tr><td>Trap Type Management</td><td>Defines trap categories, specifications, and attributes</td><td><code>{esc(next((t for t in trap_tables if "type" in t.lower()), "TRAP_TYPE_TB"))}</code></td></tr>'
+            f'<tr><td>Trap Location Management</td><td>Maintains trap placement coordinates and active status</td><td><code>{esc(next((t for t in trap_tables if "lctn" in t.lower() or "location" in t.lower()), "TRAP_LCTN_TB"))}</code></td></tr>'
+            f'<tr><td>Trap Pull Data Entry</td><td>Records trap pull events, dates, and historical counts</td><td><code>{esc(next((t for t in trap_tables if "pull" in t.lower()), "TRAP_PULL_TB"))}</code></td></tr>'
             f'</tbody></table></div>'
         )
-        add_section("SECTION_8_TRAP_MANAGEMENT", "8", "Trap Management / Operational Data Management", c8, True)
+        add_section("SECTION_8_TRAP_MANAGEMENT", "Trap Management / Operational Data Management", c8, True)
     else:
-        add_section("SECTION_8_TRAP_MANAGEMENT", "8", "Trap Management", "", False)
+        add_section("SECTION_8_TRAP_MANAGEMENT", "Trap Management", "", False)
 
     # -------------------------------------------------------------
     # 9. WORK / MAINTENANCE DATA MANAGEMENT (Conditional)
     # -------------------------------------------------------------
     if feature_flags.get("has_work_management"):
+        work_tables = [t['name'] for t in tables if any(k in t['name'].lower() for k in ["work", "task", "maint"])]
         c9 = (
-            f'<p>Work type, priority, area, maintainable items, vendors, supervisors, problem/failure codes, and cost centers.</p>\n'
+            f'<p>Work type, priority, area, maintainable items, vendors, supervisors, problem/failure codes, and cost centers. '
+            f'Discovered entities include: {", ".join([f"<code>{esc(t)}</code>" for t in work_tables])}.</p>\n'
             f'<div class="table-wrapper"><table class="table-work"><colgroup><col style="width:25%;"><col style="width:45%;"><col style="width:30%;"></colgroup>'
             f'<thead><tr><th>Maintenance Category</th><th>Business Purpose & Scope</th><th>Lookup Tables & Relational Keys</th></tr></thead>'
             f'<tbody>'
-            f'<tr><td>Work Type & Priority</td><td>Categorizes maintenance work orders and urgency groups</td><td>Work Type / Priority Lookups</td></tr>'
-            f'<tr><td>Maintainable Items & Vendors</td><td>Catalogues equipment items, vendor IDs, and cost centers</td><td>Vendor & Item Schemas</td></tr>'
-            f'<tr><td>Problem & Failure Codes</td><td>Tracks failure remarks, problem codes, and DOECC groups</td><td>Failure Code Lookups</td></tr>'
+            f'<tr><td>Work Type & Priority</td><td>Categorizes maintenance work orders and urgency groups</td><td>{esc(next((t for t in work_tables if "type" in t.lower() or "priority" in t.lower()), "Work Lookups"))}</td></tr>'
+            f'<tr><td>Maintainable Items & Vendors</td><td>Catalogues equipment items, vendor IDs, and cost centers</td><td>{esc(next((t for t in tables if "vendor" in t["name"].lower()), "Vendor Schemas"))}</td></tr>'
+            f'<tr><td>Problem & Failure Codes</td><td>Tracks failure remarks, problem codes, and DOECC groups</td><td>{esc(next((t for t in tables if "failure" in t["name"].lower() or "code" in t["name"].lower()), "Failure Codes"))}</td></tr>'
             f'</tbody></table></div>'
         )
-        add_section("SECTION_9_WORK_MANAGEMENT", "9", "Work / Maintenance Data Management", c9, True)
+        add_section("SECTION_9_WORK_MANAGEMENT", "Work / Maintenance Data Management", c9, True)
     else:
-        add_section("SECTION_9_WORK_MANAGEMENT", "9", "Work Management", "", False)
+        add_section("SECTION_9_WORK_MANAGEMENT", "Work Management", "", False)
 
     # -------------------------------------------------------------
     # 10. LOCATION MANAGEMENT (Conditional)
     # -------------------------------------------------------------
     if feature_flags.get("has_location_management"):
+        loc_tables = [t['name'] for t in tables if any(k in t['name'].lower() for k in ["location", "lctn", "site", "area"])]
         c10 = (
-            f'<p>Master location registry, site IDs, active/inactive location status, location search, and reporting.</p>'
+            f'<p>Master location registry, site IDs, active/inactive location status, location search, and reporting. '
+            f'Discovered entities include: {", ".join([f"<code>{esc(t)}</code>" for t in loc_tables])}.</p>'
         )
-        add_section("SECTION_10_LOCATION_MANAGEMENT", "10", "Location Management", c10, True)
+        add_section("SECTION_10_LOCATION_MANAGEMENT", "Location Management", c10, True)
     else:
-        add_section("SECTION_10_LOCATION_MANAGEMENT", "10", "Location Management", "", False)
+        add_section("SECTION_10_LOCATION_MANAGEMENT", "Location Management", "", False)
 
     # -------------------------------------------------------------
     # 11. CALENDAR & DATE MANAGEMENT (Conditional)
@@ -283,9 +446,9 @@ def render_brd_template(
         c11 = (
             f'<p>Calendar functionality, date calculations, week-ending calculations, day-of-year calculations, and month/quarter/year aggregations.</p>'
         )
-        add_section("SECTION_11_CALENDAR_MANAGEMENT", "11", "Calendar and Date Management", c11, True)
+        add_section("SECTION_11_CALENDAR_MANAGEMENT", "Calendar and Date Management", c11, True)
     else:
-        add_section("SECTION_11_CALENDAR_MANAGEMENT", "11", "Calendar Management", "", False)
+        add_section("SECTION_11_CALENDAR_MANAGEMENT", "Calendar Management", "", False)
 
     # -------------------------------------------------------------
     # 12. CUMULATIVE VALUE MANAGEMENT (Conditional)
@@ -294,9 +457,9 @@ def render_brd_template(
         c12 = (
             f'<p>Processing for <code>CUM_VAL_TB</code> and <code>DECUM_VAL_TB</code> including cumulative value calculations and de-cumulative history.</p>'
         )
-        add_section("SECTION_12_CUMULATIVE_VALUE", "12", "Cumulative Value Management", c12, True)
+        add_section("SECTION_12_CUMULATIVE_VALUE", "Cumulative Value Management", c12, True)
     else:
-        add_section("SECTION_12_CUMULATIVE_VALUE", "12", "Cumulative Value Management", "", False)
+        add_section("SECTION_12_CUMULATIVE_VALUE", "Cumulative Value Management", "", False)
 
     # -------------------------------------------------------------
     # 13. TAG AND METADATA MANAGEMENT (Conditional)
@@ -305,9 +468,9 @@ def render_brd_template(
         c13 = (
             f'<p>Management for <code>TAG_GRP_TB</code> and <code>TAG_NME_TB</code>, alternative tag names, item associations, and tag search.</p>'
         )
-        add_section("SECTION_13_TAG_MANAGEMENT", "13", "Tag and Metadata Management", c13, True)
+        add_section("SECTION_13_TAG_MANAGEMENT", "Tag and Metadata Management", c13, True)
     else:
-        add_section("SECTION_13_TAG_MANAGEMENT", "13", "Tag Management", "", False)
+        add_section("SECTION_13_TAG_MANAGEMENT", "Tag Management", "", False)
 
     # -------------------------------------------------------------
     # 14. DATA DICTIONARY MANAGEMENT (Conditional)
@@ -316,9 +479,9 @@ def render_brd_template(
         c14 = (
             f'<p>Data dictionary maintenance via <code>DATABASE_STRUCTURE_TB</code> cataloging table names, field metadata, data types, validation rules, and indexes.</p>'
         )
-        add_section("SECTION_14_DATA_DICTIONARY", "14", "Database Structure / Data Dictionary Management", c14, True)
+        add_section("SECTION_14_DATA_DICTIONARY", "Database Structure / Data Dictionary Management", c14, True)
     else:
-        add_section("SECTION_14_DATA_DICTIONARY", "14", "Data Dictionary Management", "", False)
+        add_section("SECTION_14_DATA_DICTIONARY", "Data Dictionary Management", "", False)
 
     # -------------------------------------------------------------
     # 15. DYNAMIC DATABASE STRUCTURE MANAGEMENT (Conditional)
@@ -327,9 +490,9 @@ def render_brd_template(
         c15 = (
             f'<p>Queries and routines associated with creating, altering, and dropping <code>DATABASE_STRUCTURE_TB</code> entries and dynamic DDL execution.</p>'
         )
-        add_section("SECTION_15_DYNAMIC_STRUCTURE", "15", "Dynamic Database Structure Management", c15, True)
+        add_section("SECTION_15_DYNAMIC_STRUCTURE", "Dynamic Database Structure Management", c15, True)
     else:
-        add_section("SECTION_15_DYNAMIC_STRUCTURE", "15", "Dynamic Structure Management", "", False)
+        add_section("SECTION_15_DYNAMIC_STRUCTURE", "Dynamic Structure Management", "", False)
 
     # -------------------------------------------------------------
     # 16. FILE MANAGEMENT (Conditional)
@@ -338,9 +501,9 @@ def render_brd_template(
         c16 = (
             f'<p>File inventory tracking via <code>tblFileList</code>, file paths, load/save functions, and file export operations.</p>'
         )
-        add_section("SECTION_16_FILE_MANAGEMENT", "16", "File Management", c16, True)
+        add_section("SECTION_16_FILE_MANAGEMENT", "File Management", c16, True)
     else:
-        add_section("SECTION_16_FILE_MANAGEMENT", "16", "File Management", "", False)
+        add_section("SECTION_16_FILE_MANAGEMENT", "File Management", "", False)
 
     # -------------------------------------------------------------
     # 17. CONTACT MANAGEMENT (Conditional)
@@ -349,9 +512,9 @@ def render_brd_template(
         c17 = (
             f'<p>Contact master registry via <code>tblContacts</code> including names, addresses, city, state, ZIP code, and contact search.</p>'
         )
-        add_section("SECTION_17_CONTACT_MANAGEMENT", "17", "Contact Management", c17, True)
+        add_section("SECTION_17_CONTACT_MANAGEMENT", "Contact Management", c17, True)
     else:
-        add_section("SECTION_17_CONTACT_MANAGEMENT", "17", "Contact Management", "", False)
+        add_section("SECTION_17_CONTACT_MANAGEMENT", "Contact Management", "", False)
 
     # -------------------------------------------------------------
     # 18. ORGANIZATION & BRANDING (Conditional)
@@ -360,9 +523,9 @@ def render_brd_template(
         c18 = (
             f'<p>Organization configuration, logo storage in <code>LOGO_TB</code> / <code>tblDefaults</code>, and report branding graphics.</p>'
         )
-        add_section("SECTION_18_BRANDING", "18", "Organization and Branding", c18, True)
+        add_section("SECTION_18_BRANDING", "Organization and Branding", c18, True)
     else:
-        add_section("SECTION_18_BRANDING", "18", "Organization and Branding", "", False)
+        add_section("SECTION_18_BRANDING", "Organization and Branding", "", False)
 
     # -------------------------------------------------------------
     # 19. REPORTING REQUIREMENTS
@@ -373,13 +536,20 @@ def render_brd_template(
         f'<thead><tr><th>Report Name</th><th>Source & Filtering Scope</th><th>Target Render Format</th></tr></thead>'
         f'<tbody>'
     )
-    for r in reports:
+    for r in reports_sorted:
         rname = r.get("name", "Report")
         c19 += f'<tr><td><code>{esc(rname)}</code></td><td>Extracted Access Report Template</td><td>Responsive HTML / PDF Report</td></tr>\n'
-    if not reports:
-        c19 += '<tr><td colspan="3"><em>No formal report objects defined in source database.</em></td></tr>\n'
+
+    # Document VBA-driven exports if reports are low or missing
+    vba_exports = facts.get("vba_exports", [])
+    if vba_exports:
+        for vname in vba_exports:
+            c19 += f'<tr><td><code>{esc(vname)}</code> (VBA Export)</td><td>Programmatic data export logic discovered in VBA module</td><td>Excel / PDF / CSV Export</td></tr>\n'
+
+    if not reports and not vba_exports:
+        c19 += '<tr><td colspan="3"><em>No formal report objects or VBA-driven exports defined in source database.</em></td></tr>\n'
     c19 += '</tbody></table></div>'
-    add_section("SECTION_19_REPORTING", "19", "Reporting Requirements", c19)
+    add_section("SECTION_19_REPORTING", "Reporting Requirements", c19)
 
     # -------------------------------------------------------------
     # 20. DATA EXPORT AND IMPORT
@@ -393,7 +563,7 @@ def render_brd_template(
         f'<p>Data export/import requirements derived from {tables_count} business table(s), {queries_count} query object(s), {reports_count} report(s), and {len(relationships)} relationship(s) discovered by backend analysis.</p>\n'
         f'<div class="table-wrapper"><table class="table-export-import"><thead><tr><th>Channel</th><th>Detected source data</th><th>Validation requirement</th></tr></thead><tbody>{"".join(export_import_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_20_DATA_EXPORT_IMPORT", "20", "Data Export and Import", c20)
+    add_section("SECTION_20_DATA_EXPORT_IMPORT", "Data Export and Import", c20)
 
     # -------------------------------------------------------------
     # 21. EMAIL AND COMMUNICATION (Conditional)
@@ -402,9 +572,9 @@ def render_brd_template(
         c21 = (
             f'<p>Email automation, report attachments, Outlook MAPI integration, and email validation error handling.</p>'
         )
-        add_section("SECTION_21_EMAIL", "21", "Email and Communication", c21, True)
+        add_section("SECTION_21_EMAIL", "Email and Communication", c21, True)
     else:
-        add_section("SECTION_21_EMAIL", "21", "Email and Communication", "", False)
+        add_section("SECTION_21_EMAIL", "Email and Communication", "", False)
 
     # -------------------------------------------------------------
     # 22. VBA AUTOMATION REQUIREMENTS
@@ -415,7 +585,7 @@ def render_brd_template(
         f'<thead><tr><th>VBA Module Name</th><th>Behavioral Description & Routine Logic</th><th>Target Java Service Class</th></tr></thead>'
         f'<tbody>'
     )
-    for v in vba_modules:
+    for v in vba_sorted:
         vname = v.get("name", "Module")
         vdesc = v.get("behavioral_description") or f"{len(v.get('procedures', []))} Procedures"
         proc_list = v.get("procedures", [])
@@ -429,875 +599,505 @@ def render_brd_template(
     if not vba_modules:
         c22 += '<tr><td colspan="3"><em>No VBA code modules present in source database.</em></td></tr>\n'
     c22 += '</tbody></table></div>'
-    add_section("SECTION_22_VBA_AUTOMATION", "22", "VBA Automation Requirements", c22)
+    add_section("SECTION_22_VBA_AUTOMATION", "VBA Automation Requirements", c22)
 
     # -------------------------------------------------------------
-    # 23. QUERY REQUIREMENTS
+    # 23. QUERY REQUIREMENTS (Full SQL & Classification)
     # -------------------------------------------------------------
-    c23 = (
-        f'<p>SQL Query specifications covering {queries_count} Access queries.</p>\n'
-        f'<div class="table-wrapper"><table class="table-queries"><colgroup><col style="width:25%;"><col style="width:50%;"><col style="width:25%;"></colgroup>'
-        f'<thead><tr><th>Query Name</th><th>Extracted SQL Query Text / Purpose</th><th>Target Repository Method</th></tr></thead>'
-        f'<tbody>'
-    )
-    for q in queries:
+    c23_read = []
+    c23_write = []
+    for q in queries_sorted:
         qname = q.get("name", "Query")
         qsql = q.get("sql") or ""
-        snippet = qsql[:80] + "..." if len(qsql) > 80 else qsql
-        c23 += f'<tr><td><code>{esc(qname)}</code></td><td><code>{esc(snippet)}</code></td><td>Spring Data Repository Query</td></tr>\n'
-    if not queries:
-        c23 += '<tr><td colspan="3"><em>No custom SQL queries present in source database.</em></td></tr>\n'
+        qtype = q.get("type") or q.get("kind") or "SELECT"
+
+        is_mutation = any(k in qsql.upper() for k in ("INSERT ", "UPDATE ", "DELETE ", "INTO ", "DROP ", "ALTER "))
+
+        row = (
+            f'<tr><td><code>{esc(qname)}</code></td>'
+            f'<td><code>{esc(qsql)}</code></td>'
+            f'<td>Spring Data Repository Query</td></tr>\n'
+        )
+        if is_mutation:
+            c23_write.append(row)
+        else:
+            c23_read.append(row)
+
+    c23 = f'<h2 class="sub-title">23.1 Read-Only Data Retrieval Queries</h2>\n'
+    c23 += '<div class="table-wrapper"><table class="table-queries"><thead><tr><th>Query Name</th><th>Full SQL Text / Purpose</th><th>Target Method</th></tr></thead><tbody>'
+    c23 += "".join(c23_read) if c23_read else '<tr><td colspan="3">None detected</td></tr>'
+    c23 += '</tbody></table></div>\n'
+
+    c23 += f'<h2 class="sub-title">23.2 Data Mutation & Action Queries</h2>\n'
+    c23 += '<div class="table-wrapper"><table class="table-queries"><thead><tr><th>Query Name</th><th>Full SQL Text / Action Type</th><th>Target Service</th></tr></thead><tbody>'
+    c23 += "".join(c23_write) if c23_write else '<tr><td colspan="3">None detected</td></tr>'
     c23 += '</tbody></table></div>'
-    add_section("SECTION_23_QUERY_REQUIREMENTS", "23", "Query Requirements", c23)
+
+    add_section("SECTION_23_QUERY_REQUIREMENTS", "Query Requirements", c23)
 
     # -------------------------------------------------------------
-    # 24. SQL SERVER / EXTERNAL DB INTEGRATION (Conditional)
+    # 24. SQL SERVER / PASSTHROUGH (Conditional)
     # -------------------------------------------------------------
     if feature_flags.get("has_sql_server"):
         c24 = (
-            f'<p>External database integration requirements covering ODBC connections, linked tables, and external credentials.</p>'
+            f'<p>ODBC / SQL Server passthrough query requirements and external DSN bindings.</p>'
         )
-        add_section("SECTION_24_SQL_SERVER", "24", "SQL Server / External Database Integration", c24, True)
+        add_section("SECTION_24_SQL_SERVER", "SQL Server & External Connectivity", c24, True)
     else:
-        add_section("SECTION_24_SQL_SERVER", "24", "SQL Server Integration", "", False)
+        add_section("SECTION_24_SQL_SERVER", "SQL Server Connectivity", "", False)
 
     # -------------------------------------------------------------
     # 25. DATA MODEL REQUIREMENTS
     # -------------------------------------------------------------
+    rel_count = len(relationships)
+
+    # 25.1 ERD Visual Connections
+    erd_items_html = ""
+    for rel in relationships:
+        ptbl = rel.get("parent_table", "Parent")
+        ctbl = rel.get("child_table", "Child")
+        pcol = rel.get("parent_columns", ["ID"])[0] if rel.get("parent_columns") else "ID"
+        ccol = rel.get("child_columns", ["ID"])[0] if rel.get("child_columns") else "ID"
+
+        # Determine PK badge for parent card in visual list
+        combined_tables = tables + system_tables
+        parent_tbl_obj = next((t for t in combined_tables if t.get("name") == ptbl), None)
+        parent_pk_cols = parent_tbl_obj.get("primary_key", []) if parent_tbl_obj else []
+        is_pcol_pk = pcol in parent_pk_cols or pcol in (parent_tbl_obj.get("enforced_pk_cols", []) if parent_tbl_obj else []) or pcol in (parent_tbl_obj.get("inferred_pk_cols", []) if parent_tbl_obj else [])
+
+        pk_badge_v = '<span class="badge-pk">PK</span> ' if is_pcol_pk else ""
+
+        erd_items_html += (
+            f'<div class="erd-connection-item">\n'
+            f'  <div class="erd-box erd-parent">\n'
+            f'    <div class="erd-box-title">{pk_badge_v}{esc(ptbl)}</div>\n'
+            f'    <div class="erd-box-field">{esc(pcol)}</div>\n'
+            f'  </div>\n'
+            f'  <div class="erd-connector">\n'
+            f'    <div class="erd-cardinality-left">1 <span class="conn-symbol-dot">●</span></div>\n'
+            f'    <div class="erd-line-container">\n'
+            f'      <div class="erd-line-label">1 : N Foreign Key</div>\n'
+            f'      <div class="erd-svg-wrap">\n'
+            f'        <svg width="100%" height="24" viewBox="0 0 100 24" preserveAspectRatio="none">\n'
+            f'          <line x1="0" y1="12" x2="100" y2="12" stroke="#2563eb" stroke-width="2" />\n'
+            f'          <line x1="90" y1="6" x2="100" y2="12" stroke="#2563eb" stroke-width="2" />\n'
+            f'          <line x1="90" y1="18" x2="100" y2="12" stroke="#2563eb" stroke-width="2" />\n'
+            f'        </svg>\n'
+            f'      </div>\n'
+            f'      <div class="erd-line-criteria">{esc(ptbl)}.{esc(pcol)} &rarr; {esc(ctbl)}.{esc(ccol)}</div>\n'
+            f'    </div>\n'
+            f'    <div class="erd-cardinality-right">&infin; <span class="conn-symbol-crow">&raquo;</span></div>\n'
+            f'  </div>\n'
+            f'  <div class="erd-box erd-child">\n'
+            f'    <div class="erd-box-title"><span class="badge-fk">FK</span> {esc(ctbl)}</div>\n'
+            f'    <div class="erd-box-field">{esc(ccol)}</div>\n'
+            f'  </div>\n'
+            f'</div>\n'
+        )
+
+    # 25.2 Relational Entity Schema Cards
+    er_grid_html = ""
+    # Include all tables (business + system) if user wants 'all'
+    all_tables_list = tables_sorted + sorted(system_tables, key=lambda x: x.get("name", ""))
+    for tbl in all_tables_list:
+        tname = tbl.get("name")
+        cols = tbl.get("columns", [])
+
+        field_rows = ""
+        for col in cols:
+            cname = col.get("name")
+            ctype = col.get("access_type") or "Text"
+            # Enhanced PK detection: check column flag, enforced list, or inferred list
+            is_pk = col.get("is_pk") or (cname in tbl.get("enforced_pk_cols", [])) or (cname in tbl.get("inferred_pk_cols", []))
+            is_fk = bool(col.get("fk_target"))
+
+            pk_badge = '<span class="badge-pk">PK</span> ' if is_pk else ""
+            fk_badge = '<span class="badge-fk">FK</span> ' if is_fk else ""
+            fk_target = f'<span class="fk-target-badge">&rarr; {esc(col.get("fk_target"))}</span>' if is_fk else ""
+
+            field_rows += (
+                f'<div class="er-field">\n'
+                f'  <span class="fname">{pk_badge}{fk_badge}{esc(cname)}{fk_target}</span>\n'
+                f'  <span class="ftype">{esc(ctype)}</span>\n'
+                f'</div>\n'
+            )
+
+        parent_rels = [r for r in relationships if r.get("parent_table") == tname]
+        child_rels = [r for r in relationships if r.get("child_table") == tname]
+
+        rel_tags = ""
+        if parent_rels or child_rels:
+            rel_tags += '<div class="er-card-rel-section">\n'
+            for r in parent_rels:
+                rel_tags += f'  <div class="er-card-rel-tag">&uarr; Parent of: {esc(r.get("child_table"))}</div>\n'
+            for r in child_rels:
+                rel_tags += f'  <div class="er-card-rel-tag">&darr; Child of: {esc(r.get("parent_table"))}</div>\n'
+            rel_tags += '</div>\n'
+
+        er_grid_html += (
+            f'<div class="er-table">\n'
+            f'  <div class="er-table-head">\n'
+            f'    <span>{esc(tname)}</span>\n'
+            f'    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>\n'
+            f'  </div>\n'
+            f'  {field_rows}\n'
+            f'  {rel_tags}\n'
+            f'</div>\n'
+        )
+
+    # 25.3 Referential Integrity Table
+    ri_rows = ""
+    for rel in relationships:
+        ptbl = rel.get("parent_table")
+        ctbl = rel.get("child_table")
+        pcol = rel.get("parent_columns", ["ID"])[0] if rel.get("parent_columns") else "ID"
+        ccol = rel.get("child_columns", ["ID"])[0] if rel.get("child_columns") else "ID"
+        rules = []
+        if rel.get("cascade_update"): rules.append("Cascade Update")
+        if rel.get("cascade_delete"): rules.append("Cascade Delete")
+        rules_str = ", ".join(rules) if rules else "Restrict"
+
+        ri_rows += (
+            f'<tr>\n'
+            f'  <td><code>{esc(ptbl)}.{esc(pcol)}</code></td>\n'
+            f'  <td style="text-align:center; font-family:monospace; color:#2563eb; font-weight:bold;">1 &mdash;&mdash;|&mdash;&mdash;&lt; {{1:N}}</td>\n'
+            f'  <td><code>{esc(ctbl)}.{esc(ccol)}</code></td>\n'
+            f'  <td>{esc(rules_str)}</td>\n'
+            f'</tr>\n'
+        )
+
+    # 25.4 Chen-style Entity-Relationship Diagram
+    chen_er_html = '<div class="chen-er-container">\n'
+    if not relationships:
+        chen_er_html += '<p style="font-size:12px; color:#64748b;">No relationships discovered to generate Chen ER diagram.</p>\n'
+    else:
+        # Show all relationships in Chen notation
+        for rel in relationships:
+            ptbl_name = rel.get("parent_table")
+            ctbl_name = rel.get("child_table")
+            # Search in both business and system tables
+            combined_tables = tables + system_tables
+            ptbl = next((t for t in combined_tables if t.get("name") == ptbl_name), None)
+            ctbl = next((t for t in combined_tables if t.get("name") == ctbl_name), None)
+
+            chen_er_html += '  <div class="chen-diagram-row">\n'
+
+            # Parent Entity & Attributes
+            chen_er_html += '    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">\n'
+            if ptbl:
+                cols = ptbl.get("columns", [])[:2]
+                for c in cols:
+                    chen_er_html += f'      <div class="chen-attribute">{esc(c.get("name"))}</div>\n'
+            chen_er_html += f'      <div class="chen-entity">{esc(ptbl_name)}</div>\n'
+            chen_er_html += '    </div>\n'
+
+            # Relationship Diamond
+            chen_er_html += '    <div class="chen-relationship">\n'
+            chen_er_html += '      <span>RELATES TO</span>\n'
+            chen_er_html += '      <div class="chen-cardinality" style="left:-25px; top:30px;">1</div>\n'
+            chen_er_html += '      <div class="chen-cardinality" style="right:-25px; top:30px;">N</div>\n'
+            chen_er_html += '    </div>\n'
+
+            # Child Entity & Attributes
+            chen_er_html += '    <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">\n'
+            if ctbl:
+                cols = ctbl.get("columns", [])[:2]
+                for c in cols:
+                    chen_er_html += f'      <div class="chen-attribute">{esc(c.get("name"))}</div>\n'
+            chen_er_html += f'      <div class="chen-entity">{esc(ctbl_name)}</div>\n'
+            chen_er_html += '    </div>\n'
+
+            chen_er_html += '  </div>\n'
+    chen_er_html += '</div>'
+
     c25 = (
-        f'<p>Conceptual, logical, and physical data model specifications for {tables_count} business tables and {len(relationships)} referential relationships.</p>\n'
-        f'{metrics.get("er_cards_html", "")}'
+        f'<p>Conceptual and logical data model specifications for {len(all_tables_list)} business and system tables and {rel_count} referential relationships.</p>\n'
+        f'<div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">'
+        f'<span style="font-size:12px; font-weight:700; color:var(--muted);">MODEL VIEWS:</span>'
+        f'<span class="badge badge-info" style="padding:6px 12px; border-radius:4px;">ER Diagram (Chen)</span>'
+        f'<span class="badge" style="padding:6px 12px; border:1px solid var(--primary); color:var(--primary); border-radius:4px;">Relational Schema Card</span>'
+        f'</div>\n'
+        f'<h2 class="sub-title">Detailed Entity-Relationship Diagram (Chen Notation)</h2>\n'
+        f'{chen_er_html}\n'
+        f'<div style="margin:40px 0; border-top:1px dashed var(--border);"></div>\n'
+        f'<h2 class="sub-title">Relational Data Model & Logical Schema</h2>\n'
+        f'<div class="erd-container">\n'
+        f'  <div class="erd-visual-header">\n'
+        f'    <span>{len(all_tables_list)} tables &bull; {rel_count} relationships</span>\n'
+        f'    <div class="erd-legend">\n'
+        f'      <span>1 = One (PK) &nbsp; <span style="color:#2563eb;">&mdash;&mdash;●&mdash;&mdash;&raquo;</span> &nbsp; &infin; = Many (FK)</span>\n'
+        f'    </div>\n'
+        f'  </div>\n'
+        f'  <div class="erd-flows-wrapper">\n'
+        f'    {erd_items_html}\n'
+        f'  </div>\n'
+        f'</div>\n'
+        f'<h2 class="sub-title">Relational Entity Schema Cards</h2>\n'
+        f'<div class="er-grid">\n'
+        f'  {er_grid_html}\n'
+        f'</div>\n'
+        f'<h2 class="sub-title">Referential Integrity & Foreign Key Mappings</h2>\n'
+        f'<div class="table-wrapper">\n'
+        f'  <table>\n'
+        f'    <thead><tr><th>Primary Entity (Parent)</th><th>Connect Symbol</th><th>Foreign Entity (Child)</th><th>Constraint Rules</th></tr></thead>\n'
+        f'    <tbody>{ri_rows if ri_rows else "<tr><td colspan=4>No relationships defined.</td></tr>"}</tbody>\n'
+        f'  </table>\n'
+        f'</div>'
     )
-    add_section("SECTION_25_DATA_MODEL", "25", "Data Model Requirements", c25)
+    add_section("SECTION_25_DATA_MODEL", "Data Model Requirements", c25)
 
     # -------------------------------------------------------------
-    # 26. CORE DATABASE TABLES
+    # 26. CORE BUSINESS TABLES
     # -------------------------------------------------------------
     c26_rows = []
-    for tbl in tables:
-        tname = tbl.get("name", "Table")
-        cols = tbl.get("columns", [])
-        pk_status = tbl.get("pk_status", "None Defined")
+    for tbl in tables_sorted: # Show all tables
+        tname = tbl.get("name")
         c26_rows.append(
-            f'<tr><td><code>{esc(tname)}</code></td><td>{len(cols)} Columns</td><td>PK: <code>{esc(pk_status)}</code></td><td>Relational Entity Table</td></tr>\n'
+            f'<tr><td><code>{esc(tname)}</code></td><td>{esc(tbl.get("pk_status"))}</td>'
+            f'<td>{len(tbl.get("columns", []))}</td><td>{esc(tbl.get("row_count", "Unknown"))}</td></tr>'
         )
     c26 = (
-        f'<p>Catalog of all {tables_count} core business database tables extracted from <code>{esc(source_file)}</code>.</p>\n'
-        f'<div class="table-wrapper"><table class="table-core-tables"><colgroup><col style="width:25%;"><col style="width:20%;"><col style="width:25%;"><col style="width:30%;"></colgroup>'
-        f'<thead><tr><th>Table Name</th><th>Columns</th><th>Primary Key Status</th><th>Table Classification</th></tr></thead>'
+        f'<p>Primary business entities central to the application domain.</p>\n'
+        f'<div class="table-wrapper"><table class="table-core"><thead><tr><th>Table Name</th><th>PK Status</th><th>Field Count</th><th>Row Count</th></tr></thead>'
         f'<tbody>{"".join(c26_rows)}</tbody></table></div>'
     )
-    add_section("SECTION_26_CORE_TABLES", "26", "Core Database Tables", c26)
+    add_section("SECTION_26_CORE_TABLES", "Core Business Tables", c26)
 
     # -------------------------------------------------------------
-    # 27. BUSINESS RULES
+    # 27. BUSINESS RULES (Derived from VBA & Queries)
     # -------------------------------------------------------------
     c27_rows = []
-    rule_idx = 1
-    for v in vba_modules:
-        for p in v.get("procedures", []):
-            pname = p.get("name", "Procedure")
-            pdesc = p.get("behavioral_description") or p.get("comments") or p.get("description") or f"Execution routine in {v.get('name')}"
-            c27_rows.append(
-                f'<tr><td>BR-{rule_idx:03d}</td><td><code>{esc(pname)}()</code></td><td>{esc(pdesc)}</td></tr>\n'
-            )
-            rule_idx += 1
-    if not c27_rows:
-        c27_rows.append('<tr><td>BR-001</td><td>General Data Integrity</td><td>Enforce field non-null constraints and valid foreign key references.</td></tr>\n')
-
-    c27 = (
-        f'<p>Business logic and data entry rules extracted from VBA code modules and table validation properties.</p>\n'
-        f'<div class="table-wrapper"><table class="table-br"><colgroup><col style="width:15%;"><col style="width:35%;"><col style="width:50%;"></colgroup>'
-        f'<thead><tr><th>Rule ID</th><th>Routine / Property</th><th>Business Purpose & Context</th></tr></thead>'
-        f'<tbody>{"".join(c27_rows)}</tbody></table></div>'
-    )
-    add_section("SECTION_27_BUSINESS_RULES", "27", "Business Rules", c27)
-
-    # -------------------------------------------------------------
-    # 28. FUNCTIONAL REQUIREMENTS
-    # -------------------------------------------------------------
-    # -------------------------------------------------------------
-    # 28. FUNCTIONAL REQUIREMENTS (100% Deterministic & Comprehensive)
-    # -------------------------------------------------------------
-    c28_rows = []
-    fr_idx = 1
-
-    # 1. Baseline System & Security FRs
-    baseline_frs = [
-        ("User Authentication", "Enforce user role access control and session management."),
-        ("Main Menu Navigation", "Provide intuitive menu navigation across application screens."),
-        ("Relational Data Integrity", "Enforce field data types, required constraints, primary keys, and foreign keys."),
-        ("Exception & Error Handling", "Trap application runtime exceptions and log diagnostic errors."),
-        ("Document Output & Export", "Render printable reports and support data exports (Excel, Text, PDF)."),
-    ]
-    for b_area, b_spec in baseline_frs:
-        c28_rows.append(f'<tr><td>FR-{fr_idx:03d}</td><td>{esc(b_area)}</td><td>{esc(b_spec)}</td></tr>\n')
-        fr_idx += 1
-
-    # 2. Form Interface Screens (Sorted deterministically)
-    forms_sorted = sorted(forms, key=lambda f: f.get("name", "").lower())
-    for f in forms_sorted:
-        fname = f.get("name", "Form")
-        cnt = f.get("controls_count", 0)
-        c28_rows.append(
-            f'<tr><td>FR-{fr_idx:03d}</td><td>Form Interface Screen</td><td>Provide interactive user interface for <code>{esc(fname)}</code> ({cnt} UI controls)</td></tr>\n'
-        )
-        fr_idx += 1
-
-    # 3. Data Query Views & Filters (Sorted deterministically)
-    queries_sorted = sorted(queries, key=lambda q: q.get("name", "").lower())
-    for q in queries_sorted:
-        qname = q.get("name", "Query")
-        qtype = q.get("query_type") or "Select Query"
-        c28_rows.append(
-            f'<tr><td>FR-{fr_idx:03d}</td><td>Data Query View</td><td>Execute {esc(qtype)} <code>{esc(qname)}</code> for record retrieval and filtering</td></tr>\n'
-        )
-        fr_idx += 1
-
-    # 4. VBA Business Logic & Routines (Sorted deterministically)
-    vba_sorted = sorted(vba_modules, key=lambda v: v.get("name", "").lower())
+    # 1. Rules from VBA procedures
     for v in vba_sorted:
-        mname = v.get("name", "Module")
-        proc_sorted = sorted(v.get("procedures", []), key=lambda p: p.get("name", "").lower())
-        for p in proc_sorted:
-            pname = p.get("name", "Procedure")
-            pdesc = p.get("behavioral_description") or f"Execute procedure {pname}() in {mname}"
-            c28_rows.append(
-                f'<tr><td>FR-{fr_idx:03d}</td><td>Business Logic Routine</td><td>Execute procedure <code>{esc(pname)}()</code> in <code>{esc(mname)}</code> — {esc(pdesc)}</td></tr>\n'
+        vname = v.get("name")
+        for p in v.get("procedures", []):
+            pname = p.get("name")
+            pdesc = p.get("behavioral_description")
+            if pdesc and len(pdesc) > 20:
+                c27_rows.append(
+                    f'<tr><td>Logic Rule</td><td>{esc(vname)}.{esc(pname)}</td>'
+                    f'<td>{esc(pdesc)}</td><td>VBA Subroutine/Function</td></tr>'
+                )
+    # 2. Rules from Mutation Queries
+    for q in queries_sorted:
+        qname = q.get("name")
+        qsql = q.get("sql", "")
+        if any(k in qsql.upper() for k in ("INSERT ", "UPDATE ", "DELETE ", "INTO ")):
+            c27_rows.append(
+                f'<tr><td>Data Rule</td><td>{esc(qname)}</td>'
+                f'<td>Mutation query affecting underlying recordsets. Type: {esc(q.get("type", "Action"))}</td><td>SQL Query</td></tr>'
             )
-            fr_idx += 1
 
-    # 5. Output Reports & Document Generation (Sorted deterministically)
-    reports_sorted = sorted(reports, key=lambda r: r.get("name", "").lower())
-    for r in reports_sorted:
-        rname = r.get("name", "Report")
-        c28_rows.append(
-            f'<tr><td>FR-{fr_idx:03d}</td><td>Report Generation</td><td>Generate printable document report <code>{esc(rname)}</code></td></tr>\n'
-        )
-        fr_idx += 1
-
-    # 6. Core Business Data Entities (Sorted deterministically)
-    tables_sorted = sorted(tables, key=lambda t: t.get("name", "").lower())
-    for t in tables_sorted:
-        tname = t.get("name", "Table")
-        pk_info = t.get("pk_status", "None Defined")
-        cols_count = len(t.get("columns", []))
-        c28_rows.append(
-            f'<tr><td>FR-{fr_idx:03d}</td><td>Data Entity Maintenance</td><td>Persist relational business entity <code>{esc(tname)}</code> ({cols_count} columns; PK: {esc(pk_info)})</td></tr>\n'
-        )
-        fr_idx += 1
-
-    c28 = (
-        f'<p>Comprehensive, deterministically numbered Functional Requirements catalog ({len(c28_rows)} total requirements).</p>\n'
-        f'<div class="table-wrapper"><table class="table-fr"><colgroup><col style="width:12%;"><col style="width:28%;"><col style="width:60%;"></colgroup>'
-        f'<thead><tr><th>Req ID</th><th>Functional Area</th><th>Requirement Specification</th></tr></thead>'
-        f'<tbody>{"".join(c28_rows)}</tbody></table></div>'
-    )
-    add_section("SECTION_28_FUNCTIONAL_REQUIREMENTS", "28", "Functional Requirements", c28)
-
-    # -------------------------------------------------------------
-    # 29. NON-FUNCTIONAL REQUIREMENTS
-    # -------------------------------------------------------------
-    c29 = (
-        f'<div class="table-wrapper"><table class="table-nfr"><colgroup><col style="width:20%;"><col style="width:60%;"><col style="width:20%;"></colgroup>'
-        f'<thead><tr><th>NFR Category</th><th>Specification Standard</th><th>Verification</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>Performance</td><td>API endpoint response time &lt; 500ms for 95th percentile requests</td><td><span class="badge badge-success">Verified</span></td></tr>'
-        f'<tr><td>Availability</td><td>99.9% application service uptime target with health monitoring</td><td><span class="badge badge-success">Verified</span></td></tr>'
-        f'<tr><td>Security</td><td>TLS 1.3 encryption in transit & stateless JWT token authorization</td><td><span class="badge badge-success">Verified</span></td></tr>'
-        f'<tr><td>Scalability</td><td>Supports 250+ concurrent active user sessions via connection pool</td><td><span class="badge badge-success">Verified</span></td></tr>'
-        f'<tr><td>Data Integrity</td><td>PostgreSQL ACID transactions and versioned Flyway DDL scripts</td><td><span class="badge badge-success">Verified</span></td></tr>'
+    c27_body = "".join(c27_rows) if c27_rows else '<tr><td colspan="4">No complex business rules identified.</td></tr>'
+    c27 = (
+        f'<p>Inventory of discovered business rules, validation logic, and data mutation behaviors extracted from VBA modules and SQL action queries.</p>\n'
+        f'<div class="table-wrapper"><table class="table-rules"><thead><tr>'
+        f'<th>Rule Category</th><th>Source Object</th><th>Logic Description</th><th>Implementation</th>'
+        f'</tr></thead><tbody>'
+        f'{c27_body}'
         f'</tbody></table></div>'
     )
-    add_section("SECTION_29_NON_FUNCTIONAL_REQUIREMENTS", "29", "Non-Functional Requirements", c29)
+    add_section("SECTION_27_BUSINESS_RULES", "Business Rules", c27)
 
     # -------------------------------------------------------------
-    # 30. USER INTERFACE REQUIREMENTS
-    # -------------------------------------------------------------
-    ui_rows = []
-    for form in forms:
-        ui_rows.append(
-            f'<tr><td><code>{esc(form.get("name", "Form"))}</code></td><td>{esc(form.get("record_source", "Unbound Dialog"))}</td><td>{form.get("controls_count", 0)}</td><td>{esc(form.get("events_summary", "Standard UI actions"))}</td></tr>'
-        )
-    if not ui_rows:
-        ui_rows.append('<tr><td colspan="4"><em>No form objects were returned by backend analysis.</em></td></tr>')
-    c30 = (
-        f'<p>UI requirements derived from {forms_count} form(s) returned by backend analysis. Each row preserves the source form binding and interaction metadata.</p>\n'
-        f'<div class="table-wrapper"><table class="table-ui"><thead><tr><th>Form</th><th>Record source</th><th>Controls</th><th>Detected events</th></tr></thead><tbody>{"".join(ui_rows)}</tbody></table></div>'
-    )
-    add_section("SECTION_30_UI_REQUIREMENTS", "30", "User Interface Requirements", c30)
-
-    # -------------------------------------------------------------
-    # 31. FORM REQUIREMENTS
+    # 31. INDIVIDUAL FORM INVENTORY
     # -------------------------------------------------------------
     c31_rows = []
-    for f in forms:
+    for f in forms_sorted:
         fname = f.get("name", "Form")
-        cnt = f.get("controls_count", 0)
+        rsource = f.get("record_source", "Unbound")
+        ctrl_count = f.get("controls_count", 0)
+        ev_summary = f.get("events_summary", "None")
+        fdesc = f.get("behavioral_description", "UI Screen")
         c31_rows.append(
-            f'<tr><td><code>{esc(fname)}</code></td><td>{cnt} UI Controls</td><td>Interactive Form Screen</td></tr>\n'
+            f'<tr><td><code>{esc(fname)}</code></td><td><code>{esc(rsource)}</code></td>'
+            f'<td>{ctrl_count} controls</td><td>{esc(ev_summary)}</td><td>{esc(fdesc)}</td></tr>'
         )
-    if not forms:
-        c31_rows.append('<tr><td colspan="3"><em>No form objects defined in source database.</em></td></tr>\n')
 
+    c31_body = "".join(c31_rows) if c31_rows else '<tr><td colspan="5">No forms discovered.</td></tr>'
     c31 = (
-        f'<p>Form requirements covering {forms_count} user forms extracted from source Access database.</p>\n'
-        f'<div class="table-wrapper"><table class="table-forms"><colgroup><col style="width:30%;"><col style="width:25%;"><col style="width:45%;"></colgroup>'
-        f'<thead><tr><th>Form Name</th><th>Controls Count</th><th>Form Purpose & Specification</th></tr></thead>'
-        f'<tbody>{"".join(c31_rows)}</tbody></table></div>'
+        f'<p>Detailed inventory of interactive user interface forms, including their data bindings and control complexity.</p>\n'
+        f'<div class="table-wrapper"><table class="table-forms"><thead><tr>'
+        f'<th>Form Name</th><th>Record Source</th><th>Complexity</th><th>Event Handlers</th><th>Functional Description</th>'
+        f'</tr></thead><tbody>'
+        f'{c31_body}'
+        f'</tbody></table></div>'
     )
-    add_section("SECTION_31_FORM_REQUIREMENTS", "31", "Form Requirements", c31)
+    add_section("SECTION_31_FORM_INVENTORY", "Individual Form Inventory", c31)
 
     # -------------------------------------------------------------
     # 32. REPORT REQUIREMENTS
     # -------------------------------------------------------------
-    report_requirement_rows = []
-    for report in reports:
-        groups = report.get("groups") or []
-        group_names = [g.get("expression") for g in groups if isinstance(g, dict) and g.get("expression")]
-        summary_fields = report.get("summary_fields") or []
-        report_requirement_rows.append(
-            f'<tr><td><code>{esc(report.get("name", "Report"))}</code></td><td>{esc(report.get("record_source", "Unbound Report"))}</td><td>{esc(", ".join(group_names) or "Sequential listing")}</td><td>{esc(", ".join(summary_fields[:4]) or "None detected")}</td></tr>'
+    c32_rows = []
+    for r in reports_sorted:
+        rname = r.get("name", "Report")
+        rsource = r.get("record_source", "Unbound")
+        c32_rows.append(
+            f'<tr><td><code>{esc(rname)}</code></td><td><code>{esc(rsource)}</code></td>'
+            f'<td>{esc(r.get("behavioral_description"))}</td></tr>'
         )
-    if not report_requirement_rows:
-        report_requirement_rows.append('<tr><td colspan="4"><em>No report objects were returned by backend analysis.</em></td></tr>')
     c32 = (
-        f'<p>Report requirements derived from the {reports_count} report object(s) returned by backend analysis.</p>\n'
-        f'<div class="table-wrapper"><table class="table-report-requirements"><thead><tr><th>Report</th><th>Record source</th><th>Grouping</th><th>Summary fields</th></tr></thead><tbody>{"".join(report_requirement_rows)}</tbody></table></div>'
+        f'<p>Detailed specifications for structured document reports and analytical outputs.</p>\n'
+        f'<div class="table-wrapper"><table class="table-report-req"><thead><tr><th>Report Name</th><th>Record Source</th><th>Grouping & Aggregation Behavior</th></tr></thead>'
+        f'<tbody>{"".join(c32_rows) if c32_rows else "<tr><td colspan=3>No formal reports discovered.</td></tr>"}</tbody></table></div>'
     )
-    add_section("SECTION_32_REPORT_REQUIREMENTS", "32", "Report Requirements", c32)
+    add_section("SECTION_32_REPORT_REQUIREMENTS", "Detailed Report Requirements", c32)
 
     # -------------------------------------------------------------
-    # 33. SECURITY REQUIREMENTS
+    # 39. DATA ARCHITECTURE & SPECIFICATIONS (With Sample Data & PK Note)
     # -------------------------------------------------------------
-    security_rows = [
-        f'<tr><td>Access object exposure</td><td>{tables_count} business table(s), {queries_count} query object(s), and {len(runtime_objects)} runtime object(s) require authorization in the target application.</td></tr>',
-        f'<tr><td>Data integrity</td><td>Enforce the {len(relationships)} extracted relationship(s) and validate required fields before writes.</td></tr>',
-        f'<tr><td>Detected external access</td><td>{"SQL Server / ODBC indicators detected" if feature_flags.get("has_sql_server") else "No SQL Server / ODBC indicators detected"}; credentials must remain outside generated source and reports.</td></tr>',
-        f'<tr><td>Auditability</td><td>Protect and audit changes to the {tables_count} analyzed business table(s), including actor, timestamp, and operation.</td></tr>',
-    ]
-    c33 = (
-        f'<p>Security requirements grounded in the analyzed source inventory. Authentication and authorization remain target-system controls; the values below describe the data that must be protected.</p>\n'
-        f'<div class="table-wrapper"><table class="table-security"><thead><tr><th>Control area</th><th>Backend-derived requirement</th></tr></thead><tbody>{"".join(security_rows)}</tbody></table></div>'
-    )
-    add_section("SECTION_33_SECURITY", "33", "Security Requirements", c33)
-
-    # -------------------------------------------------------------
-    # 34. ERROR HANDLING & EXCEPTION MANAGEMENT
-    # -------------------------------------------------------------
-    c34 = (
-        f'<p>Application errors, database constraint errors, data validation failures, and recovery procedures.</p>'
-    )
-    add_section(
-        "SECTION_34_ERROR_HANDLING",
-        "34",
-        "Error Handling and Exception Management",
-        c34,
-        bool(facts.get("error_handling_requirements")),
+    pk_note = (
+        '<div class="info-callout"><strong>Primary Key Verification Note:</strong> Analysis of the source JET engine metadata indicates that PK constraints are often not enforced at the file level. '
+        'Fields labeled "Inferred PK" are identified by naming convention (e.g. <i>ID</i> suffix) or AutoNumber type but lack a unique index. '
+        '<strong>Target Recommendation:</strong> Enforce strict primary keys on all PostgreSQL tables during migration.</div>'
     )
 
-    # -------------------------------------------------------------
-    # 35. AUDIT AND TRACEABILITY
-    # -------------------------------------------------------------
-    c35 = (
-        f'<p>Record creation tracking, modification timestamps, user accountability, and administrative change logs.</p>'
-    )
-    add_section(
-        "SECTION_35_AUDIT_TRACEABILITY",
-        "35",
-        "Audit and Traceability",
-        c35,
-        bool(facts.get("audit_requirements")),
-    )
-
-    # -------------------------------------------------------------
-    # 36. BACKUP, RECOVERY & BUSINESS CONTINUITY
-    # -------------------------------------------------------------
-    c36 = (
-        f'<p>Database backup frequency, retention policies, restore testing, RPO (&lt; 1 hour), and RTO (&lt; 4 hours).</p>'
-    )
-    add_section(
-        "SECTION_36_BACKUP_RECOVERY",
-        "36",
-        "Backup, Recovery and Business Continuity",
-        c36,
-        bool(facts.get("backup_requirements")),
-    )
-
-    # -------------------------------------------------------------
-    # 37. INTEGRATION REQUIREMENTS
-    # -------------------------------------------------------------
-    integration_rows = [
-        f'<tr><td>File and spreadsheet exchange</td><td>Export/import workflows are required for the {tables_count} business table(s) and {reports_count} report(s) identified by analysis.</td><td>Detected from report/table inventory</td></tr>',
-        f'<tr><td>External database</td><td>{"Support linked tables, ODBC connectivity, and credential isolation." if feature_flags.get("has_sql_server") else "No ODBC or SQL Server indicators were detected in the analyzed objects."}</td><td>{"Detected" if feature_flags.get("has_sql_server") else "Not detected"}</td></tr>',
-        f'<tr><td>Email / Outlook</td><td>{"Support report attachments and Outlook/MAPI communication." if feature_flags.get("has_outlook") else "No Outlook or email automation indicators were detected."}</td><td>{"Detected" if feature_flags.get("has_outlook") else "Not detected"}</td></tr>',
-        f'<tr><td>Runtime-generated data</td><td>{len(runtime_objects)} runtime object(s) were discovered and must be represented in integration contracts where applicable.</td><td>Backend inventory</td></tr>',
-    ]
-    c37 = (
-        f'<p>Integration requirements derived from backend feature detection and the extracted source inventory.</p>\n'
-        f'<div class="table-wrapper"><table class="table-integrations"><thead><tr><th>Integration</th><th>Requirement</th><th>Detection</th></tr></thead><tbody>{"".join(integration_rows)}</tbody></table></div>'
-    )
-    add_section("SECTION_37_INTEGRATIONS", "37", "Integration Requirements", c37)
-
-    # -------------------------------------------------------------
-    # 38. TECHNICAL ARCHITECTURE
-    # -------------------------------------------------------------
-    c38 = (
-        f'<p>Technical flow derived from the uploaded database application <code>{esc(source_file)}</code> and the backend-discovered object inventory.</p>\n'
-        f'<div class="arch-diagram">\n'
-        f'  <div class="arch-node"><div class="arch-node-title">1. User Interface Layer</div><div class="arch-node-detail">{forms_count} Access form(s), including controls, record sources, and user events.</div></div>\n'
-        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
-        f'  <div class="arch-node"><div class="arch-node-title">2. Application and Business Logic</div><div class="arch-node-detail">{vba_count} VBA module(s), {macros_count} macro(s), and {len(runtime_objects)} runtime object(s) handling application behavior.</div></div>\n'
-        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
-        f'  <div class="arch-node"><div class="arch-node-title">3. Query and Data Access</div><div class="arch-node-detail">{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s), and {len(relationships)} relationship(s) supporting retrieval and integrity.</div></div>\n'
-        f'  <div class="arch-connector" aria-hidden="true"></div>\n'
-        f'  <div class="arch-node"><div class="arch-node-title">4. Data Storage Layer</div><div class="arch-node-detail">{tables_count} business table(s), {system_tables_count} system table(s), and {sum(len(table.get("columns") or []) for table in tables)} analyzed field(s).</div></div>\n'
-        f'</div>'
-    )
-    add_section("SECTION_38_TECHNICAL_ARCHITECTURE", "38", "Technical Architecture", c38)
-
-    # -------------------------------------------------------------
-    # 39. DATA ARCHITECTURE & SPECIFICATIONS
-    # -------------------------------------------------------------
     c39_rows = []
-    for table in tables:
-        table_name = table.get("name", "Table")
-        columns = table.get("columns") or []
-        if not columns:
+    for table in tables_sorted:
+        tname = table.get("name", "Table")
+        cols = table.get("columns") or []
+        for col in cols:
+            cname = col.get("name", "Field")
+            # Enhanced PK detection
+            is_pk = col.get("is_pk") or (cname in table.get("enforced_pk_cols", [])) or (cname in table.get("inferred_pk_cols", []))
+            # Determine PK type
+            pk_label = "-"
+            if is_pk:
+                if cname in table.get("enforced_pk_cols", []):
+                    pk_label = "Enforced PK"
+                else:
+                    pk_label = "Inferred PK"
+
             c39_rows.append(
-                f'<tr><td><code>{esc(table_name)}</code></td><td colspan="7"><em>No column metadata returned by backend analysis.</em></td></tr>'
-            )
-            continue
-        for column in columns:
-            column_name = column.get("name", "Field")
-            key_flags = []
-            if column.get("is_pk"):
-                key_flags.append("PK")
-            if column.get("is_fk"):
-                key_flags.append("FK")
-            key_text = ", ".join(key_flags) or "-"
-            c39_rows.append(
-                f'<tr><td><code>{esc(table_name)}</code></td><td><code>{esc(column_name)}</code></td>'
-                f'<td>{esc(column.get("access_type") or column.get("type") or "Unknown")}</td>'
-                f'<td><code>{esc(column.get("pg_type") or "Unknown")}</code></td>'
-                f'<td>{key_text}</td><td>{esc(column.get("fk_target") or "-")}</td>'
-                f'<td>{esc(column.get("size") or "-")}</td><td>{esc(column.get("description") or column.get("validation_rule") or "-")}</td></tr>\n'
+                f'<tr><td><code>{esc(tname)}</code></td><td><code>{esc(cname)}</code></td>'
+                f'<td>{esc(col.get("access_type") or "Text")}</td>'
+                f'<td><code>{esc(col.get("pg_type") or "VARCHAR")}</code></td>'
+                f'<td><span class="badge { "badge-info" if "Inferred" in pk_label else "badge-success" if "Enforced" in pk_label else "" }">{esc(pk_label)}</span></td>'
+                f'<td>{esc(col.get("fk_target") or "-")}</td>'
+                f'<td>{esc(col.get("size") or "-")}</td><td>{esc(col.get("description") or "-")}</td></tr>\n'
             )
 
-    c39_relationship_rows = []
-    for relationship in relationships:
-        parent_table = relationship.get("parent_table", "Parent")
-        child_table = relationship.get("child_table", "Child")
-        parent_columns = ", ".join(relationship.get("parent_columns") or []) or "-"
-        child_columns = ", ".join(relationship.get("child_columns") or []) or "-"
-        integrity = "Enforced" if relationship.get("enforce_integrity") else "Not specified"
-        if relationship.get("inferred"):
-            integrity += " (inferred)"
-        c39_relationship_rows.append(
-            f'<tr><td><code>{esc(parent_table)}</code></td><td><code>{esc(parent_columns)}</code></td>'
-            f'<td><code>{esc(child_table)}</code></td><td><code>{esc(child_columns)}</code></td>'
-            f'<td>{esc(integrity)}</td><td>{"Yes" if relationship.get("cascade_update") else "No"}</td><td>{"Yes" if relationship.get("cascade_delete") else "No"}</td></tr>\n'
-        )
+    # Sample Data Enhancement
+    sample_data_html = '<h2 class="sub-title">39.3 Representative Sample Data</h2>\n'
+    for table in tables_sorted:
+        sdata = table.get("sample_data")
+        if sdata:
+            tname = table.get("name")
+            sample_data_html += f'<div class="sub-sub-title">Table: {esc(tname)}</div>\n'
+            sample_data_html += '<div class="table-wrapper"><table><thead><tr>'
+            # Assuming first row defines headers
+            headers = list(sdata[0].keys())
+            for h in headers: sample_data_html += f'<th>{esc(h)}</th>'
+            sample_data_html += '</tr></thead><tbody>'
+            for row in sdata:
+                sample_data_html += '<tr>'
+                for h in headers:
+                    val = row.get(h)
+                    # Mask PII (Heuristic)
+                    if any(p in h.lower() for p in ("name", "email", "phone", "ssn", "pesel", "address", "pwd")):
+                        val = "****" if val else "None"
+                    sample_data_html += f'<td>{esc(val)}</td>'
+                sample_data_html += '</tr>'
+            sample_data_html += '</tbody></table></div>'
 
-    c39_schema = (
-        f'<div class="table-wrapper"><table class="table-data-architecture"><thead><tr>'
-        f'<th>Table</th><th>Field</th><th>Access Type</th><th>PostgreSQL Type</th><th>Key</th><th>FK Target</th><th>Size</th><th>Validation / Description</th>'
-        f'</tr></thead><tbody>{"".join(c39_rows)}</tbody></table></div>'
-    )
-    if c39_relationship_rows:
-        c39_schema += (
-            f'<h2 class="sub-title">Referential Relationships</h2>'
-            f'<div class="table-wrapper"><table class="table-data-relationships"><thead><tr>'
-            f'<th>Parent Table</th><th>Parent Field</th><th>Child Table</th><th>Child Field</th><th>Integrity</th><th>Cascade Update</th><th>Cascade Delete</th>'
-            f'</tr></thead><tbody>{"".join(c39_relationship_rows)}</tbody></table></div>'
-        )
     c39 = (
-        f'<p>Schema specification extracted from <code>{esc(source_file)}</code>: {tables_count} business table(s), {sum(len(table.get("columns") or []) for table in tables)} field(s), and {len(relationships)} referential relationship(s).</p>\n'
-        f'{c39_schema}'
+        f'{pk_note}\n'
+        f'<h2 class="sub-title">39.1 Comprehensive Data Dictionary</h2>\n'
+        f'<div class="table-wrapper"><table class="table-data-architecture"><thead><tr>'
+        f'<th>Table</th><th>Field</th><th>Access Type</th><th>PostgreSQL Type</th><th>Key Status</th><th>FK Target</th><th>Size</th><th>Validation</th>'
+        f'</tr></thead><tbody>{"".join(c39_rows)}</tbody></table></div>\n'
+        f'{sample_data_html}'
     )
-    add_section(
-        "SECTION_39_DATA_MIGRATION",
-        "39",
-        "Data Architecture and Specifications",
-        c39,
-        bool(c39_rows or c39_relationship_rows),
-    )
+    add_section("SECTION_39_DATA_MIGRATION", "Data Architecture and Specifications", c39)
 
     # -------------------------------------------------------------
-    # 40. SYSTEM OPERATIONAL REQUIREMENTS
-    # -------------------------------------------------------------
-    source_size = facts.get("source_file_size") or 0
-    operational_rows = [
-        f'<tr><td>Source and storage</td><td><code>{esc(source_file)}</code> ({source_size:,} bytes)</td><td>Preserve the source snapshot, isolate generated artifacts, and track the analyzed version.</td></tr>',
-        f'<tr><td>Data integrity</td><td>{tables_count} business table(s), {len(relationships)} relationship(s), and {sum(len(table.get("columns") or []) for table in tables)} field(s)</td><td>Enforce primary keys, foreign keys, required fields, type mappings, and transaction boundaries.</td></tr>',
-        f'<tr><td>Query processing</td><td>{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s), and {facts.get("dependency_edges", 0)} dependency edge(s)</td><td>Validate query results, parameters, joins, filters, and execution plans after migration.</td></tr>',
-        f'<tr><td>User workflow</td><td>{forms_count} form(s), {reports_count} report(s), and {macros_count} macro(s)</td><td>Monitor form navigation, validation events, report generation, and automated workflows.</td></tr>',
-        f'<tr><td>Business logic</td><td>{vba_count} VBA module(s), {facts.get("vba_loc", 0):,} VBA line(s), and {len(runtime_objects)} runtime object(s)</td><td>Log failures, preserve routine behavior, and provide recovery for failed operations.</td></tr>',
-    ]
-    c40 = (
-        f'<p>Operational context derived from backend analysis of <code>{esc(source_file)}</code>. The requirements below map the discovered inventory to migration, runtime, monitoring, and maintenance responsibilities.</p>\n'
-        f'<div class="table-wrapper"><table class="table-operational"><thead><tr><th>Operational area</th><th>Backend evidence</th><th>Requirement</th></tr></thead><tbody>{"".join(operational_rows)}</tbody></table></div>'
-    )
-    add_section(
-        "SECTION_40_SYSTEM_MODERNIZATION",
-        "40",
-        "System Operational Requirements",
-        c40,
-        total_discovered_objects > 0,
-    )
-
-    # -------------------------------------------------------------
-    # 41. TESTING & ACCEPTANCE
-    # -------------------------------------------------------------
-    testing_rows = [
-        f'<tr><td>Schema and migration</td><td>{tables_count} table(s), {sum(len(table.get("columns") or []) for table in tables)} field(s), {len(relationships)} relationship(s)</td><td>Compare names, types, keys, null handling, and relationship behavior with the extracted source model.</td></tr>',
-        f'<tr><td>Query fidelity</td><td>{queries_count} query object(s), {facts.get("sql_loc", 0):,} SQL line(s)</td><td>Execute representative filters, joins, parameters, aggregates, and empty-result cases.</td></tr>',
-        f'<tr><td>UI workflow</td><td>{forms_count} form(s) and {sum(form.get("controls_count", 0) for form in forms)} detected control(s)</td><td>Verify navigation, validation, record create/update/delete, search, and error states.</td></tr>',
-        f'<tr><td>Reporting</td><td>{reports_count} report(s)</td><td>Compare record sources, grouping, summary fields, formatting, export, and print/PDF output.</td></tr>',
-        f'<tr><td>Automation and logic</td><td>{vba_count} VBA module(s), {macros_count} macro(s), {len(runtime_objects)} runtime object(s)</td><td>Run translated workflows and compare outputs, side effects, failure handling, and audit events.</td></tr>',
-        f'<tr><td>Dependency and regression</td><td>{len(facts.get("dependency_nodes", []))} dependency node(s), {facts.get("dependency_edges", 0)} edge(s), {len(facts.get("cycles", []))} cycle(s)</td><td>Test high-impact dependencies first and re-run regression tests after schema or service changes.</td></tr>',
-    ]
-    c41 = (
-        f'<p>Acceptance strategy based on the objects and relationships returned by backend analysis. Each test area below has a measurable source scope and a corresponding verification activity.</p>\n'
-        f'<div class="table-wrapper"><table class="table-testing"><thead><tr><th>Test area</th><th>Source scope</th><th>Acceptance check</th></tr></thead><tbody>{"".join(testing_rows)}</tbody></table></div>'
-    )
-    add_section(
-        "SECTION_41_TESTING_ACCEPTANCE",
-        "41",
-        "Testing and Acceptance Requirements",
-        c41,
-        total_discovered_objects > 0,
-    )
-
-    # -------------------------------------------------------------
-    # 42. DEPLOYMENT REQUIREMENTS
-    # -------------------------------------------------------------
-    c42 = (
-        f'<p>Deployment environment requirements, file distribution protocols, configuration management, and database integrity backup standards.</p>'
-    )
-    add_section(
-        "SECTION_42_DEPLOYMENT",
-        "42",
-        "Deployment Requirements",
-        c42,
-        bool(facts.get("deployment_requirements")),
-    )
-
-    # -------------------------------------------------------------
-    # 43. TRAINING AND CHANGE MANAGEMENT
-    # -------------------------------------------------------------
-    c43 = (
-        f'<p>User operational guidance, administrative documentation, support escalation path, and system adoption guidelines.</p>'
-    )
-    add_section(
-        "SECTION_43_TRAINING",
-        "43",
-        "Training and Change Management",
-        c43,
-        bool(facts.get("training_requirements")),
-    )
-
-    # -------------------------------------------------------------
-    # 44. OPERATIONAL SUPPORT
-    # -------------------------------------------------------------
-    supportability_items = facts.get("supportability_items", []) or []
-    support_status_counts = {}
-    support_category_counts = {}
-    for item in supportability_items:
-        status = item.get("status") or "Unknown"
-        category = item.get("category") or "Uncategorized"
-        support_status_counts[status] = support_status_counts.get(status, 0) + 1
-        support_category_counts[category] = support_category_counts.get(category, 0) + 1
-
-    support_summary_rows = []
-    for status, count in sorted(support_status_counts.items()):
-        support_summary_rows.append(
-            f'<tr><td>{esc(status)}</td><td>{count}</td><td>Supportability result(s) requiring operational review and migration tracking.</td></tr>'
-        )
-    support_inventory_rows = []
-    for item in supportability_items:
-        confidence = item.get("confidence")
-        confidence_text = f"{confidence:.0%}" if isinstance(confidence, (int, float)) else "-"
-        support_inventory_rows.append(
-            f'<tr><td><code>{esc(item.get("object_name") or "Unknown object")}</code></td>'
-            f'<td>{esc(item.get("category") or "-")}</td><td>{esc(item.get("status") or "-")}</td>'
-            f'<td>{esc(item.get("complexity") or "-")}</td><td>{esc(item.get("risk") or "-")}</td>'
-            f'<td>{esc(item.get("conversion") or "-")}</td><td>{confidence_text}</td>'
-            f'<td>{esc(item.get("reason") or "-")}</td></tr>\n'
-        )
-    c44 = (
-        f'<p>Operational support inventory derived from {len(supportability_items)} backend supportability result(s). The tables below identify conversion status, risk, complexity, confidence, and the reason each source object requires support attention.</p>\n'
-        f'<h2 class="sub-title">Supportability Summary</h2>\n'
-        f'<div class="table-wrapper"><table class="table-support-summary"><thead><tr><th>Status</th><th>Count</th><th>Operational interpretation</th></tr></thead><tbody>{"".join(support_summary_rows)}</tbody></table></div>\n'
-        f'<h2 class="sub-title">Object Support Inventory</h2>\n'
-        f'<div class="table-wrapper"><table class="table-support-inventory"><thead><tr><th>Object</th><th>Category</th><th>Status</th><th>Complexity</th><th>Risk</th><th>Conversion</th><th>Confidence</th><th>Reason</th></tr></thead><tbody>{"".join(support_inventory_rows)}</tbody></table></div>'
-    )
-    add_section(
-        "SECTION_44_OPERATIONAL_SUPPORT",
-        "44",
-        "Operational Support",
-        c44,
-        bool(supportability_items),
-    )
-
-    # -------------------------------------------------------------
-    # 45. RISKS, ASSUMPTIONS & CONSTRAINTS
-    # -------------------------------------------------------------
-    c45 = (
-        f'<p>Operational risk assessment and technical constraints of <code>{esc(source_file)}</code>.</p>\n'
-        f'<div class="table-wrapper"><table class="table-risks"><colgroup><col style="width:15%;"><col style="width:20%;"><col style="width:35%;"><col style="width:30%;"></colgroup>'
-        f'<thead><tr><th>Risk ID</th><th>Category</th><th>Impact Description</th><th>Mitigation Strategy</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>RSK-001</td><td>Data Integrity</td><td>Complex VBA logic in {vba_count} modules requiring accurate behavioral specification</td><td>Detailed AST parsing and routine execution analysis</td></tr>'
-        f'<tr><td>RSK-002</td><td>Form Complexity</td><td>Multi-control interactive form layouts across {forms_count} form screens</td><td>Comprehensive control inventory and record source mapping</td></tr>'
-        f'</tbody></table></div>'
-    )
-    add_section(
-        "SECTION_45_RISKS_CONSTRAINTS",
-        "45",
-        "Risks, Assumptions and Constraints",
-        c45,
-        total_discovered_objects > 0,
-    )
-
-    # -------------------------------------------------------------
-    # 46. REQUIREMENTS TRACEABILITY MATRIX
+    # 46. REQUIREMENTS TRACEABILITY MATRIX (Full Coverage)
     # -------------------------------------------------------------
     c46_rows = []
-    for idx, tbl in enumerate(tables[:10], start=1):
+    for idx, tbl in enumerate(tables_sorted, start=1):
         tname = tbl.get("name", "Table")
         c46_rows.append(
-            f'<tr><td>REQ-{idx:03d}</td><td>Data Entity Specification</td><td><code>{esc(tname)}</code></td><td>Relational Entity Schema</td><td>Data Dictionary Review</td></tr>\n'
+            f'<tr><td>REQ-{idx:03d}</td><td>Data Entity Persistence</td><td><code>{esc(tname)}</code></td>'
+            f'<td><code>{esc(re.sub(r"[^a-zA-Z0-9]", "", tname))}Entity.java</code></td><td>Schema Comparison</td></tr>\n'
         )
     c46 = (
-        f'<p>Requirements Traceability Matrix mapping functional scope to source database objects in <code>{esc(source_file)}</code>.</p>\n'
+        f'<p>Complete Requirements Traceability Matrix mapping every source entity to its target application component.</p>\n'
         f'<div class="table-wrapper"><table class="table-matrix"><colgroup><col style="width:15%;"><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:15%;"></colgroup>'
-        f'<thead><tr><th>Req ID</th><th>Functional Scope</th><th>Access Source Object</th><th>Specification Status</th><th>Verification</th></tr></thead>'
+        f'<thead><tr><th>Req ID</th><th>Functional Scope</th><th>Access Source Object</th><th>Target Component</th><th>Verification</th></tr></thead>'
         f'<tbody>{"".join(c46_rows)}</tbody></table></div>'
     )
-    add_section(
-        "SECTION_46_TRACEABILITY_MATRIX",
-        "46",
-        "Requirements Traceability Matrix",
-        c46,
-        bool(c46_rows),
-    )
+    add_section("SECTION_46_TRACEABILITY_MATRIX", "Requirements Traceability Matrix", c46)
 
     # -------------------------------------------------------------
     # 47. ACCEPTANCE CRITERIA
     # -------------------------------------------------------------
     c47 = (
-        f'<ol>'
-        f'<li>100% of business data tables ({tables_count} tables) specified with complete data dictionary field mappings, primary keys, and foreign keys.</li>'
-        f'<li>All {queries_count} SQL query views cataloged with exact SQL query text and parameter filters.</li>'
-        f'<li>All {forms_count} user form views specified with complete control lists and record sources.</li>'
-        f'<li>All {vba_count} VBA code modules ({facts.get("vba_loc", 0):,} LOC) cataloged with deep behavioral procedure specifications.</li>'
-        f'</ol>'
+        f'<p>The following criteria must be met for the migrated system to be accepted:</p>'
+        f'<ul>'
+        f'<li><strong>Data Fidelity:</strong> All {tables_count} tables must be migrated with 100% record count match.</li>'
+        f'<li><strong>Logic Fidelity:</strong> All {vba_count} VBA modules must have corresponding Java service logic.</li>'
+        f'<li><strong>UI Fidelity:</strong> All {forms_count} forms must be accessible in the React frontend.</li>'
+        f'<li><strong>Performance:</strong> Data retrieval queries must execute within 200ms in the target environment.</li>'
+        f'</ul>'
     )
-    add_section(
-        "SECTION_47_ACCEPTANCE_CRITERIA",
-        "47",
-        "Acceptance Criteria",
-        c47,
-        total_discovered_objects > 0,
-    )
+    add_section("SECTION_47_ACCEPTANCE_CRITERIA", "Acceptance Criteria", c47)
 
     # -------------------------------------------------------------
-    # 48. APPENDICES (Appendices A to S — Deep & Non-Generic Breakdown)
+    # 48. APPENDICES
     # -------------------------------------------------------------
-    # Appendix A — Database Object Inventory Table
+    # Appendix A - Database Object Inventory
     app_a_rows = (
-        f'<tr><td>Business Tables</td><td>{tables_count}</td><td>Relational Entities</td><td>Schema Data Storage</td><td>Active / In Scope</td></tr>\n'
-        f'<tr><td>System Tables</td><td>{system_tables_count}</td><td>Access Configuration</td><td>UI Metadata / Ribbons</td><td>Excluded from Data Migration</td></tr>\n'
-        f'<tr><td>SQL Queries</td><td>{queries_count}</td><td>Data Views & Filters</td><td>Query Engine</td><td>Active / Translated to Repositories</td></tr>\n'
-        f'<tr><td>User Forms</td><td>{forms_count}</td><td>Interactive Screens</td><td>Desktop Workstation UI</td><td>Active / Translated to Web Views</td></tr>\n'
-        f'<tr><td>Output Reports</td><td>{reports_count}</td><td>Printable Documents</td><td>Access Report Runtime</td><td>Active / Translated to Web Reports</td></tr>\n'
-        f'<tr><td>Macros</td><td>{macros_count}</td><td>Event Procedures</td><td>Macro Actions</td><td>Active / Translated to Workflows</td></tr>\n'
-        f'<tr><td>VBA Code Modules</td><td>{vba_count}</td><td>Business Logic ({facts.get("vba_loc", 0):,} LOC)</td><td>VBA Engine</td><td>Active / Translated to Java Services</td></tr>\n'
-    )
-    app_a_html = (
-        f'<h2 class="sub-title">Appendix A — Database Object Inventory</h2>\n'
-        f'<p>Complete summary of all {total_discovered_objects} database objects discovered in <code>{esc(source_file)}</code>.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-a"><colgroup><col style="width:22%;"><col style="width:12%;"><col style="width:22%;"><col style="width:24%;"><col style="width:20%;"></colgroup>'
-        f'<thead><tr><th>Object Category</th><th>Count</th><th>Classification</th><th>Storage Engine</th><th>Scope & Status</th></tr></thead>'
-        f'<tbody>{app_a_rows}</tbody></table></div>'
+        f'<tr><td>Business Tables</td><td>{tables_count}</td><td>Relational Entities</td><td>Schema Data Storage</td><td>Active / In Scope</td></tr>'
+        f'<tr><td>System Tables</td><td>{system_tables_count}</td><td>Access Configuration</td><td>UI Metadata / Ribbons</td><td>Excluded from Data Migration</td></tr>'
+        f'<tr><td>SQL Queries</td><td>{queries_count}</td><td>Data Views & Filters</td><td>Query Engine</td><td>Active / Translated to Repositories</td></tr>'
+        f'<tr><td>User Forms</td><td>{forms_count}</td><td>Interactive Screens</td><td>Desktop UI / Workstation UI</td><td>Active / Translated to Web Views</td></tr>'
+        f'<tr><td>Output Reports</td><td>{reports_count}</td><td>Printable Documents</td><td>Access Report Runtime</td><td>Active / Translated to Web Reports</td></tr>'
+        f'<tr><td>Macros</td><td>{macros_count}</td><td>Event Procedures</td><td>Macro Actions</td><td>Active / Translated to Workflows</td></tr>'
+        f'<tr><td>VBA Code Modules</td><td>{vba_count}</td><td>Business Logic ({total_loc:,} LOC)</td><td>VBA Engine</td><td>Active / Translated to Java Services</td></tr>'
     )
 
-    # Appendix B — Table Inventory
-    app_b_rows = []
-    tables_sorted = sorted(tables, key=lambda t: t.get("name", "").lower())
-    for tbl in tables_sorted:
-        tname = tbl.get("name", "Table")
-        cols_count = len(tbl.get("columns", []))
-        pk_info = tbl.get("pk_status", "None Defined")
-        app_b_rows.append(
-            f'<tr><td><code>{esc(tname)}</code></td><td>{cols_count} Columns</td><td><code>{esc(pk_info)}</code></td><td>Relational Entity Table</td><td>Primary transactional data storage for {esc(tname)} entity.</td></tr>\n'
+    # Appendix B - Table Inventory
+    app_b_rows = ""
+    for t in tables_sorted:
+        tname = t.get("name", "Unknown")
+        cols_count = len(t.get("columns", []))
+        pk_cols = t.get("enforced_pk_cols", []) or t.get("inferred_pk_cols", [])
+        pk_status = ", ".join(pk_cols) if pk_cols else "None"
+        desc = t.get("description") or f"Primary transactional data storage for {esc(tname)} entity."
+
+        app_b_rows += (
+            f'<tr>'
+            f'<td><code>{esc(tname)}</code></td>'
+            f'<td>{cols_count} Columns</td>'
+            f'<td><code>{esc(pk_status)}</code></td>'
+            f'<td>Relational Entity Table</td>'
+            f'<td>{esc(desc)}</td>'
+            f'</tr>\n'
         )
-    if not app_b_rows:
-        app_b_rows.append('<tr><td colspan="5"><em>No business data tables present in source database.</em></td></tr>\n')
-    app_b_html = (
-        f'<h2 class="sub-title">Appendix B — Table Inventory</h2>\n'
-        f'<p>Inventory of all {len(tables_sorted)} business data tables extracted from source database.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-b"><colgroup><col style="width:22%;"><col style="width:12%;"><col style="width:22%;"><col style="width:20%;"><col style="width:24%;"></colgroup>'
-        f'<thead><tr><th>Table Name</th><th>Columns</th><th>Primary Key Status</th><th>Classification</th><th>Business Description</th></tr></thead>'
-        f'<tbody>{"".join(app_b_rows)}</tbody></table></div>'
-    )
-
-    # Appendix C — Field / Data Dictionary (EVERY SINGLE COLUMN)
-    app_c_rows = []
-    for tbl in tables_sorted:
-        tname = tbl.get("name", "Table")
-        cols = tbl.get("columns", [])
-        for col in cols:
-            cname = col.get("name", "Field")
-            atype = col.get("access_type") or col.get("type") or "Short Text"
-            csize = str(col.get("size")) if col.get("size") else "255"
-            pgtype = col.get("pg_type") or "VARCHAR(255)"
-            ispk = "Yes (PK)" if col.get("is_pk") else "No"
-            isfk = f"Yes (↳ {col.get('fk_target')})" if (col.get("is_fk") and col.get("fk_target")) else ("Yes (FK)" if col.get("is_fk") else "No")
-            req = "No" if col.get("nullable", True) else "Yes (NOT NULL)"
-            app_c_rows.append(
-                f'<tr><td><code>{esc(tname)}</code></td><td><code>{esc(cname)}</code></td><td>{esc(atype)}</td><td>{esc(csize)}</td><td><code>{esc(pgtype)}</code></td><td>{ispk}</td><td>{isfk}</td><td>{req}</td></tr>\n'
-            )
-    if not app_c_rows:
-        app_c_rows.append('<tr><td colspan="8"><em>No field dictionary entries available.</em></td></tr>\n')
-    app_c_html = (
-        f'<h2 class="sub-title">Appendix C — Field / Data Dictionary</h2>\n'
-        f'<p>Complete field specification dictionary detailing all {len(app_c_rows)} table columns extracted from <code>{esc(source_file)}</code>.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-c"><colgroup><col style="width:16%;"><col style="width:16%;"><col style="width:12%;"><col style="width:8%;"><col style="width:16%;"><col style="width:10%;"><col style="width:12%;"><col style="width:10%;"></colgroup>'
-        f'<thead><tr><th>Table Name</th><th>Field Name</th><th>Access Type</th><th>Size</th><th>PostgreSQL Type</th><th>PK</th><th>FK</th><th>Required</th></tr></thead>'
-        f'<tbody>{"".join(app_c_rows)}</tbody></table></div>'
-    )
-
-    # Appendix D — Form Inventory
-    app_d_rows = []
-    forms_sorted = sorted(forms, key=lambda f: f.get("name", "").lower())
-    for f in forms_sorted:
-        fname = f.get("name", "Form")
-        cnt = f.get("controls_count", 0)
-        rec_src = f.get("record_source") or "Unbound Dialog / Menu Form"
-        app_d_rows.append(
-            f'<tr><td><code>{esc(fname)}</code></td><td>{cnt} Controls</td><td><code>{esc(rec_src)}</code></td><td>Interactive Form Screen</td><td>User interface component for data entry and navigation.</td></tr>\n'
-        )
-    if not app_d_rows:
-        app_d_rows.append('<tr><td colspan="5"><em>No user form objects present in source database.</em></td></tr>\n')
-    app_d_html = (
-        f'<h2 class="sub-title">Appendix D — Form Inventory</h2>\n'
-        f'<p>Inventory of all {len(forms_sorted)} interactive form screens.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-d"><colgroup><col style="width:24%;"><col style="width:12%;"><col style="width:24%;"><col style="width:18%;"><col style="width:22%;"></colgroup>'
-        f'<thead><tr><th>Form Name</th><th>Controls</th><th>Record Source</th><th>Classification</th><th>Functional Description</th></tr></thead>'
-        f'<tbody>{"".join(app_d_rows)}</tbody></table></div>'
-    )
-
-    # Appendix E — Report Inventory
-    app_e_rows = []
-    reports_sorted = sorted(reports, key=lambda r: r.get("name", "").lower())
-    for r in reports_sorted:
-        rname = r.get("name", "Report")
-        rec_src = r.get("record_source") or "Dynamic Query Source"
-        app_e_rows.append(
-            f'<tr><td><code>{esc(rname)}</code></td><td><code>{esc(rec_src)}</code></td><td>Standard Grouping</td><td>HTML / PDF Document</td><td>Printable document report layout.</td></tr>\n'
-        )
-    if not app_e_rows:
-        app_e_rows.append('<tr><td colspan="5"><em>No report objects present in source database.</em></td></tr>\n')
-    app_e_html = (
-        f'<h2 class="sub-title">Appendix E — Report Inventory</h2>\n'
-        f'<p>Inventory of all {len(reports_sorted)} printable output report specifications.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-e"><colgroup><col style="width:24%;"><col style="width:24%;"><col style="width:16%;"><col style="width:16%;"><col style="width:20%;"></colgroup>'
-        f'<thead><tr><th>Report Name</th><th>Record Source</th><th>Grouping / Sorting</th><th>Output Format</th><th>Description</th></tr></thead>'
-        f'<tbody>{"".join(app_e_rows)}</tbody></table></div>'
-    )
-
-    # Appendix F — Query Inventory
-    app_f_rows = []
-    queries_sorted = sorted(queries, key=lambda q: q.get("name", "").lower())
-    for q in queries_sorted:
-        qname = q.get("name", "Query")
-        qtype = q.get("query_type") or "Select Query"
-        qsql = q.get("sql") or ""
-        snippet = qsql[:70] + "..." if len(qsql) > 70 else qsql
-        app_f_rows.append(
-            f'<tr><td><code>{esc(qname)}</code></td><td>{esc(qtype)}</td><td><code>{esc(snippet)}</code></td><td>Spring Data Repository Query</td></tr>\n'
-        )
-    if not app_f_rows:
-        app_f_rows.append('<tr><td colspan="4"><em>No custom SQL queries present in source database.</em></td></tr>\n')
-    app_f_html = (
-        f'<h2 class="sub-title">Appendix F — Query Inventory</h2>\n'
-        f'<p>Inventory of all {len(queries_sorted)} SQL queries extracted from source database.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-f"><colgroup><col style="width:22%;"><col style="width:16%;"><col style="width:40%;"><col style="width:22%;"></colgroup>'
-        f'<thead><tr><th>Query Name</th><th>Query Type</th><th>Extracted SQL Text Snippet</th><th>Target Repository Method</th></tr></thead>'
-        f'<tbody>{"".join(app_f_rows)}</tbody></table></div>'
-    )
-
-    # Appendix G — VBA Module & Procedure Inventory (DEEP & DETAILED)
-    app_g_rows = []
-    vba_sorted = sorted(vba_modules, key=lambda v: v.get("name", "").lower())
-    for v in vba_sorted:
-        mname = v.get("name", "Module")
-        proc_list = sorted(v.get("procedures", []), key=lambda p: p.get("name", "").lower())
-        for p in proc_list:
-            pname = p.get("name", "Procedure")
-            pkind = p.get("kind", "Sub")
-            psig = p.get("signature") or f"{pkind} {pname}()"
-            pret = p.get("return_type", "Void")
-            pdesc = p.get("behavioral_description") or f"Execute procedure {pname}() in {mname}"
-            app_g_rows.append(
-                f'<tr><td><code>{esc(mname)}</code></td><td><code>{esc(pname)}()</code></td><td>{esc(pkind)}</td><td><code>{esc(psig)}</code></td><td><code>{esc(pret)}</code></td><td>{esc(pdesc)}</td></tr>\n'
-            )
-    if not app_g_rows:
-        app_g_rows.append('<tr><td colspan="6"><em>No VBA code routines present in source database.</em></td></tr>\n')
-    app_g_html = (
-        f'<h2 class="sub-title">Appendix G — VBA Module & Procedure Inventory</h2>\n'
-        f'<p>Comprehensive inventory detailing all {len(app_g_rows)} VBA code routines extracted across {len(vba_sorted)} modules.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-g"><colgroup><col style="width:16%;"><col style="width:16%;"><col style="width:10%;"><col style="width:22%;"><col style="width:10%;"><col style="width:26%;"></colgroup>'
-        f'<thead><tr><th>Module Name</th><th>Routine Name</th><th>Kind</th><th>Procedure Signature</th><th>Return Type</th><th>Behavioral Description</th></tr></thead>'
-        f'<tbody>{"".join(app_g_rows)}</tbody></table></div>'
-    )
-
-    # Appendix H — Relationships Catalogue
-    app_h_rows = []
-    rels_clean = [
-        r for r in relationships
-        if not (is_system_object(r.get("parent_table")) or is_system_object(r.get("child_table")))
-    ]
-    for rel in rels_clean:
-        ptbl = rel.get("parent_table", "Parent")
-        pcol = ", ".join(rel.get("parent_columns", []))
-        ctbl = rel.get("child_table", "Child")
-        ccol = ", ".join(rel.get("child_columns", []))
-        rel_type = "1 : 1" if rel.get("one_to_one") else "1 : N"
-        rules_list = []
-        if rel.get("cascade_update"):
-            rules_list.append("Cascade Update")
-        if rel.get("cascade_delete"):
-            rules_list.append("Cascade Delete")
-        if rel.get("inferred"):
-            rules_list.append("Logical PK/FK Match")
-        r_str = ", ".join(rules_list) if rules_list else "Foreign Key Constraint"
-        app_h_rows.append(
-            f'<tr><td><code>{esc(ptbl)}</code></td><td><code>{esc(pcol)}</code></td><td><code>{esc(ctbl)}</code></td><td><code>{esc(ccol)}</code></td><td><span class="badge badge-info">{esc(rel_type)}</span></td><td>{esc(r_str)}</td></tr>\n'
-        )
-    if not app_h_rows:
-        app_h_rows.append('<tr><td colspan="6"><em>No referential foreign key relationships defined in source database.</em></td></tr>\n')
-    app_h_html = (
-        f'<h2 class="sub-title">Appendix H — Relationships Catalogue</h2>\n'
-        f'<p>Catalogue of all {len(rels_clean)} referential foreign key relationships connecting business data entities.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-h"><colgroup><col style="width:20%;"><col style="width:15%;"><col style="width:20%;"><col style="width:15%;"><col style="width:12%;"><col style="width:18%;"></colgroup>'
-        f'<thead><tr><th>Parent Table (PK)</th><th>Parent Key</th><th>Child Table (FK)</th><th>Foreign Key</th><th>Type</th><th>Integrity Rules</th></tr></thead>'
-        f'<tbody>{"".join(app_h_rows)}</tbody></table></div>'
-    )
-
-    # Appendix I — Business Rules Catalogue
-    app_i_rows = []
-    rule_i_idx = 1
-    for v in vba_sorted:
-        mname = v.get("name", "Module")
-        for p in sorted(v.get("procedures", []), key=lambda x: x.get("name", "").lower()):
-            pname = p.get("name", "Procedure")
-            pdesc = p.get("behavioral_description") or f"Execution routine in {mname}"
-            app_i_rows.append(
-                f'<tr><td>BR-{rule_i_idx:03d}</td><td><code>{esc(pname)}()</code></td><td><code>{esc(mname)}</code></td><td>{esc(pdesc)}</td></tr>\n'
-            )
-            rule_i_idx += 1
-    if not app_i_rows:
-        app_i_rows.append('<tr><td>BR-001</td><td>General Integrity</td><td>Global</td><td>Enforce field non-null constraints and valid foreign key references.</td></tr>\n')
-    app_i_html = (
-        f'<h2 class="sub-title">Appendix I — Business Rules Catalogue</h2>\n'
-        f'<p>Catalogue of all {len(app_i_rows)} extracted business rules and validation constraints.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-i"><colgroup><col style="width:12%;"><col style="width:24%;"><col style="width:20%;"><col style="width:44%;"></colgroup>'
-        f'<thead><tr><th>Rule ID</th><th>Routine / Property</th><th>Source Module</th><th>Business Purpose & Context</th></tr></thead>'
-        f'<tbody>{"".join(app_i_rows)}</tbody></table></div>'
-    )
-
-    # Appendix J — Validation Rules
-    app_j_html = (
-        f'<h2 class="sub-title">Appendix J — Validation Rules & Field Constraints</h2>\n'
-        f'<p>Field validation rules, required indicators, and input masks cataloged across database tables.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-j"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:30%;"></colgroup>'
-        f'<thead><tr><th>Table Name</th><th>Field Name</th><th>Constraint Type</th><th>Validation Rule / Text</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>All Data Entities</td><td>Primary Key Fields</td><td>NOT NULL Constraint</td><td>Primary key values must be non-null and unique.</td></tr>'
-        f'<tr><td>All Data Entities</td><td>Foreign Key Fields</td><td>Referential Integrity</td><td>Foreign key references must exist in parent PK index.</td></tr>'
-        f'</tbody></table></div>'
-    )
-
-    # Appendix K — Error Codes & Exception Catalog
-    app_k_html = (
-        f'<h2 class="sub-title">Appendix K — Error Codes & Exception Catalog</h2>\n'
-        f'<p>System exception codes and error handling standards.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-k"><colgroup><col style="width:15%;"><col style="width:25%;"><col style="width:40%;"><col style="width:20%;"></colgroup>'
-        f'<thead><tr><th>Error Code</th><th>Category</th><th>Error Condition & Description</th><th>Recovery Action</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>ERR-001</td><td>Database Exception</td><td>Data constraint violation or foreign key mismatch</td><td>Rollback Transaction</td></tr>'
-        f'<tr><td>ERR-002</td><td>Validation Exception</td><td>Field input failed business rule validation</td><td>Prompt User Correction</td></tr>'
-        f'<tr><td>ERR-003</td><td>Security Exception</td><td>Unauthorized access attempt to protected endpoint</td><td>Deny Access (403)</td></tr>'
-        f'</tbody></table></div>'
-    )
-
-    # Appendix L — Integration Inventory
-    app_l_html = (
-        f'<h2 class="sub-title">Appendix L — Integration Inventory</h2>\n'
-        f'<p>External interfaces, file system I/O, Outlook email, and database connectivity.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-l"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:30%;"><col style="width:20%;"></colgroup>'
-        f'<thead><tr><th>Integration Point</th><th>Interface Type</th><th>Description & Protocol</th><th>Target Component</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>File System I/O</td><td>Local File Operations</td><td>Load/save text, CSV, and report documents</td><td>File Service</td></tr>'
-        f'<tr><td>Outlook MAPI</td><td>Email Integration</td><td>Dispatch report emails via MAPI session</td><td>Mail Service</td></tr>'
-        f'</tbody></table></div>'
-    )
-
-    # Appendix M — User Role Matrix
-    app_m_html = (
-        f'<h2 class="sub-title">Appendix M — User Role Matrix</h2>\n'
-        f'<p>Role-Based Access Control (RBAC) permissions across application modules.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-m"><colgroup><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"><col style="width:25%;"></colgroup>'
-        f'<thead><tr><th>Application Module</th><th>Administrator</th><th>Standard User</th><th>Reporter</th></tr></thead>'
-        f'<tbody>'
-        f'<tr><td>Form UI Screens ({forms_count})</td><td>Full Control</td><td>Read / Write</td><td>Read Only</td></tr>'
-        f'<tr><td>Data Queries ({queries_count})</td><td>Full Control</td><td>Execute</td><td>Execute</td></tr>'
-        f'<tr><td>Printable Reports ({reports_count})</td><td>Full Control</td><td>View / Export</td><td>View / Export</td></tr>'
-        f'</tbody></table></div>'
-    )
-
-    # Appendix N — Requirements Traceability Matrix
-    app_n_rows = []
-    for idx, tbl in enumerate(tables_sorted[:8], start=1):
-        tname = tbl.get("name", "Table")
-        app_n_rows.append(
-            f'<tr><td>REQ-{idx:03d}</td><td>Data Entity Maintenance</td><td><code>{esc(tname)}</code></td><td>PostgreSQL DDL & JPA Entity Class</td><td>Unit Test</td></tr>\n'
-        )
-    app_n_html = (
-        f'<h2 class="sub-title">Appendix N — Requirements Traceability Matrix</h2>\n'
-        f'<p>Traceability matrix mapping requirements to source Access objects and target components.</p>\n'
-        f'<div class="table-wrapper"><table class="table-app-n"><colgroup><col style="width:15%;"><col style="width:25%;"><col style="width:25%;"><col style="width:20%;"><col style="width:15%;"></colgroup>'
-        f'<thead><tr><th>Req ID</th><th>Functional Area</th><th>Access Source Object</th><th>Target Component</th><th>Verification</th></tr></thead>'
-        f'<tbody>{"".join(app_n_rows)}</tbody></table></div>'
-    )
-
-    # Appendices O, P, Q, R, S
-    app_o_s_html = (
-        f'<h2 class="sub-title">Appendix O — Current-State Architecture</h2>\n'
-        f'<p>Monolithic Microsoft Access desktop client architecture operating on local workstation file storage.</p>\n'
-        f'<h2 class="sub-title">Appendix P — Future-State Technical Architecture</h2>\n'
-        f'<p>Enterprise 3-tier web architecture: React SPA frontend, Spring Boot REST API backend, PostgreSQL relational database.</p>\n'
-        f'<h2 class="sub-title">Appendix Q — Data Migration Mapping</h2>\n'
-        f'<p>Field-level data type conversion rules translating Access JET data types into PostgreSQL database columns.</p>\n'
-        f'<h2 class="sub-title">Appendix R — Technical Glossary</h2>\n'
-        f'<p>Technical definitions of architectural terms, database entities, and component specifications.</p>\n'
-        f'<h2 class="sub-title">Appendix S — Acronyms and Definitions</h2>\n'
-        f'<p>ACCDB (Access Database), DDL (Data Definition Language), JPA (Java Persistence API), RBAC (Role-Based Access Control), REST (Representational State Transfer), SPA (Single Page Application), JWT (JSON Web Token), ACID (Atomicity, Consistency, Isolation, Durability).</p>'
-    )
 
     c48 = (
-        app_a_html + app_b_html + app_c_html + app_d_html + app_e_html + app_f_html + app_g_html + app_h_html + app_i_html + app_j_html + app_k_html + app_l_html + app_m_html + app_n_html + app_o_s_html
+        f'<h2 class="sub-title">Appendix A — Database Object Inventory</h2>\n'
+        f'<p>Complete summary of all {total_discovered_objects} database objects discovered in <code>{esc(source_file)}</code>.</p>\n'
+        f'<div class="table-wrapper">\n'
+        f'  <table>\n'
+        f'    <thead><tr>'
+        f'      <th>Object Category</th><th>Count</th><th>Classification</th><th>Storage Engine</th><th>Scope & Status</th>'
+        f'    </tr></thead>\n'
+        f'    <tbody>{app_a_rows}</tbody>\n'
+        f'  </table>\n'
+        f'</div>\n'
+        f'<h2 class="sub-title">Appendix B — Table Inventory</h2>\n'
+        f'<p>Inventory of all {tables_count} business data tables extracted from source database.</p>\n'
+        f'<div class="table-wrapper">\n'
+        f'  <table>\n'
+        f'    <thead><tr>'
+        f'      <th>Table Name</th><th>Columns</th><th>Primary Key Status</th><th>Classification</th><th>Business Description</th>'
+        f'    </tr></thead>\n'
+        f'    <tbody>{app_b_rows}</tbody>\n'
+        f'  </table>\n'
+        f'</div>'
     )
-    add_section(
-        "SECTION_48_APPENDICES",
-        "48",
-        "Appendices",
-        c48,
-        total_discovered_objects > 0,
-    )
+    add_section("SECTION_48_APPENDICES", "Appendices", c48)
 
     # -------------------------------------------------------------
     # BUILD DYNAMIC TABLE OF CONTENTS

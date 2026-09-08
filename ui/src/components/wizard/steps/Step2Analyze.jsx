@@ -8,6 +8,7 @@ import StatCard from './discovery/StatCard';
 import ObjectDistributionChart from './discovery/ObjectDistributionChart';
 import ComplexityScore from './discovery/ComplexityScore';
 import KeyInsights from './discovery/KeyInsights';
+import RelationshipDiagram from './discovery/RelationshipDiagram';
 import ModernizedOutput from './discovery/ModernizedOutput';
 import FileGenerationChart from './discovery/FileGenerationChart';
 import TopComplexObjects from './discovery/TopComplexObjects';
@@ -359,7 +360,8 @@ export default function Step2Analyze() {
         vba: {
             count: getCount('vba'),
             items: getItems('vba')
-        }
+        },
+        relationships: analysisResult?.relationships || []
     };
 
     const totalObjectsCount = effectiveProgress.tables.count + effectiveProgress.queries.count + effectiveProgress.forms.count + effectiveProgress.reports.count + effectiveProgress.macros.count + effectiveProgress.vba.count;
@@ -506,12 +508,13 @@ export default function Step2Analyze() {
                         {/* Middle Cards Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
                             <ObjectDistributionChart data={effectiveProgress} />
-                            <ComplexityScore progress={effectiveProgress} />
+                            {/* <ComplexityScore progress={effectiveProgress} /> */}
                             <KeyInsights progress={effectiveProgress} result={analysisResult} />
                         </div>
 
                         {/* Lower Middle Cards Grid */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
+                            <RelationshipDiagram data={effectiveProgress} />
                             {/*
                             <ModernizedOutput type="frontend" progress={effectiveProgress} />
                             <ModernizedOutput type="backend" progress={effectiveProgress} />
@@ -521,15 +524,17 @@ export default function Step2Analyze() {
                         </div>
 
                         {/* Bottom Row Grid */}
+                        {/*
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: isAutoFit ? '0.75rem' : '1rem', width: '100%' }}>
                             <TopTablesList progress={effectiveProgress} result={analysisResult} />
-                            <DiscoverySummary 
+                            <DiscoverySummary
                                 progress={effectiveProgress}
                                 onContinue={() => actions.nextStep()}
                             />
                         </div>
-                 
-                       
+                        */}
+
+
                     </>
                 )}
             </div>
