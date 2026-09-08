@@ -245,16 +245,12 @@ def render_brd_template(
     # 3. EXISTING SYSTEM OVERVIEW
     # -------------------------------------------------------------
     core_tbl_names = ", ".join([f"<code>{esc(t.get('name'))}</code>" for t in tables[:3]])
-    table_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('description') or 'Business data entity.')}</li>" for t in tables[:15]])
-    if len(tables) > 15: table_bullets += "<li>... and others.</li>"
-    query_bullets = "".join([f"<li><code>{esc(q.get('name'))}</code>: {esc(q.get('type', 'SELECT'))} query object.</li>" for q in queries[:15]])
-    if len(queries) > 15: query_bullets += "<li>... and others.</li>"
-    form_bullets = "".join([f"<li><code>{esc(f.get('name'))}</code>: Bound to <code>{esc(f.get('record_source', 'Unbound'))}</code>.</li>" for f in forms[:15]])
-    if len(forms) > 15: form_bullets += "<li>... and others.</li>"
+    table_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('description') or 'Business data entity.')}</li>" for t in tables])
+    query_bullets = "".join([f"<li><code>{esc(q.get('name'))}</code>: {esc(q.get('type', 'SELECT'))} query object.</li>" for q in queries])
+    form_bullets = "".join([f"<li><code>{esc(f.get('name'))}</code>: Bound to <code>{esc(f.get('record_source', 'Unbound'))}</code>.</li>" for f in forms])
     report_bullets = "".join([f"<li><code>{esc(r.get('name'))}</code>: Report on <code>{esc(r.get('record_source', 'Unbound'))}</code>.</li>" for r in reports]) if reports else "<li>None.</li>"
     vba_bullets = "".join([f"<li><code>{esc(v.get('name'))}</code>: Contains {len(v.get('procedures', []))} procedures.</li>" for v in vba_modules]) if vba_modules else "<li>None.</li>"
-    pk_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('pk_status', 'Not defined'))}</li>" for t in tables[:15]])
-    if len(tables) > 15: pk_bullets += "<li>... and others.</li>"
+    pk_bullets = "".join([f"<li><code>{esc(t.get('name'))}</code>: {esc(t.get('pk_status', 'Not defined'))}</li>" for t in tables])
 
     c3 = (
         f'<h2 class="sub-title">3.1 Current Application Overview</h2>\n'
@@ -663,10 +659,18 @@ def render_brd_template(
         pcol = rel.get("parent_columns", ["ID"])[0] if rel.get("parent_columns") else "ID"
         ccol = rel.get("child_columns", ["ID"])[0] if rel.get("child_columns") else "ID"
 
+        # Determine PK badge for parent card in visual list
+        combined_tables = tables + system_tables
+        parent_tbl_obj = next((t for t in combined_tables if t.get("name") == ptbl), None)
+        parent_pk_cols = parent_tbl_obj.get("primary_key", []) if parent_tbl_obj else []
+        is_pcol_pk = pcol in parent_pk_cols or pcol in (parent_tbl_obj.get("enforced_pk_cols", []) if parent_tbl_obj else []) or pcol in (parent_tbl_obj.get("inferred_pk_cols", []) if parent_tbl_obj else [])
+
+        pk_badge_v = '<span class="badge-pk">PK</span> ' if is_pcol_pk else ""
+
         erd_items_html += (
             f'<div class="erd-connection-item">\n'
             f'  <div class="erd-box erd-parent">\n'
-            f'    <div class="erd-box-title"><span class="badge-pk">PK</span> {esc(ptbl)}</div>\n'
+            f'    <div class="erd-box-title">{pk_badge_v}{esc(ptbl)}</div>\n'
             f'    <div class="erd-box-field">{esc(pcol)}</div>\n'
             f'  </div>\n'
             f'  <div class="erd-connector">\n'
@@ -693,7 +697,9 @@ def render_brd_template(
 
     # 25.2 Relational Entity Schema Cards
     er_grid_html = ""
-    for tbl in tables_sorted:
+    # Include all tables (business + system) if user wants 'all'
+    all_tables_list = tables_sorted + sorted(system_tables, key=lambda x: x.get("name", ""))
+    for tbl in all_tables_list:
         tname = tbl.get("name")
         cols = tbl.get("columns", [])
 
@@ -701,7 +707,8 @@ def render_brd_template(
         for col in cols:
             cname = col.get("name")
             ctype = col.get("access_type") or "Text"
-            is_pk = col.get("is_pk")
+            # Enhanced PK detection: check column flag, enforced list, or inferred list
+            is_pk = col.get("is_pk") or (cname in tbl.get("enforced_pk_cols", [])) or (cname in tbl.get("inferred_pk_cols", []))
             is_fk = bool(col.get("fk_target"))
 
             pk_badge = '<span class="badge-pk">PK</span> ' if is_pk else ""
@@ -731,7 +738,7 @@ def render_brd_template(
             f'<div class="er-table">\n'
             f'  <div class="er-table-head">\n'
             f'    <span>{esc(tname)}</span>\n'
-            f'    <span style="font-size:10px; opacity:0.8;">{len(cols)} cols</span>\n'
+            f'    <span style="font-size:10px; opacity:0.8;">DB TABLE</span>\n'
             f'  </div>\n'
             f'  {field_rows}\n'
             f'  {rel_tags}\n'
@@ -764,12 +771,14 @@ def render_brd_template(
     if not relationships:
         chen_er_html += '<p style="font-size:12px; color:#64748b;">No relationships discovered to generate Chen ER diagram.</p>\n'
     else:
-        # Show top relationships in Chen notation
-        for rel in relationships[:8]:
+        # Show all relationships in Chen notation
+        for rel in relationships:
             ptbl_name = rel.get("parent_table")
             ctbl_name = rel.get("child_table")
-            ptbl = next((t for t in tables if t.get("name") == ptbl_name), None)
-            ctbl = next((t for t in tables if t.get("name") == ctbl_name), None)
+            # Search in both business and system tables
+            combined_tables = tables + system_tables
+            ptbl = next((t for t in combined_tables if t.get("name") == ptbl_name), None)
+            ctbl = next((t for t in combined_tables if t.get("name") == ctbl_name), None)
 
             chen_er_html += '  <div class="chen-diagram-row">\n'
 
@@ -802,7 +811,7 @@ def render_brd_template(
     chen_er_html += '</div>'
 
     c25 = (
-        f'<p>Conceptual and logical data model specifications for {tables_count} business tables and {rel_count} referential relationships.</p>\n'
+        f'<p>Conceptual and logical data model specifications for {len(all_tables_list)} business and system tables and {rel_count} referential relationships.</p>\n'
         f'<div style="display:flex; gap:10px; margin-bottom:20px; align-items:center;">'
         f'<span style="font-size:12px; font-weight:700; color:var(--muted);">MODEL VIEWS:</span>'
         f'<span class="badge badge-info" style="padding:6px 12px; border-radius:4px;">ER Diagram (Chen)</span>'
@@ -814,7 +823,7 @@ def render_brd_template(
         f'<h2 class="sub-title">Relational Data Model & Logical Schema</h2>\n'
         f'<div class="erd-container">\n'
         f'  <div class="erd-visual-header">\n'
-        f'    <span>Entity Relationship Connections & Foreign Keys ({rel_count} Relations Identified)</span>\n'
+        f'    <span>{len(all_tables_list)} tables &bull; {rel_count} relationships</span>\n'
         f'    <div class="erd-legend">\n'
         f'      <span>1 = One (PK) &nbsp; <span style="color:#2563eb;">&mdash;&mdash;●&mdash;&mdash;&raquo;</span> &nbsp; &infin; = Many (FK)</span>\n'
         f'    </div>\n'
@@ -841,7 +850,7 @@ def render_brd_template(
     # 26. CORE BUSINESS TABLES
     # -------------------------------------------------------------
     c26_rows = []
-    for tbl in tables_sorted[:10]: # Focus on core tables
+    for tbl in tables_sorted: # Show all tables
         tname = tbl.get("name")
         c26_rows.append(
             f'<tr><td><code>{esc(tname)}</code></td><td>{esc(tbl.get("pk_status"))}</td>'
@@ -949,7 +958,8 @@ def render_brd_template(
         cols = table.get("columns") or []
         for col in cols:
             cname = col.get("name", "Field")
-            is_pk = col.get("is_pk")
+            # Enhanced PK detection
+            is_pk = col.get("is_pk") or (cname in table.get("enforced_pk_cols", [])) or (cname in table.get("inferred_pk_cols", []))
             # Determine PK type
             pk_label = "-"
             if is_pk:
