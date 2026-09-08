@@ -4,7 +4,6 @@ import './Access2JavaLoader.css';
 export default function Access2JavaLoader({ 
   isVisible = true, 
   databaseName = 'Database.accdb',
-  // fileSize = '0.00 MB',
   scannedData = null,
   isComplete = false,
   onDurationRecorded = null
@@ -17,7 +16,7 @@ export default function Access2JavaLoader({
 
   const dynamicStages = [
     {
-      label: `Reading database binary catalog (${databaseName} • ${fileSize})...`,
+      label: `Reading database binary catalog (${databaseName})...`,
       targetPct: 20
     },
     {
