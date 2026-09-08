@@ -571,6 +571,7 @@ export default function Step4Review({ onOpenExplorer, onOpenErDiagram }) {
     };
 
     const handleGlobalSelectAll = () => {
+        const allObjectsFlat = Object.values(reviewData).flat();
         const allSelectable = allObjectsFlat.filter(o => o.status !== 'UNSUPPORTED' && o.status !== 'FAILED_EXTRACTION');
         actions.selectAllObjects(allSelectable);
     };
