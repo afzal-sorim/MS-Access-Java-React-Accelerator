@@ -7,7 +7,7 @@ const COLOR_PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#
 
 const TopTablesList = ({ progress, result }) => {
     const [selectedTable, setSelectedTable] = useState(null);
-    const [viewMode, setViewMode] = useState('chart'); // 'chart' | 'list'
+    const [viewMode, setViewMode] = useState('list'); // 'chart' | 'list'
 
     const tableCount = progress?.tables?.count ?? (progress?.tables?.items?.length || 0);
     
@@ -21,14 +21,15 @@ const TopTablesList = ({ progress, result }) => {
         if (Array.isArray(rawTables) && rawTables.length > 0) {
             return rawTables.slice(0, 5).map((t, idx) => {
                 const name = typeof t === 'string' ? t : (t.name || t.tableName || `Table_${idx + 1}`);
-                const rows = (typeof t === 'object' && t.rowCount) ? t.rowCount : Math.max(120, 3800 - (idx * 720));
-                const records = `${rows.toLocaleString()} rows`;
+                const cols = (typeof t === 'object') ? (t.columns?.length || 0) : 0;
+                const columnText = cols > 0 ? `${cols.toLocaleString()} columns` : 'Unknown columns';
                 return {
                     name,
-                    value: rows,
-                    records,
-                    rawRows: rows.toLocaleString(),
-                    color: COLOR_PALETTE[idx % COLOR_PALETTE.length]
+                    value: cols,
+                    records: columnText,
+                    rawRows: cols > 0 ? cols.toLocaleString() : 'N/A',
+                    color: COLOR_PALETTE[idx % COLOR_PALETTE.length],
+                    originalTable: t
                 };
             });
         }
@@ -43,17 +44,22 @@ const TopTablesList = ({ progress, result }) => {
         if (!selectedTable) return null;
         const name = selectedTable.name;
         const cleanName = name.replace(/^tbl_?/i, '');
+        const tableObj = selectedTable.originalTable;
+        
+        let cols = [];
+        if (typeof tableObj === 'object' && Array.isArray(tableObj.columns) && tableObj.columns.length > 0) {
+            cols = tableObj.columns.map(c => ({
+                name: c.name,
+                type: c.pg_type || c.access_type || 'VARCHAR',
+                desc: c.is_pk ? 'Primary Key' : (c.is_fk ? 'Foreign Key' : 'Standard Field')
+            }));
+        }
+
         return {
             entity: `com.generated.app.entity.${cleanName}Entity`,
             pk: `${cleanName}ID`,
-            size: `${Math.round(selectedTable.value * 0.12 + 45)} KB`,
-            columns: [
-                { name: `${cleanName}ID`, type: 'BIGINT (PK, AutoNumber)', desc: `Primary key identifier for ${name}` },
-                { name: 'Name', type: 'VARCHAR(100)', desc: 'Primary descriptor text' },
-                { name: 'StatusCode', type: 'VARCHAR(20)', desc: 'Active status indicator' },
-                { name: 'CreatedDate', type: 'TIMESTAMP', desc: 'Record creation timestamp' },
-                { name: 'ModifiedDate', type: 'TIMESTAMP', desc: 'Last modified timestamp' }
-            ]
+            size: `${Math.round((selectedTable.value || 0) * 0.12 + 45)} KB`,
+            columns: cols
         };
     }, [selectedTable]);
 
@@ -63,7 +69,7 @@ const TopTablesList = ({ progress, result }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <div>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#15133A', marginBottom: '0.25rem' }}>Top Database Tables</h3>
-                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Proportional record counts for top tables</p>
+                    <p style={{ fontSize: '0.75rem', color: '#64748B', margin: 0 }}>Proportional column counts for top tables</p>
                 </div>
 
                 {/* Chart / List Toggle Buttons */}
@@ -122,7 +128,7 @@ const TopTablesList = ({ progress, result }) => {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    formatter={(value, name) => [`${value.toLocaleString()} rows`, name]}
+                                    formatter={(value, name) => [`${value.toLocaleString()} columns`, name]}
                                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', fontSize: '0.75rem', fontWeight: 600 }}
                                 />
                             </PieChart>
@@ -154,7 +160,7 @@ const TopTablesList = ({ progress, result }) => {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                                         <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500 }}>
-                                            {item.rawRows} rows
+                                            {item.rawRows} columns
                                         </span>
                                         <ChevronRight size={13} color="#94a3b8" />
                                     </div>
@@ -186,7 +192,7 @@ const TopTablesList = ({ progress, result }) => {
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A' }}>{item.name}</div>
-                                        <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>{item.rawRows} total records</div>
+                                        <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>{item.rawRows} total columns</div>
                                     </div>
                                 </div>
 
@@ -225,7 +231,7 @@ const TopTablesList = ({ progress, result }) => {
                                         {selectedTable.name}
                                     </h3>
                                     <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: 0 }}>
-                                        Estimated {selectedTable.rawRows} records • {activeSchema.size}
+                                        {selectedTable.rawRows !== 'N/A' ? `${selectedTable.rawRows} columns` : 'Unknown columns'}
                                     </p>
                                 </div>
                             </div>

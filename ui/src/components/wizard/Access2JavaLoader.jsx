@@ -6,11 +6,13 @@ export default function Access2JavaLoader({
   databaseName = 'Database.accdb',
   scannedData = null,
   isComplete = false,
-  onDurationRecorded = null
+  onDurationRecorded = null,
+  customStages = null,
+  estimatedTimeSeconds = null
 }) {
   if (!isVisible) return null;
 
-  const [percentage, setPercentage] = useState(12);
+  const [percentage, setPercentage] = useState(estimatedTimeSeconds ? 0 : 12);
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -40,6 +42,8 @@ export default function Access2JavaLoader({
       targetPct: 100
     }
   ];
+
+  const activeStages = customStages || dynamicStages;
 
   const elapsedSecondsRef = useRef(0);
 
@@ -74,31 +78,33 @@ export default function Access2JavaLoader({
 
       if (isComplete) {
         setPercentage(100);
-        setCurrentStepIdx(dynamicStages.length - 1);
+        setCurrentStepIdx(activeStages.length - 1);
       } else {
-        // Dynamic continuous progression based strictly on elapsed timer
-        // Smooth asymptotic curve that never reaches 100% prematurely (caps at 95% while scanning)
-        const progressVal = 12 + 83 * (1 - Math.exp(-elapsedSec / 16));
-        const newPct = Math.min(95, Math.round(progressVal));
+        let progressVal;
+        if (estimatedTimeSeconds) {
+            progressVal = Math.min(99, (elapsedSec / estimatedTimeSeconds) * 100);
+        } else {
+            progressVal = 12 + 83 * (1 - Math.exp(-elapsedSec / 16));
+        }
+        
+        const newPct = Math.min(estimatedTimeSeconds ? 99 : 95, Math.round(progressVal));
         setPercentage(newPct);
 
-        // Stages progress in real-time with the timer
+        // Calculate current step index based on progress and activeStages
         let stepIdx = 0;
-        if (newPct >= 88) stepIdx = 5;
-        else if (newPct >= 75) stepIdx = 4;
-        else if (newPct >= 60) stepIdx = 3;
-        else if (newPct >= 40) stepIdx = 2;
-        else if (newPct >= 20) stepIdx = 1;
-        else stepIdx = 0;
-
-        setCurrentStepIdx(stepIdx);
+        for (let i = 0; i < activeStages.length; i++) {
+            if (newPct >= (activeStages[i].targetPct || ((i + 1) / activeStages.length * 100))) {
+                stepIdx = i;
+            }
+        }
+        setCurrentStepIdx(Math.min(stepIdx, activeStages.length - 1));
       }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isComplete, dynamicStages.length]);
+  }, [isComplete, activeStages.length, estimatedTimeSeconds]);
 
-  const currentStage = dynamicStages[currentStepIdx] || dynamicStages[0];
+  const currentStage = activeStages[currentStepIdx] || activeStages[0];
 
   const formatTimer = (secs) => {
     const mm = String(Math.floor(secs / 60)).padStart(2, '0');
@@ -178,7 +184,7 @@ export default function Access2JavaLoader({
         {/* Dynamic Continuous Progress Bar with Live Percentage Counter */}
         <div className="a2j-loader-progress-section">
           <div className="a2j-loader-progress-labels">
-            <span className="a2j-loader-stage-indicator">Stage {currentStepIdx + 1} of {dynamicStages.length}</span>
+            <span className="a2j-loader-stage-indicator">Stage {currentStepIdx + 1} of {activeStages.length}</span>
             <span className="a2j-loader-percentage-indicator">{percentage}%</span>
           </div>
 

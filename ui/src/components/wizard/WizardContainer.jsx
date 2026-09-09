@@ -8,6 +8,7 @@ import Step2Analyze from './steps/Step2Analyze';
 import Step3Configure from './steps/Step3Configure';
 import Step5Generate from './steps/Step5Generate';
 import Step6Summary from './steps/Step6Summary';
+import Access2JavaLoader from './Access2JavaLoader';
 import { 
     ChevronRight, ChevronDown, Database, Sparkles, PanelLeftClose, PanelLeftOpen, CheckCircle2, ShieldCheck, Cpu,
     Table, Layout, FileText, PlaySquare, Code, Share2, GitFork, BookOpen, Layers
@@ -75,6 +76,9 @@ export default function WizardContainer() {
     // Track whether user has viewed/reached Human Intervention on Step 5 before enabling Start New Conversion
     const [canStartNewConversion, setCanStartNewConversion] = useState(false);
 
+    // Track dummy loader state for Step 4 -> 5 transition
+    const [isGeneratingLoaderVisible, setIsGeneratingLoaderVisible] = useState(false);
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1: return <Step1SelectApplication />;
@@ -108,6 +112,13 @@ export default function WizardContainer() {
                 actions.setAnalysisStartTime(scanStartTime);
             }
             actions.nextStep();
+        } else if (currentStep === 4) {
+            // Dummy loader for 4 minutes (240000ms)
+            setIsGeneratingLoaderVisible(true);
+            setTimeout(() => {
+                setIsGeneratingLoaderVisible(false);
+                actions.nextStep();
+            }, 240000);
         } else {
             actions.nextStep();
         }
@@ -617,6 +628,20 @@ export default function WizardContainer() {
                     <button onClick={actions.clearError} style={{ marginLeft: '1rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>×</button>
                 </div>
             )}
+
+            {/* ── Transition Dummy Loader ── */}
+            <Access2JavaLoader 
+                isVisible={isGeneratingLoaderVisible} 
+                estimatedTimeSeconds={240} 
+                customStages={[
+                    { label: 'Initializing code generation engine...', targetPct: 15 },
+                    { label: 'Mapping database schemas to Java Entities...', targetPct: 35 },
+                    { label: 'Translating Access queries to JPQL...', targetPct: 55 },
+                    { label: 'Generating React components from Forms...', targetPct: 75 },
+                    { label: 'Converting VBA macros to Spring Services...', targetPct: 90 },
+                    { label: 'Finalizing application bundle...', targetPct: 100 }
+                ]}
+            />
         </div>
     );
 }

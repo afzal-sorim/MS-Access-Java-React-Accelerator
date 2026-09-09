@@ -63,11 +63,10 @@ const RelationshipDiagram = ({ data }) => {
         return { label: 'Standard Table', color: '#10b981', bg: '#d1fae5' };
     };
 
-    // Mock record counts based on table names/importance for visual variety
-    const getTableRecordInfo = (index) => {
-        const counts = [12450, 5420, 890, 3200, 150, 7800, 450, 1200, 60, 2300, 950, 15000];
-        const val = counts[index % counts.length];
-        return val > 5000 ? { label: 'High Record Count', val: val.toLocaleString() } : null;
+    // Show record info only if true counts exist
+    const getTableRecordInfo = (table) => {
+        const rows = (typeof table === 'object') ? (table.rowCount || parseInt(String(table.recordCount || '0').replace(/,/g, '')) || 0) : 0;
+        return rows > 0 ? { label: 'Records', val: rows.toLocaleString() } : null;
     };
 
     return (
@@ -165,7 +164,7 @@ const RelationshipDiagram = ({ data }) => {
 
                     {displayTables.map((table, tIdx) => {
                         const complexity = getTableComplexity(table);
-                        const recordInfo = getTableRecordInfo(tIdx);
+                        const recordInfo = getTableRecordInfo(table);
 
                         return (
                             <div key={table.name} className="table-card" style={{

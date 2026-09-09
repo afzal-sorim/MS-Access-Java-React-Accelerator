@@ -479,10 +479,10 @@ export default function Step2Analyze() {
                                     <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Database</span>
                                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{dbName}</span>
                                 </div>
-                                <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
+                                {/* <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
                                     <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>File Size</span>
                                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#15133A', whiteSpace: 'nowrap' }}>{getFileSize()}</span>
-                                </div>
+                                </div> */}
                                 <div className="card" style={{ padding: '0.4rem 0.875rem', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column', width: 'auto', flexShrink: 0 }}>
                                     <span style={{ fontSize: '0.625rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Analysis Time</span>
                                     <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#3730A3', whiteSpace: 'nowrap' }}>{getAnalysisTime()}</span>
