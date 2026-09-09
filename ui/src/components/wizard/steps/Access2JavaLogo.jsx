@@ -44,7 +44,6 @@ export default function Access2JavaLogo({ size = 'md' }) {
           - White stacked database cylinder perfectly centered on the right
           - Panel overlaps the cylinder exactly like the original concept
       ══════════════════════════════════════════════════ */}
-      ══════════════════════════════════════════════════ */}
       <div style={{
         display: 'inline-flex',
         alignItems: 'baseline',
