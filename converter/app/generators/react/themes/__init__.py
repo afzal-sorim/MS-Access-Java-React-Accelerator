@@ -8,12 +8,14 @@ from .base import Theme
 from .classic import ClassicTheme
 from .modern_dashboard import ModernDashboardTheme
 from .material import MaterialTheme
+from .exact import ExactLayoutTheme
 
 
 _THEME_REGISTRY: dict[str, type[Theme]] = {
     "classic": ClassicTheme,
     "modern_dashboard": ModernDashboardTheme,
     "material": MaterialTheme,
+    "exact": ExactLayoutTheme,
 }
 
 
@@ -43,5 +45,10 @@ def list_themes() -> list[dict[str, str]]:
             "key": "material",
             "name": "Material Design",
             "description": "Google Material-inspired with elevation shadows, outlined inputs, and responsive grid.",
+        },
+        {
+            "key": "exact",
+            "name": "Exact Layout (Access replica)",
+            "description": "1:1 pixel-perfect replication of MS Access layouts using absolute positioning.",
         },
     ]

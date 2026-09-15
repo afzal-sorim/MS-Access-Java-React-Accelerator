@@ -144,6 +144,11 @@ class ControlIR(BaseModel):
     visible: bool = True
     enabled: bool = True
     locked: bool = False
+    left: Optional[int] = None            # Position in twips
+    top: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    section: Optional[int] = None         # 0=Detail, 1=Header, 2=Footer etc
     events: dict[str, str] = Field(default_factory=dict)  # event -> handler name
 
 

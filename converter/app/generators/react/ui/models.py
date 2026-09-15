@@ -110,6 +110,14 @@ class UIField:
     info_level: InfoLevel = InfoLevel.PRIMARY
     format: Optional[str] = None
     is_expression: bool = False
+    left: Optional[int] = None
+    top: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    label_left: Optional[int] = None
+    label_top: Optional[int] = None
+    label_width: Optional[int] = None
+    label_height: Optional[int] = None
 
 @dataclass
 class UIAction:
@@ -119,6 +127,10 @@ class UIAction:
     priority: Any
     target: Optional[str] = None
     vba_handler: Optional[str] = None
+    left: Optional[int] = None
+    top: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
     enabled: bool = True
 
 @dataclass

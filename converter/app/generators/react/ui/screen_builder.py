@@ -153,38 +153,19 @@ class ScreenBuilder:
         )
 
     @staticmethod
-    def _build_label_map(controls: list[ControlIR]) -> dict[str, str]:
-        """Build a mapping from input control names to Label captions.
+    def _build_label_map(controls: list[ControlIR]) -> dict[str, ControlIR]:
+        label_map: dict[str, ControlIR] = {}  # input_name -> Label control
 
-        Access forms typically pair a Label (e.g. ``lblClosedBy`` with
-        caption ``"Closed By:"``) with an adjacent input control
-        (e.g. ``txtClosedBy``).  This method resolves those associations
-        so that the input control can display the human-readable caption
-        instead of its internal developer name.
-
-        Matching strategies (in priority order):
-        1. Naming convention: strip the ``lbl`` prefix and match against
-           input control names that share the same suffix after stripping
-           their own prefix (``txt``, ``cbo``, ``chk``, ``opt``, ``tgl``).
-        2. Positional adjacency: a Label immediately followed by an input
-           control in the controls list is likely its associated label.
-        """
-        label_map: dict[str, str] = {}  # input_name -> caption
-
-        # Collect all labels with captions
         labels: list[ControlIR] = [
             c for c in controls
             if c.control_type == "Label" and c.caption
         ]
 
-        # Input control type prefixes
         _INPUT_PREFIXES = ("txt", "cbo", "chk", "opt", "tgl", "lst")
         _LABEL_PREFIXES = ("lbl",)
-        # Also match column-header labels like lblColVIN -> txtVIN
         _LABEL_COL_PREFIXES = ("lblcol",)
 
-        # Build a lookup of input controls by their normalized suffix
-        input_suffix_map: dict[str, list[str]] = {}  # suffix_lower -> [ctrl.name, ...]
+        input_suffix_map: dict[str, list[str]] = {}
         for c in controls:
             if c.control_type in ("TextBox", "ComboBox", "CheckBox",
                                   "OptionButton", "ListBox", "ToggleButton"):
@@ -195,21 +176,17 @@ class ScreenBuilder:
                         input_suffix_map.setdefault(suffix, []).append(c.name)
                         break
                 else:
-                    # No prefix match — use the full name as suffix
                     input_suffix_map.setdefault(name_lower, []).append(c.name)
 
-        # Strategy 1: Naming convention match
         for lbl in labels:
             lbl_name_lower = lbl.name.lower()
             suffix = None
 
-            # Try lblColXxx -> Xxx
             for pfx in _LABEL_COL_PREFIXES:
                 if lbl_name_lower.startswith(pfx):
                     suffix = lbl_name_lower[len(pfx):]
                     break
 
-            # Try lblXxx -> Xxx
             if suffix is None:
                 for pfx in _LABEL_PREFIXES:
                     if lbl_name_lower.startswith(pfx):
@@ -217,12 +194,9 @@ class ScreenBuilder:
                         break
 
             if suffix and suffix in input_suffix_map:
-                caption = lbl.caption.rstrip(":")
                 for input_name in input_suffix_map[suffix]:
-                    label_map[input_name] = caption
+                    label_map[input_name] = lbl
 
-        # Strategy 2: Positional adjacency — if a Label immediately precedes
-        # an input control and neither was matched by naming convention
         for i, ctrl in enumerate(controls):
             if (ctrl.control_type == "Label" and ctrl.caption
                     and i + 1 < len(controls)):
@@ -230,31 +204,22 @@ class ScreenBuilder:
                 if (next_ctrl.control_type in ("TextBox", "ComboBox", "CheckBox",
                                                "OptionButton", "ListBox", "ToggleButton")
                         and next_ctrl.name not in label_map):
-                    label_map[next_ctrl.name] = ctrl.caption.rstrip(":")
+                    label_map[next_ctrl.name] = ctrl
 
         return label_map
 
     def _build_field(self, ctrl: ControlIR, form: FormIR,
-                     label_map: Optional[dict[str, str]] = None) -> UIField:
+                     label_map: Optional[dict[str, ControlIR]] = None) -> UIField:
         """Convert a ControlIR into a UIField."""
-        # Determine field type from control type and data source
         field_type = self._resolve_field_type(ctrl, form)
-
-        # Check if control source is an Access expression
         is_expression = self._is_access_expression(ctrl.control_source or "")
-
-        # Resolve data type from column if bound
         data_type = self._resolve_data_type(ctrl, form)
-
-        # Determine info level
         info_level = self._classify_info_level(ctrl, form)
 
-        # Resolve human-readable label:
-        # 1. Use associated Label caption from label_map (best)
-        # 2. Fall back to the control's own caption property
-        # 3. Fall back to a cleaned version of the control name
+        label_ctrl = None
         if label_map and ctrl.name in label_map:
-            label = label_map[ctrl.name]
+            label_ctrl = label_map[ctrl.name]
+            label = label_ctrl.caption.rstrip(":") if label_ctrl.caption else ""
         elif ctrl.caption:
             label = ctrl.caption
         else:
@@ -276,6 +241,14 @@ class ScreenBuilder:
             info_level=info_level,
             format=ctrl.format,
             is_expression=is_expression,
+            left=ctrl.left,
+            top=ctrl.top,
+            width=ctrl.width,
+            height=ctrl.height,
+            label_left=label_ctrl.left if label_ctrl else None,
+            label_top=label_ctrl.top if label_ctrl else None,
+            label_width=label_ctrl.width if label_ctrl else None,
+            label_height=label_ctrl.height if label_ctrl else None,
         )
 
     def _build_action(self, ctrl: ControlIR, form: FormIR) -> UIAction:
@@ -298,6 +271,10 @@ class ScreenBuilder:
             target=self._extract_navigation_target(vba_code),
             vba_handler=ctrl.events.get("OnClick", ctrl.events.get("Click")),
             enabled=ctrl.enabled,
+            left=ctrl.left,
+            top=ctrl.top,
+            width=ctrl.width,
+            height=ctrl.height,
         )
 
     def _build_subform(self, ctrl: ControlIR, form: FormIR) -> UISubform:

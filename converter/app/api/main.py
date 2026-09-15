@@ -52,7 +52,7 @@ from typing import Any, Optional
 
 from fastapi import (
     FastAPI, File, UploadFile, HTTPException, BackgroundTasks,
-    WebSocket, WebSocketDisconnect, Depends, Query, Request
+    WebSocket, WebSocketDisconnect, Depends, Query, Request, Form
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
@@ -1006,7 +1006,7 @@ async def _start_job(
 async def create_job(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    config_json: Optional[str] = None,
+    config_json: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db_session),
     current_user: UserModel = Depends(get_current_user)
 ):

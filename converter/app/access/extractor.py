@@ -600,8 +600,14 @@ class AccessExtractor:
                           ("Caption", "caption"),
                           ("Format", "format"),
                           ("DefaultValue", "default_value"),
-                          ("ValidationRule", "validation_rule")):
-            control[key] = _safe(lambda p=prop: getattr(ctl, p, None)) or None
+                          ("ValidationRule", "validation_rule"),
+                          ("Left", "left"),
+                          ("Top", "top"),
+                          ("Width", "width"),
+                          ("Height", "height"),
+                          ("Section", "section")):
+            val = _safe(lambda p=prop: getattr(ctl, p, None))
+            control[key] = val if val is not None else None
         for event in CONTROL_EVENTS:
             handler = _prop(ctl, event)
             if handler:

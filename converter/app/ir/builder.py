@@ -419,6 +419,11 @@ class IRBuilder:
             visible=data.get("visible", True),
             enabled=data.get("enabled", True),
             locked=data.get("locked", False),
+            left=data.get("left"),
+            top=data.get("top"),
+            width=data.get("width"),
+            height=data.get("height"),
+            section=data.get("section"),
             events=data.get("events", {}),
         )
 

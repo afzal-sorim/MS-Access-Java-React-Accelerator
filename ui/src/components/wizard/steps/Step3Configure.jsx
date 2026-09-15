@@ -59,7 +59,7 @@ export default function Step3Configure() {
                         { icon: '🐘', value: `PostgreSQL ${localConfig.postgres_version}`, label: 'Database', color: '#6d28d9', bg: '#ede9fe' },
                         { icon: '🔐', value: (localConfig.authentication_strategy || 'JWT').toUpperCase(), label: 'Auth Strategy', color: '#be123c', bg: '#ffe4e6' },
                         { icon: '🔄', value: (localConfig.migration_strategy || 'flyway').charAt(0).toUpperCase() + (localConfig.migration_strategy || 'flyway').slice(1), label: 'Migration', color: '#0f766e', bg: '#ccfbf1' },
-                        { icon: '🎨', value: ({ classic: 'Classic', modern_dashboard: 'Modern', material: 'Material' })[localConfig.ui_style] || 'Classic', label: 'UI Style', color: '#7c3aed', bg: '#ede9fe' },
+                        { icon: '🎨', value: ({ classic: 'Classic', modern_dashboard: 'Modern', material: 'Material', exact: 'Exact' })[localConfig.ui_style] || 'Classic', label: 'UI Style', color: '#7c3aed', bg: '#ede9fe' },
                     ].map((item, idx, arr) => (
                         <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
                             {/* Step Item */}
@@ -370,6 +370,14 @@ export default function Step3Configure() {
                                 emoji: '📐',
                                 color: '#1976d2',
                                 bg: 'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+                            },
+                            {
+                                key: 'exact',
+                                name: 'Exact Layout (Access replica)',
+                                desc: '1:1 pixel-perfect replication of MS Access layouts using absolute positioning.',
+                                emoji: '🎯',
+                                color: '#d97706',
+                                bg: 'linear-gradient(135deg, #fef3c7, #fde68a)',
                             },
                         ].map(style => (
                             <button
