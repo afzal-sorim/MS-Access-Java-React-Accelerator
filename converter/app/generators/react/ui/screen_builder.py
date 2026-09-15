@@ -249,6 +249,7 @@ class ScreenBuilder:
             label_top=label_ctrl.top if label_ctrl else None,
             label_width=label_ctrl.width if label_ctrl else None,
             label_height=label_ctrl.height if label_ctrl else None,
+            label_section=label_ctrl.section if label_ctrl else None,
             section=ctrl.section,
         )
 

@@ -20,6 +20,9 @@ class ExactLayoutTheme(ClassicTheme):
             if f.top is not None:
                 sec = f.section if f.section is not None else 0
                 section_max_bottom[sec] = max(section_max_bottom.get(sec, 0), f.top + (f.height or 0))
+            if f.label_top is not None:
+                sec = f.label_section if f.label_section is not None else (f.section if f.section is not None else 0)
+                section_max_bottom[sec] = max(section_max_bottom.get(sec, 0), f.label_top + (f.label_height or 0))
         for a in presentation.actions:
             if a.top is not None:
                 sec = a.section if a.section is not None else 0
@@ -77,7 +80,8 @@ class ExactLayoutTheme(ClassicTheme):
             # If the label has layout, render it independently
             label_jsx = ""
             if field.label_left is not None and field.label_top is not None:
-                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px_y(field.label_top, field.section)}', width: '{to_px(field.label_width)}', height: 'auto', minHeight: '{to_px(field.label_height)}', fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.2px', overflow: 'visible' }}}}"
+                l_sec = field.label_section if field.label_section is not None else field.section
+                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px_y(field.label_top, l_sec)}', width: '{to_px(field.label_width)}', height: 'auto', minHeight: '{to_px(field.label_height)}', fontWeight: 'bold', color: '#555', fontSize: '11px', letterSpacing: '0.2px', overflow: 'visible', zIndex: 10 }}}}"
                 label_jsx = f"""
             <label htmlFor="{field_name}" style={label_style}>
                 {label}
@@ -180,6 +184,9 @@ class ExactLayoutTheme(ClassicTheme):
         for f in presentation.fields:
             if f.top is not None:
                 max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 14 + 50)
+            if f.label_top is not None:
+                l_sec = f.label_section if f.label_section is not None else f.section
+                max_height = max(max_height, (f.label_top + section_offsets.get(l_sec or 0, section_offsets.get(0,0)) + (f.label_height or 0)) // 14 + 50)
             if f.left is not None:
                 max_width = max(max_width, (f.left + (f.width or 0)) // 14 + 50)
         for a in presentation.actions:
@@ -233,6 +240,9 @@ export default function {page_name}Page() {{
         for f in presentation.fields:
             if f.top is not None:
                 max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 14 + 100)
+            if f.label_top is not None:
+                l_sec = f.label_section if f.label_section is not None else f.section
+                max_height = max(max_height, (f.label_top + section_offsets.get(l_sec or 0, section_offsets.get(0,0)) + (f.label_height or 0)) // 14 + 100)
             if f.left is not None:
                 max_width = max(max_width, (f.left + (f.width or 0)) // 14 + 50)
 
