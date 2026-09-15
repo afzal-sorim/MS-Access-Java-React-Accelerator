@@ -184,6 +184,9 @@ class UITransformationEngine:
             information_hierarchy={f.id: f.info_level.value for f in screen.fields},
             record_source=screen.record_source,
             is_bound=screen.is_bound,
+            back_color=screen.back_color,
+            fore_color=screen.fore_color,
+            section_colors=screen.section_colors,
             confidence=plan.confidence,
             decision_mode=plan.decision_mode,
         )

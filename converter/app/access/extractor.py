@@ -507,6 +507,8 @@ class AccessExtractor:
                 "is_subform": name.startswith("sub") or name.startswith("Sub"),
                 "record_source": None,
                 "caption": None,
+                "back_color": None,
+                "section_colors": {},
                 "controls": [],
                 "events": {},
                 "module": None,
@@ -521,6 +523,13 @@ class AccessExtractor:
                 frm = app.Forms(name)
                 form["record_source"] = _safe(lambda: frm.RecordSource) or None
                 form["caption"] = _safe(lambda: frm.Caption) or None
+                form["back_color"] = _safe(lambda: frm.Section(0).BackColor)
+                sec_colors = {}
+                for s_idx in range(5):
+                    c = _safe(lambda s=s_idx: frm.Section(s).BackColor)
+                    if c is not None:
+                        sec_colors[s_idx] = c
+                form["section_colors"] = sec_colors
                 form["has_module"] = bool(_safe(lambda: frm.HasModule, False))
                 if form["has_module"]:
                     form["module"] = f"Form_{name}"
@@ -605,7 +614,9 @@ class AccessExtractor:
                           ("Top", "top"),
                           ("Width", "width"),
                           ("Height", "height"),
-                          ("Section", "section")):
+                          ("Section", "section"),
+                          ("BackColor", "back_color"),
+                          ("ForeColor", "fore_color")):
             val = _safe(lambda p=prop: getattr(ctl, p, None))
             control[key] = val if val is not None else None
         for event in CONTROL_EVENTS:

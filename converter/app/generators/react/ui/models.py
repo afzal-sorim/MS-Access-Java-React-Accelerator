@@ -120,6 +120,8 @@ class UIField:
     label_width: Optional[int] = None
     label_height: Optional[int] = None
     label_section: Optional[int] = None
+    back_color: Optional[str] = None
+    fore_color: Optional[str] = None
 
 @dataclass
 class UIAction:
@@ -135,6 +137,8 @@ class UIAction:
     height: Optional[int] = None
     section: Optional[int] = None
     enabled: bool = True
+    back_color: Optional[str] = None
+    fore_color: Optional[str] = None
 
 @dataclass
 class UIRelationship:
@@ -160,6 +164,10 @@ class UIScreen:
     record_source: Optional[str] = None
     record_source_kind: Optional[str] = None
     is_bound: bool = False
+    has_module: bool = False
+    back_color: Optional[str] = None
+    fore_color: Optional[str] = None
+    section_colors: dict[int, str] = field(default_factory=dict)
     fields: List[UIField] = field(default_factory=list)
     actions: List[UIAction] = field(default_factory=list)
     subforms: List[UISubform] = field(default_factory=list)
@@ -225,5 +233,8 @@ class UIPresentation:
     information_hierarchy: Any = None
     record_source: Optional[str] = None
     is_bound: bool = False
+    back_color: Optional[str] = None
+    fore_color: Optional[str] = None
+    section_colors: dict[int, str] = field(default_factory=dict)
     confidence: float = 1.0
     decision_mode: str = "deterministic"

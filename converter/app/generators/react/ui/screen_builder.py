@@ -135,6 +135,8 @@ class ScreenBuilder:
             record_source=form.record_source,
             record_source_kind=form.record_source_kind,
             is_bound=bool(form.record_source),
+            back_color=form.back_color,
+            section_colors=form.section_colors,
             fields=fields,
             actions=actions,
             subforms=subforms,
@@ -251,6 +253,8 @@ class ScreenBuilder:
             label_height=label_ctrl.height if label_ctrl else None,
             label_section=label_ctrl.section if label_ctrl else None,
             section=ctrl.section,
+            back_color=ctrl.back_color,
+            fore_color=ctrl.fore_color,
         )
 
     def _build_action(self, ctrl: ControlIR, form: FormIR) -> UIAction:
@@ -278,6 +282,8 @@ class ScreenBuilder:
             width=ctrl.width,
             height=ctrl.height,
             section=ctrl.section,
+            back_color=ctrl.back_color,
+            fore_color=ctrl.fore_color,
         )
 
     def _build_subform(self, ctrl: ControlIR, form: FormIR) -> UISubform:

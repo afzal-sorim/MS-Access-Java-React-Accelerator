@@ -42,6 +42,9 @@ class DeterministicTransformer:
             information_hierarchy=info_hierarchy,
             record_source=screen.record_source,
             is_bound=screen.is_bound,
+            back_color=screen.back_color,
+            fore_color=screen.fore_color,
+            section_colors=screen.section_colors,
             confidence=1.0,
             decision_mode="deterministic",
         )

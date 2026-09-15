@@ -385,11 +385,24 @@ class IRBuilder:
 
     def _build_form(self, data: dict) -> FormIR:
         """Build FormIR from raw form data."""
+        def to_hex(ole_val):
+            if ole_val is None: return None
+            try:
+                v = int(ole_val)
+                # If negative, masking with 0xFFFFFF simulates standard System Colors or Theme mappings.
+                # It's an approximation for MS Access UI colors.
+                return f"#{v & 0xFF:02x}{(v >> 8) & 0xFF:02x}{(v >> 16) & 0xFF:02x}"
+            except (ValueError, TypeError):
+                return None
+
         form = FormIR(
             name=data["name"],
-            record_source=data.get("record_source") or None,
+            record_source=data.get("record_source"),
             record_source_kind=self._detect_source_kind(data.get("record_source")),
             caption=data.get("caption"),
+            back_color=to_hex(data.get("back_color")),
+            fore_color=to_hex(data.get("fore_color")),
+            section_colors={int(k): to_hex(v) for k, v in data.get("section_colors", {}).items() if to_hex(v)},
             is_subform=data.get("is_subform", False),
             parent_links=data.get("parent_links", {}),
             events=data.get("events", {}),
@@ -406,6 +419,14 @@ class IRBuilder:
 
     def _build_control(self, data: dict) -> ControlIR:
         """Build ControlIR from raw control data."""
+        def to_hex(ole_val):
+            if ole_val is None: return None
+            try:
+                v = int(ole_val)
+                return f"#{v & 0xFF:02x}{(v >> 8) & 0xFF:02x}{(v >> 16) & 0xFF:02x}"
+            except (ValueError, TypeError):
+                return None
+
         return ControlIR(
             name=data["name"],
             control_type=data.get("control_type", "Unknown"),
@@ -424,6 +445,8 @@ class IRBuilder:
             width=data.get("width"),
             height=data.get("height"),
             section=data.get("section"),
+            back_color=to_hex(data.get("back_color")),
+            fore_color=to_hex(data.get("fore_color")),
             events=data.get("events", {}),
         )
 

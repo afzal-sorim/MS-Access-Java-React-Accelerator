@@ -149,6 +149,8 @@ class ControlIR(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     section: Optional[int] = None         # 0=Detail, 1=Header, 2=Footer etc
+    back_color: Optional[str] = None      # hex color #RRGGBB
+    fore_color: Optional[str] = None      # hex color #RRGGBB
     events: dict[str, str] = Field(default_factory=dict)  # event -> handler name
 
 
@@ -157,6 +159,9 @@ class FormIR(BaseModel):
     record_source: Optional[str] = None
     record_source_kind: Optional[str] = None  # TABLE | QUERY | SQL | NONE
     caption: Optional[str] = None
+    back_color: Optional[str] = None
+    fore_color: Optional[str] = None
+    section_colors: dict[int, str] = Field(default_factory=dict)
     is_subform: bool = False
     parent_links: dict[str, str] = Field(default_factory=dict)  # child field -> master field
     controls: list[ControlIR] = Field(default_factory=list)
