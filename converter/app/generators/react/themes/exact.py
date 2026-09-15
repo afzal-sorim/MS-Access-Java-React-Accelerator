@@ -8,9 +8,28 @@ class ExactLayoutTheme(ClassicTheme):
     def name(self) -> str:
         return "Exact Layout (Access replica)"
 
-    def _build_form_fields_jsx(self, fields: list[UIField]) -> str:
+    def _compute_section_offsets(self, presentation) -> dict[int, int]:
+        section_max_bottom = {1: 0, 0: 0, 2: 0}
+        for f in presentation.fields:
+            if f.top is not None:
+                sec = f.section if f.section is not None else 0
+                section_max_bottom[sec] = max(section_max_bottom.get(sec, 0), f.top + (f.height or 0))
+        for a in presentation.actions:
+            if a.top is not None:
+                sec = a.section if a.section is not None else 0
+                section_max_bottom[sec] = max(section_max_bottom.get(sec, 0), a.top + (a.height or 0))
+
+        offset_s1 = 0
+        offset_s0 = section_max_bottom[1] + (200 if section_max_bottom[1] > 0 else 0)
+        offset_s2 = offset_s0 + section_max_bottom[0] + (200 if section_max_bottom[0] > 0 else 0)
+        return {1: offset_s1, 0: offset_s0, 2: offset_s2, None: offset_s0}
+
+    def _build_form_fields_jsx(self, fields: list[UIField], section_offsets: dict[int, int] = None) -> str:
         """Override to generate absolutely positioned inputs and labels."""
         parts = []
+        if section_offsets is None:
+            section_offsets = {1: 0, 0: 0, 2: 0, None: 0}
+            
         for field in fields:
             if not field.visible:
                 continue
@@ -25,20 +44,26 @@ class ExactLayoutTheme(ClassicTheme):
                     return "auto"
                 return f"{twips // 15}px"
 
+            def to_px_y(twips: int, sec: int) -> str:
+                if twips is None:
+                    return "auto"
+                y_offset = section_offsets.get(sec, section_offsets.get(0, 0))
+                return f"{(twips + y_offset) // 15}px"
+
             if field.field_type.value == "label":
-                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px(field.top)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', fontWeight: 'normal', color: '#333' }}}}"
+                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', fontWeight: 'normal', color: '#333' }}}}"
                 parts.append(f"""
             <div style={label_style}>
                 {label}
             </div>""")
                 continue
 
-            input_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px(field.top)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', backgroundColor: '{'#f8f9fa' if field.is_expression else '#fff'}', border: '1px solid #ccc', padding: '2px 4px', fontSize: '12px' }}}}"
+            input_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', backgroundColor: '{'#f8f9fa' if field.is_expression else '#fff'}', border: '1px solid #ccc', padding: '2px 4px', fontSize: '12px' }}}}"
 
             # If the label has layout, render it independently
             label_jsx = ""
             if field.label_left is not None and field.label_top is not None:
-                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px(field.label_top)}', width: '{to_px(field.label_width)}', height: '{to_px(field.label_height)}', fontWeight: 'bold', fontSize: '12px' }}}}"
+                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px_y(field.label_top, field.section)}', width: '{to_px(field.label_width)}', height: '{to_px(field.label_height)}', fontWeight: 'bold', fontSize: '12px' }}}}"
                 label_jsx = f"""
             <label htmlFor="{field_name}" style={label_style}>
                 {label}
@@ -100,9 +125,15 @@ class ExactLayoutTheme(ClassicTheme):
     def render_dashboard_page(self, presentation: UIPresentation) -> str:
         """Override dashboard render to absolutely position buttons as well."""
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
+        section_offsets = self._compute_section_offsets(presentation)
         
         def to_px(twips: int) -> str:
             return f"{twips // 15}px" if twips is not None else "auto"
+            
+        def to_px_y(twips: int, sec: int) -> str:
+            if twips is None: return "auto"
+            y_offset = section_offsets.get(sec, section_offsets.get(0, 0))
+            return f"{(twips + y_offset) // 15}px"
             
         button_elements = []
         for action in presentation.actions:
@@ -110,7 +141,7 @@ class ExactLayoutTheme(ClassicTheme):
             nav_route = self._resolve_action_route(action)
             click_handler = f"navigate('{nav_route}')" if nav_route else f"console.warn('No route mapped for: {handler}')"
             
-            btn_style = f"{{{{ position: 'absolute', left: '{to_px(action.left)}', top: '{to_px(action.top)}', width: '{to_px(action.width)}', height: '{to_px(action.height)}' }}}}"
+            btn_style = f"{{{{ position: 'absolute', left: '{to_px(action.left)}', top: '{to_px_y(action.top, action.section)}', width: '{to_px(action.width)}', height: '{to_px(action.height)}' }}}}"
             
             button_elements.append(f"""
             <button
@@ -122,7 +153,7 @@ class ExactLayoutTheme(ClassicTheme):
                 {action.label}
             </button>""")
 
-        form_fields_jsx = self._build_form_fields_jsx(presentation.fields)
+        form_fields_jsx = self._build_form_fields_jsx(presentation.fields, section_offsets)
         buttons_jsx = "".join(button_elements) if button_elements else ""
 
         needs_navigate = any(self._resolve_action_route(a) for a in presentation.actions)
@@ -132,12 +163,12 @@ class ExactLayoutTheme(ClassicTheme):
         max_height = 800
         for f in presentation.fields:
             if f.top is not None:
-                max_height = max(max_height, (f.top + (f.height or 0)) // 15 + 50)
+                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 15 + 50)
         for a in presentation.actions:
             if a.top is not None:
-                max_height = max(max_height, (a.top + (a.height or 0)) // 15 + 50)
+                max_height = max(max_height, (a.top + section_offsets.get(a.section or 0, section_offsets.get(0,0)) + (a.height or 0)) // 15 + 50)
 
-        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0' }}"
+        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
         
         return f"""import React, {{ useState }} from 'react';
 {navigate_import}
@@ -174,14 +205,15 @@ export default function {page_name}Page() {{
     def render_form_page(self, presentation: UIPresentation, endpoint: str, api_name: str, helper_imports: str) -> str:
         """Override form render to absolutely position default form buttons (Save/Cancel)."""
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
-        form_fields_jsx = self._build_form_fields_jsx(presentation.fields)
+        section_offsets = self._compute_section_offsets(presentation)
+        form_fields_jsx = self._build_form_fields_jsx(presentation.fields, section_offsets)
         
         max_height = 800
         for f in presentation.fields:
             if f.top is not None:
-                max_height = max(max_height, (f.top + (f.height or 0)) // 15 + 100)
+                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 15 + 100)
 
-        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0' }}"
+        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
         btn_submit_style = "{ position: 'absolute', bottom: '20px', right: '120px', width: '80px', height: '35px' }"
         btn_cancel_style = "{ position: 'absolute', bottom: '20px', right: '20px', width: '80px', height: '35px' }"
 

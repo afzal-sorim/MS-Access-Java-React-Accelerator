@@ -114,6 +114,7 @@ class UIField:
     top: Optional[int] = None
     width: Optional[int] = None
     height: Optional[int] = None
+    section: Optional[int] = None
     label_left: Optional[int] = None
     label_top: Optional[int] = None
     label_width: Optional[int] = None
@@ -131,6 +132,7 @@ class UIAction:
     top: Optional[int] = None
     width: Optional[int] = None
     height: Optional[int] = None
+    section: Optional[int] = None
     enabled: bool = True
 
 @dataclass

@@ -249,6 +249,7 @@ class ScreenBuilder:
             label_top=label_ctrl.top if label_ctrl else None,
             label_width=label_ctrl.width if label_ctrl else None,
             label_height=label_ctrl.height if label_ctrl else None,
+            section=ctrl.section,
         )
 
     def _build_action(self, ctrl: ControlIR, form: FormIR) -> UIAction:
@@ -275,6 +276,7 @@ class ScreenBuilder:
             top=ctrl.top,
             width=ctrl.width,
             height=ctrl.height,
+            section=ctrl.section,
         )
 
     def _build_subform(self, ctrl: ControlIR, form: FormIR) -> UISubform:
