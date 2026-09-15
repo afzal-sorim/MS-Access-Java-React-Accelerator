@@ -8,8 +8,14 @@ class ExactLayoutTheme(ClassicTheme):
     def name(self) -> str:
         return "Exact Layout (Access replica)"
 
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
+        css = super().get_css(app_name, presentations)
+        # Override the 1000px max-width from the classic theme to allow full-width exact layouts
+        css += "\n/* Exact Layout Overrides */\n.content { max-width: 100% !important; margin: 0 !important; }\n"
+        return css
+
     def _compute_section_offsets(self, presentation) -> dict[int, int]:
-        section_max_bottom = {1: 0, 0: 0, 2: 0}
+        section_max_bottom = {}
         for f in presentation.fields:
             if f.top is not None:
                 sec = f.section if f.section is not None else 0
@@ -19,10 +25,17 @@ class ExactLayoutTheme(ClassicTheme):
                 sec = a.section if a.section is not None else 0
                 section_max_bottom[sec] = max(section_max_bottom.get(sec, 0), a.top + (a.height or 0))
 
-        offset_s1 = 0
-        offset_s0 = section_max_bottom[1] + (200 if section_max_bottom[1] > 0 else 0)
-        offset_s2 = offset_s0 + section_max_bottom[0] + (200 if section_max_bottom[0] > 0 else 0)
-        return {1: offset_s1, 0: offset_s0, 2: offset_s2, None: offset_s0}
+        ordered_sections = [3, 1, 0, 2, 4]
+        offsets = {}
+        current_y = 0
+        
+        for sec in ordered_sections:
+            offsets[sec] = current_y
+            if sec in section_max_bottom and section_max_bottom[sec] > 0:
+                current_y += section_max_bottom[sec] + 200
+                
+        offsets[None] = offsets.get(0, 0)
+        return offsets
 
     def _build_form_fields_jsx(self, fields: list[UIField], section_offsets: dict[int, int] = None) -> str:
         """Override to generate absolutely positioned inputs and labels."""
@@ -38,32 +51,33 @@ class ExactLayoutTheme(ClassicTheme):
             label = field.label or field.id
             disabled = " disabled" if (field.readonly or field.is_expression) else ""
 
-            # MS Access coordinates are in Twips. 1440 twips = 1 inch. Screen is typically 96 DPI, so 1 px = 15 twips.
+            # MS Access coordinates are in Twips. 1440 twips = 1 inch. Screen is typically 96 DPI, so 1 px = 15 twips. 
+            # We use 14 as the divisor to slightly scale up the layout, injecting clean margin spacing everywhere.
             def to_px(twips: int) -> str:
                 if twips is None:
                     return "auto"
-                return f"{twips // 15}px"
+                return f"{twips // 14}px"
 
             def to_px_y(twips: int, sec: int) -> str:
                 if twips is None:
                     return "auto"
                 y_offset = section_offsets.get(sec, section_offsets.get(0, 0))
-                return f"{(twips + y_offset) // 15}px"
+                return f"{(twips + y_offset) // 14}px"
 
             if field.field_type.value == "label":
-                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', fontWeight: 'normal', color: '#333' }}}}"
+                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: 'auto', minHeight: '{to_px(field.height)}', fontWeight: 'normal', color: '#333', fontSize: '11px', letterSpacing: '0.2px', overflow: 'visible' }}}}"
                 parts.append(f"""
             <div style={label_style}>
                 {label}
             </div>""")
                 continue
 
-            input_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', backgroundColor: '{'#f8f9fa' if field.is_expression else '#fff'}', border: '1px solid #ccc', padding: '2px 4px', fontSize: '12px' }}}}"
+            input_style = f"{{{{ position: 'absolute', left: '{to_px(field.left)}', top: '{to_px_y(field.top, field.section)}', width: '{to_px(field.width)}', height: '{to_px(field.height)}', backgroundColor: '{'#f8f9fa' if field.is_expression else '#fff'}', border: '1px solid #ccc', padding: '2px 4px', fontSize: '11px', letterSpacing: '0.2px' }}}}"
 
             # If the label has layout, render it independently
             label_jsx = ""
             if field.label_left is not None and field.label_top is not None:
-                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px_y(field.label_top, field.section)}', width: '{to_px(field.label_width)}', height: '{to_px(field.label_height)}', fontWeight: 'bold', fontSize: '12px' }}}}"
+                label_style = f"{{{{ position: 'absolute', left: '{to_px(field.label_left)}', top: '{to_px_y(field.label_top, field.section)}', width: '{to_px(field.label_width)}', height: 'auto', minHeight: '{to_px(field.label_height)}', fontWeight: 'bold', fontSize: '11px', letterSpacing: '0.2px', overflow: 'visible' }}}}"
                 label_jsx = f"""
             <label htmlFor="{field_name}" style={label_style}>
                 {label}
@@ -128,12 +142,12 @@ class ExactLayoutTheme(ClassicTheme):
         section_offsets = self._compute_section_offsets(presentation)
         
         def to_px(twips: int) -> str:
-            return f"{twips // 15}px" if twips is not None else "auto"
+            return f"{twips // 14}px" if twips is not None else "auto"
             
         def to_px_y(twips: int, sec: int) -> str:
             if twips is None: return "auto"
             y_offset = section_offsets.get(sec, section_offsets.get(0, 0))
-            return f"{(twips + y_offset) // 15}px"
+            return f"{(twips + y_offset) // 14}px"
             
         button_elements = []
         for action in presentation.actions:
@@ -141,7 +155,8 @@ class ExactLayoutTheme(ClassicTheme):
             nav_route = self._resolve_action_route(action)
             click_handler = f"navigate('{nav_route}')" if nav_route else f"console.warn('No route mapped for: {handler}')"
             
-            btn_style = f"{{{{ position: 'absolute', left: '{to_px(action.left)}', top: '{to_px_y(action.top, action.section)}', width: '{to_px(action.width)}', height: '{to_px(action.height)}' }}}}"
+            btn_f_size = '9px' if len(action.label or '') > 6 else '11px'
+            btn_style = f"{{{{ position: 'absolute', left: '{to_px(action.left)}', top: '{to_px_y(action.top, action.section)}', minWidth: '{to_px(action.width)}', width: 'auto', height: '{to_px(action.height)}', padding: '0 8px', fontSize: '{btn_f_size}', lineHeight: '1.2', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', whiteSpace: 'nowrap' }}}}"
             
             button_elements.append(f"""
             <button
@@ -161,14 +176,19 @@ class ExactLayoutTheme(ClassicTheme):
         navigate_hook = "    const navigate = useNavigate();\n" if needs_navigate else ""
 
         max_height = 800
+        max_width = 800
         for f in presentation.fields:
             if f.top is not None:
-                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 15 + 50)
+                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 14 + 50)
+            if f.left is not None:
+                max_width = max(max_width, (f.left + (f.width or 0)) // 14 + 50)
         for a in presentation.actions:
             if a.top is not None:
-                max_height = max(max_height, (a.top + section_offsets.get(a.section or 0, section_offsets.get(0,0)) + (a.height or 0)) // 15 + 50)
+                max_height = max(max_height, (a.top + section_offsets.get(a.section or 0, section_offsets.get(0,0)) + (a.height or 0)) // 14 + 50)
+            if a.left is not None:
+                max_width = max(max_width, (a.left + (a.width or 0)) // 14 + 50)
 
-        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
+        container_style = f"{{ position: 'relative', width: '100%', minWidth: '{max_width}px', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
         
         return f"""import React, {{ useState }} from 'react';
 {navigate_import}
@@ -191,7 +211,7 @@ export default function {page_name}Page() {{
     return (
         <div className="{page_name.lower()}-dashboard" style={{{{ width: '100%', height: '100%', padding: '20px' }}}}>
             <h1>{presentation.screen_name}</h1>
-            <form onSubmit={{handleSubmit}}>
+            <form onSubmit={{handleSubmit}} style={{{{ width: '100%' }}}}>
                 <div className="exact-layout-container" style={{{container_style}}}>
                     {form_fields_jsx}
                     {buttons_jsx}
@@ -209,11 +229,14 @@ export default function {page_name}Page() {{
         form_fields_jsx = self._build_form_fields_jsx(presentation.fields, section_offsets)
         
         max_height = 800
+        max_width = 800
         for f in presentation.fields:
             if f.top is not None:
-                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 15 + 100)
+                max_height = max(max_height, (f.top + section_offsets.get(f.section or 0, section_offsets.get(0,0)) + (f.height or 0)) // 14 + 100)
+            if f.left is not None:
+                max_width = max(max_width, (f.left + (f.width or 0)) // 14 + 50)
 
-        container_style = f"{{ position: 'relative', width: '100%', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
+        container_style = f"{{ position: 'relative', width: '100%', minWidth: '{max_width}px', height: '{max_height}px', border: '1px solid #ccc', backgroundColor: '#f0f0f0', overflow: 'auto' }}"
         btn_submit_style = "{ position: 'absolute', bottom: '20px', right: '120px', width: '80px', height: '35px' }"
         btn_cancel_style = "{ position: 'absolute', bottom: '20px', right: '20px', width: '80px', height: '35px' }"
 
@@ -275,7 +298,7 @@ export default function {page_name}Form() {{
         <div className="{page_name.lower()}-form" style={{{{ padding: '20px' }}}}>
             <h1>{{isEdit ? 'Edit' : 'Create'}} {presentation.screen_name}</h1>
             {{error && <div className="error">{{error}}</div>}}
-            <form onSubmit={{handleSubmit}}>
+            <form onSubmit={{handleSubmit}} style={{{{ width: '100%' }}}}>
                 <div className="exact-layout-container" style={{{container_style}}}>
                     {form_fields_jsx}
                     
