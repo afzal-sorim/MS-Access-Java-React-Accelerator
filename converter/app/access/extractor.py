@@ -202,7 +202,10 @@ class AccessExtractor:
             app.CloseCurrentDatabase()
         finally:
             if app is not None:
-                _safe(app.Quit)
+                try:
+                    app.Quit()
+                except Exception:
+                    pass
                 app = None
             pythoncom.CoUninitialize()
         payload["warnings"] = self.warnings

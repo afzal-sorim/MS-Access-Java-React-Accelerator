@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useWizard } from '../../../context/WizardContext';
-import { createJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
+import { createJob, createLocalJob, connectProgressWebSocket, downloadResult, getJob, listJobFiles, getFileContent, getJobDbSchema } from '../../../services/api';
 import { JOB_STATES } from '../../../utils/constants';
 import { formatNumber } from '../../../utils/helpers';
 import { getGeneratedCounts } from '../../../utils/generatedCounts';
@@ -829,46 +829,15 @@ export default function Step5Generate() {
         try {
             // The analysis step already created a job and ran the full pipeline
             // (extract → IR → graph → supportability → generate).
-            // The generation happens as part of the same pipeline.
-            // We just need to connect to the existing job's WebSocket to
-            // track its progress through the generation phases.
-            //
-            // However, if the pipeline already completed during analysis,
-            // we should check the job state first.
-            let jobId = analysisJobId;
-
-            try {
-                const existingJob = await getJob(analysisJobId);
-                if (existingJob && existingJob.state === JOB_STATES.COMPLETED) {
-                    // Job already completed during analysis - show results directly
-                    actions.setGenerationJob(analysisJobId);
-                    actions.updateGenerationProgress({
-                        currentStep: 'completed',
-                        completedSteps: [...STEP_ORDER],
-                        percentage: 100,
-                    });
-                    actions.setGenerationComplete(true);
-                    actions.setGenerationResult(existingJob.result || existingJob);
-                    setIsGenerating(false);
-                    return;
-                }
-                if (existingJob && existingJob.state === JOB_STATES.FAILED) {
-                    actions.setError(existingJob.error?.message || 'Previous job failed');
-                    setIsGenerating(false);
-                    return;
-                }
-            } catch (err) {
-                // If we can't fetch the existing job, fall through to create a new one
-                console.warn('Could not fetch existing job, creating new one:', err);
-            }
-
-            // If the analysis job is still running or in a pre-generation state,
-            // connect to its WebSocket. If we need a fresh generation, create a new job.
-            const needsNewJob = !jobId;
-            if (needsNewJob) {
-                const job = await createJob(selectedFile, config);
-                jobId = job.id;
-            }
+            // However, since the user may have updated the config (e.g. ui_style)
+            // in Step 3, we MUST force the creation of a new job here so the
+            // backend uses the updated configuration.
+            let jobId = null;
+            
+            const job = localSource
+                ? await createLocalJob(localSource.path, config)
+                : await createJob(selectedFile, config);
+            jobId = job.id;
 
             actions.setGenerationJob(jobId);
 

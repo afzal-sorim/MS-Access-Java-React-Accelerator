@@ -118,7 +118,7 @@ export default function WizardContainer() {
             setTimeout(() => {
                 setIsGeneratingLoaderVisible(false);
                 actions.nextStep();
-            }, 240000);
+            }, 2400);
         } else {
             actions.nextStep();
         }
@@ -624,7 +624,7 @@ export default function WizardContainer() {
             {/* ── Error Toast ── */}
             {state.error && (
                 <div className="alert alert-danger" style={{ marginTop: '1rem', position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 1000, maxWidth: '420px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)' }}>
-                    {state.error}
+                    {typeof state.error === 'object' ? (state.error.message || state.error.detail || JSON.stringify(state.error)) : state.error}
                     <button onClick={actions.clearError} style={{ marginLeft: '1rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>×</button>
                 </div>
             )}

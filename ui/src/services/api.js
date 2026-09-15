@@ -131,10 +131,9 @@ export async function getVersions() {
 export async function createJob(file, config) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('project_name', config.project_name || 'ConvertedApplication');
-    formData.append('base_package', config.base_package || 'com.generated.app');
+    formData.append('config_json', JSON.stringify(config));
 
-    const response = await authFetch(`/jobs?project_name=${encodeURIComponent(config.project_name)}&base_package=${encodeURIComponent(config.base_package)}`, {
+    const response = await authFetch(`/jobs`, {
         method: 'POST',
         body: formData,
     });
@@ -167,8 +166,7 @@ export async function createLocalJob(path, config) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             path,
-            project_name: config.project_name || 'ConvertedApplication',
-            base_package: config.base_package || 'com.generated.app',
+            config: config,
         }),
     });
     return response.json();

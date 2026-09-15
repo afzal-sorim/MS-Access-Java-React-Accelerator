@@ -156,6 +156,8 @@ class ConversionConfig(BaseModel):
     authentication_strategy: str = "jwt"
     report_strategy: str = "pdf"
     migration_strategy: str = "flyway"
+    ui_style: str = "classic"
+    ui_reasoning: str = "automatic"
 
 
 class JobCreateRequest(BaseModel):
@@ -171,8 +173,7 @@ class LocalPathRequest(BaseModel):
 class LocalJobRequest(BaseModel):
     """Request to convert a database picked directly from the local machine."""
     path: str
-    project_name: str = "ConvertedApplication"
-    base_package: str = "com.generated.app"
+    config: Optional[ConversionConfig] = None
 
 
 class JobResponse(BaseModel):
@@ -524,6 +525,9 @@ async def _run_conversion_pipeline_locked(job_id: str, db: AsyncSession):
             app_ir,
             frontend_dir,
             form_conversions=form_conversions,
+            ui_style=getattr(job, "ui_style", "classic"),
+            ui_reasoning=getattr(job, "ui_reasoning", "automatic"),
+            ui_debug=True,
         )
         # Write generated frontend files to disk
         def write_frontend():
@@ -945,19 +949,18 @@ async def _start_job(
     user_id: str,
     source_path: Path,
     display_name: str,
-    project_name: str,
-    base_package: str,
     source_mode: str,
     source_origin: Optional[str],
+    config: ConversionConfig,
     background_tasks: BackgroundTasks,
     db: AsyncSession,
 ) -> JobResponse:
     """Persist a job for an already-staged source file and queue the pipeline."""
-    if (not project_name or project_name == "ConvertedApplication") and display_name:
+    if (not config.project_name or config.project_name == "ConvertedApplication") and display_name:
         stem = Path(display_name).stem
         sanitized_stem = re.sub(r"[^a-zA-Z0-9_\-]", "_", stem)
         if sanitized_stem:
-            project_name = sanitized_stem
+            config.project_name = sanitized_stem
 
     job_repo = JobRepository(db)
     job = JobModel(
@@ -967,8 +970,19 @@ async def _start_job(
         source_file_size=source_path.stat().st_size,
         source_mode=source_mode,
         source_origin=source_origin,
-        project_name=project_name,
-        base_package=base_package,
+        project_name=config.project_name,
+        base_package=config.base_package,
+        java_version=config.java_version,
+        spring_boot_version=config.spring_boot_version,
+        react_version=config.react_version,
+        node_version=config.node_version,
+        postgres_version=config.postgres_version,
+        ui_style=getattr(config, "ui_style", "classic"),
+        ui_reasoning=getattr(config, "ui_reasoning", "automatic"),
+    )
+    logger.info(
+        "Job %s created with config: ui_style=%s, ui_reasoning=%s, project=%s",
+        job_id, config.ui_style, config.ui_reasoning, config.project_name,
     )
     job.transition_to(JobState.UPLOADED)
     await job_repo.create(job)
@@ -992,8 +1006,7 @@ async def _start_job(
 async def create_job(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    project_name: str = "ConvertedApplication",
-    base_package: str = "com.generated.app",
+    config_json: Optional[str] = None,
     db: AsyncSession = Depends(get_db_session),
     current_user: UserModel = Depends(get_current_user)
 ):
@@ -1011,15 +1024,21 @@ async def create_job(
     with open(upload_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
 
+    parsed_config = ConversionConfig()
+    if config_json:
+        try:
+            parsed_config = ConversionConfig.model_validate_json(config_json)
+        except Exception:
+            pass
+
     return await _start_job(
         job_id=job_id,
         user_id=current_user.id,
         source_path=upload_path,
         display_name=file.filename,
-        project_name=project_name,
-        base_package=base_package,
         source_mode=SOURCE_MODE_UPLOAD,
         source_origin=None,
+        config=parsed_config,
         background_tasks=background_tasks,
         db=db,
     )
@@ -1105,10 +1124,9 @@ async def create_local_job(
         user_id=current_user.id,
         source_path=staged,
         display_name=info["name"],
-        project_name=request.project_name,
-        base_package=request.base_package,
         source_mode=SOURCE_MODE_LOCAL,
         source_origin=info["path"],
+        config=request.config or ConversionConfig(),
         background_tasks=background_tasks,
         db=db,
     )

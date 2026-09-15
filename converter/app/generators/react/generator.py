@@ -2,11 +2,17 @@
 
 Spec section 19: Forms → React pages/components with proper control mappings.
 Spec section 46: Generate routes, pages, components, forms, tables, API clients.
+
+UI Modernization: When ui_style is set, delegates page/CSS rendering to the
+UITransformationEngine + Theme system. Legacy code path preserved as fallback.
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger("converter.generators.react")
 
 
 # Control type mappings (spec section 19)
@@ -37,6 +43,9 @@ class ReactGenerator:
         app_name: Optional[str] = None,
         report_strategy: str = "pdf",
         form_conversions: Optional[dict[str, str]] = None,
+        ui_style: str = "classic",
+        ui_reasoning: str = "automatic",
+        ui_debug: bool = False,
     ):
         self.app = app_ir
         self.app_name = app_name or app_ir.application_name
@@ -50,33 +59,118 @@ class ReactGenerator:
         self._analyze_keys()
         self._reports: list = []
 
+        # UI Modernization config
+        self.ui_style = (ui_style or "classic").strip().lower()
+        self.ui_reasoning = (ui_reasoning or "automatic").strip().lower()
+        self.ui_debug = ui_debug
+        self._use_theme_engine = True  # Use the new theme engine for all styles
+        self._engine = None
+        self._theme = None
+        self._presentations = None
+
     def generate(self, output_dir: str | Path) -> dict[str, str]:
         """Generate all React files and return a map of path -> content."""
         output_dir = Path(output_dir)
         files: dict[str, str] = {}
-
         src = output_dir / "src"
 
-        # Generate pages from forms
-        for form in self.app.forms:
-            page_name = self._to_pascal(form.name.replace("frm", ""))
-            page_content = self._generate_page(form)
-            files[str(src / "pages" / f"{page_name}Page.jsx")] = page_content
+        # Initialize UI Transformation Engine + Theme
+        if self._use_theme_engine:
+            try:
+                from .ui.engine import UITransformationEngine
+                from .themes import get_theme
+
+                self._engine = UITransformationEngine(
+                    self.app,
+                    ui_style=self.ui_style,
+                    ui_reasoning=self.ui_reasoning,
+                    ui_debug=self.ui_debug,
+                )
+                self._presentations = self._engine.transform_all()
+                self._theme = get_theme(self.ui_style)
+
+                logger.info(
+                    "UI Engine initialized: style=%s, reasoning=%s, screens=%d, theme=%s",
+                    self.ui_style, self.ui_reasoning,
+                    len(self._presentations), self._theme.name,
+                )
+            except Exception as e:
+                logger.warning("UI Engine init failed, falling back to legacy: %s", e)
+                self._use_theme_engine = False
+                self._engine = None
+                self._theme = None
+                self._presentations = None
+
+        # Generate pages
+        if self._use_theme_engine and self._presentations and self._theme:
+            # Build route map so dashboard navigation can resolve to actual routes
+            route_map = {}
+            for pres in self._presentations:
+                page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
+                endpoint = self._to_kebab(page_name) if pres.record_source else ""
+                route_path = f"/{endpoint}" if endpoint else f"/{page_name.lower()}"
+                # Map multiple keys so fuzzy matching can find the right route
+                route_map[pres.screen_id] = route_path                      # e.g. "frmPatientsForm"
+                route_map[pres.screen_name] = route_path                    # e.g. "Patients Form"
+                route_map[page_name] = route_path                           # e.g. "PatientsForm"
+                clean_name = page_name.replace("Form", "").replace("form", "")
+                if clean_name:
+                    route_map[clean_name] = route_path                      # e.g. "Patients"
+                if pres.record_source:
+                    route_map[pres.record_source] = route_path              # e.g. "tblPatients"
+            self._theme.set_route_map(route_map)
+
+            # Theme-based page generation
+            for pres in self._presentations:
+                page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
+                api_name = self._resolve_api_name(pres.record_source) if pres.record_source else ""
+                endpoint = self._to_kebab(page_name) if pres.record_source else ""
+                helper_imports = ""
+
+                # If this is a data-bound form, we need BOTH a list view and a form view
+                # so the user can navigate the data and click Edit/New.
+                if pres.record_source:
+                    list_content = self._theme.render_list_page(pres, endpoint, api_name, helper_imports)
+                    form_content = self._theme.render_form_page(pres, endpoint, api_name, helper_imports)
+                    files[str(src / "pages" / f"{page_name}Page.jsx")] = list_content
+                    files[str(src / "pages" / f"{page_name}FormPage.jsx")] = form_content
+                else:
+                    page_content = self._theme.render_page(
+                        pres, endpoint=endpoint, api_name=api_name, helper_imports=helper_imports,
+                    )
+                    files[str(src / "pages" / f"{page_name}Page.jsx")] = page_content
+        else:
+            # Legacy code path
+            for form in self.app.forms:
+                page_name = self._to_pascal(form.name.replace("frm", ""))
+                page_content = self._generate_page(form)
+                files[str(src / "pages" / f"{page_name}Page.jsx")] = page_content
 
         # Generate the reports page when the source app has usable reports
-        # (spec section 20: report parameters, view, CSV/PDF download).
         self._reports = self._resolve_reports()
         if self._reports:
             files[str(src / "pages" / "ReportsPage.jsx")] = self._generate_reports_page()
 
-        # Generate API client
+        # Generate mock data via LLM (for frontend fallback when backend is unavailable)
+        self._mock_data = self._generate_mock_data()
+        if self._mock_data:
+            files[str(src / "services" / "mockData.js")] = self._build_mock_data_file()
+            logger.info("Generated mock data for %d entities", len(self._mock_data))
+
+        # Generate API client (with mock data fallback)
         files[str(src / "services" / "api.js")] = self._generate_api_client()
 
-        # Generate index.css (Spec section 46: Apply CSS for migrated codes)
-        files[str(src / "index.css")] = self._generate_index_css()
+        # Generate index.css — theme-aware
+        if self._use_theme_engine and self._presentations and self._theme:
+            files[str(src / "index.css")] = self._theme.get_css(self.app_name, self._presentations)
+        else:
+            files[str(src / "index.css")] = self._generate_index_css()
 
-        # Generate App.jsx with routing
-        files[str(src / "App.jsx")] = self._generate_app_jsx()
+        # Generate App.jsx — theme-aware
+        if self._use_theme_engine and self._presentations and self._theme:
+            files[str(src / "App.jsx")] = self._generate_themed_app_jsx()
+        else:
+            files[str(src / "App.jsx")] = self._generate_app_jsx()
 
         # Generate main.jsx
         files[str(src / "main.jsx")] = self._generate_main_jsx()
@@ -90,7 +184,55 @@ class ReactGenerator:
         # Generate index.html
         files[str(output_dir / "index.html")] = self._generate_index_html()
 
+        # Write debug artifacts
+        if self._engine and self.ui_debug:
+            self._engine.write_debug_artifacts(output_dir)
+
         return files
+
+    def _generate_themed_app_jsx(self) -> str:
+        """Generate App.jsx using the theme engine."""
+        pages = []
+        for pres in self._presentations:
+            page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
+            endpoint = self._to_kebab(page_name) if pres.record_source else ""
+
+            from .ui.models import PageType
+            
+            page_info = {
+                "nav_link_text": pres.screen_name,
+                "nav_path": f"/{endpoint}" if endpoint else f"/{page_name.lower()}",
+            }
+
+            if pres.record_source:
+                page_info["import"] = f"import {page_name}Page from './pages/{page_name}Page';\nimport {page_name}FormPage from './pages/{page_name}FormPage';\n"
+                page_info["routes"] = (
+                    f"                        <Route path=\"/{endpoint}\" element={{<{page_name}Page />}} />\n"
+                    f"                        <Route path=\"/{endpoint}/:id\" element={{<{page_name}FormPage />}} />\n"
+                    f"                        <Route path=\"/{endpoint}/new\" element={{<{page_name}FormPage />}} />"
+                )
+                page_info["nav_link"] = f'<Link to="/{endpoint}">{pres.screen_name}</Link>\n'
+            else:
+                page_info["import"] = f"import {page_name}Page from './pages/{page_name}Page';\n"
+                page_info["routes"] = (
+                    f"                        <Route path=\"/{page_name.lower()}\" element={{<{page_name}Page />}} />"
+                )
+                page_info["nav_link"] = f'<Link to="/{page_name.lower()}">{pres.screen_name}</Link>\n'
+
+            pages.append(page_info)
+
+        # Reports handling
+        report_import = ""
+        report_route = ""
+        report_link = ""
+        if self._reports:
+            report_import = "import ReportsPage from './pages/ReportsPage';\n"
+            report_route = "                        <Route path=\"/reports\" element={<ReportsPage />} />\n"
+            report_link = '<Link to="/reports">Reports</Link>'
+
+        return self._theme.render_app_shell(
+            self.app_name, pages, report_import, report_route, report_link,
+        )
 
     def write(self, output_dir: str | Path) -> None:
         """Generate and write all files to disk."""
@@ -189,61 +331,75 @@ class ReactGenerator:
         """Generate an info/dashboard page for unbound forms (no record source).
 
         Unbound forms in Access are typically UI/utility/business-logic forms,
-        NOT database CRUD forms. We render them as informational pages with
-        labels and buttons that have TODO comments for their event logic.
+        NOT database CRUD forms. We render them with interactive form controls
+        and buttons that have TODO comments for their event logic.
         """
+        # Build label-to-input caption map for proper human-readable labels
+        label_map = self._build_unbound_label_map(form.controls)
+
         # Separate controls by type
-        labels = [c for c in form.controls if c.control_type == "Label"]
         buttons = [c for c in form.controls if c.control_type == "CommandButton"]
-        text_fields = [c for c in form.controls if c.control_type in ("TextBox", "ComboBox") and c.visible]
+        input_fields = [c for c in form.controls
+                        if c.control_type in ("TextBox", "ComboBox") and c.visible]
         checkboxes = [c for c in form.controls if c.control_type == "CheckBox"]
+        # Standalone labels (not associated with an input, e.g. section headings)
+        heading_labels = []
+        for c in form.controls:
+            if c.control_type == "Label" and c.caption:
+                # Only include labels that are NOT associated with an input
+                if c.name not in label_map.get("_label_names_used", set()):
+                    # Check if this label has a control source (bound label)
+                    if c.control_source:
+                        heading_labels.append(c)
 
-        # Generate label display
-        label_elements = []
-        for ctrl in labels:
-            caption = ctrl.caption or ctrl.name
-            source = ctrl.control_source or ""
-            if self._is_access_expression(source):
-                # Render Access expression as a comment, not as broken JSX
-                sanitized = self._sanitize_control_source(source)
-                safe_expr = source.replace('"', "'")
-                label_elements.append(f"""
-            <div className="info-field">
-                <span className="info-label">{caption}</span>
-                <span className="info-value" id="{sanitized}">{{/* TODO: Access expression: {safe_expr} */}}</span>
-            </div>""")
-            elif source:
-                sanitized = self._sanitize_control_source(source)
-                label_elements.append(f"""
-            <div className="info-field">
-                <span className="info-label">{caption}</span>
-                <span className="info-value">{source}</span>
-            </div>""")
-            else:
-                label_elements.append(f"""
-            <div className="info-field">
-                <span className="info-label">{caption}</span>
-            </div>""")
-
-        # Generate text field display (read-only for unbound forms)
+        # Generate form input fields with proper labels
         field_elements = []
-        for ctrl in text_fields:
+        for ctrl in input_fields:
             source = ctrl.control_source or ctrl.name
-            label = ctrl.caption or source
+            # Resolve label: label_map (from associated Label), then ctrl.caption, then humanized name
+            label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
+            field_name = self._to_camel(self._sanitize_control_source(source))
+
             if self._is_access_expression(source):
-                sanitized = self._sanitize_control_source(source)
                 safe_expr = source.replace('"', "'")
                 field_elements.append(f"""
-            <div className="info-field">
-                <span className="info-label">{label}</span>
-                <span className="info-value" id="{sanitized}">{{/* TODO: Access expression: {safe_expr} */}}</span>
+            <div className="form-group">
+                <label htmlFor="{field_name}">{label}</label>
+                <input type="text" id="{field_name}" name="{field_name}" disabled placeholder="Computed field" />
+                {{/* TODO: Access expression: {safe_expr} */}}
+            </div>""")
+            elif "Date" in source or "date" in ctrl.name.lower():
+                field_elements.append(f"""
+            <div className="form-group">
+                <label htmlFor="{field_name}">{label}</label>
+                <input type="date" id="{field_name}" name="{field_name}" />
+            </div>""")
+            elif ctrl.control_type == "ComboBox":
+                field_elements.append(f"""
+            <div className="form-group">
+                <label htmlFor="{field_name}">{label}</label>
+                <select id="{field_name}" name="{field_name}">
+                    <option value="">Select...</option>
+                </select>
             </div>""")
             else:
-                sanitized = self._sanitize_control_source(source)
                 field_elements.append(f"""
-            <div className="info-field">
-                <span className="info-label">{label}</span>
-                <span className="info-value" id="{sanitized}"></span>
+            <div className="form-group">
+                <label htmlFor="{field_name}">{label}</label>
+                <input type="text" id="{field_name}" name="{field_name}" />
+            </div>""")
+
+        # Generate checkbox fields
+        for ctrl in checkboxes:
+            source = ctrl.control_source or ctrl.name
+            label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
+            field_name = self._to_camel(self._sanitize_control_source(source))
+            field_elements.append(f"""
+            <div className="form-group">
+                <label>
+                    <input type="checkbox" name="{field_name}" />
+                    {label}
+                </label>
             </div>""")
 
         # Generate button elements with TODO handlers
@@ -259,7 +415,6 @@ class ReactGenerator:
                 {caption}
             </button>""")
 
-        labels_js = "\n".join(label_elements) if label_elements else ""
         fields_js = "\n".join(field_elements) if field_elements else ""
         buttons_js = "\n".join(button_elements) if button_elements else ""
 
@@ -278,7 +433,6 @@ export default function {page_name}Page() {{
         <div className="{page_name.lower()}-page">
             <h1>{form.caption or page_name}</h1>
             <p className="form-description">This page corresponds to Access form: {form.name}</p>
-{labels_js}
 {fields_js}
             <div className="button-group">
 {buttons_js}
@@ -287,6 +441,79 @@ export default function {page_name}Page() {{
     );
 }}
 """
+
+    @staticmethod
+    def _build_unbound_label_map(controls) -> dict:
+        """Build a label-to-input caption map for the legacy generator path.
+
+        Mirrors the logic from ScreenBuilder._build_label_map() but works with
+        raw ControlIR / dict objects from the FormIR.
+        """
+        label_map = {}
+        _INPUT_PREFIXES = ("txt", "cbo", "chk", "opt", "tgl", "lst")
+        _LABEL_PREFIXES = ("lbl",)
+        _LABEL_COL_PREFIXES = ("lblcol",)
+
+        # Collect labels with captions
+        labels = [c for c in controls if c.control_type == "Label" and c.caption]
+
+        # Build input suffix map
+        input_suffix_map = {}
+        for c in controls:
+            if c.control_type in ("TextBox", "ComboBox", "CheckBox",
+                                  "OptionButton", "ListBox", "ToggleButton"):
+                name_lower = c.name.lower()
+                for pfx in _INPUT_PREFIXES:
+                    if name_lower.startswith(pfx):
+                        suffix = name_lower[len(pfx):]
+                        input_suffix_map.setdefault(suffix, []).append(c.name)
+                        break
+                else:
+                    input_suffix_map.setdefault(name_lower, []).append(c.name)
+
+        # Strategy 1: Naming convention
+        for lbl in labels:
+            lbl_lower = lbl.name.lower()
+            suffix = None
+            for pfx in _LABEL_COL_PREFIXES:
+                if lbl_lower.startswith(pfx):
+                    suffix = lbl_lower[len(pfx):]
+                    break
+            if suffix is None:
+                for pfx in _LABEL_PREFIXES:
+                    if lbl_lower.startswith(pfx):
+                        suffix = lbl_lower[len(pfx):]
+                        break
+            if suffix and suffix in input_suffix_map:
+                caption = lbl.caption.rstrip(":")
+                for input_name in input_suffix_map[suffix]:
+                    label_map[input_name] = caption
+
+        # Strategy 2: Positional adjacency
+        for i, ctrl in enumerate(controls):
+            if (ctrl.control_type == "Label" and ctrl.caption
+                    and i + 1 < len(controls)):
+                next_ctrl = controls[i + 1]
+                if (next_ctrl.control_type in ("TextBox", "ComboBox", "CheckBox",
+                                               "OptionButton", "ListBox", "ToggleButton")
+                        and next_ctrl.name not in label_map):
+                    label_map[next_ctrl.name] = ctrl.caption.rstrip(":")
+
+        return label_map
+
+    @staticmethod
+    def _humanize_name(name: str) -> str:
+        """Convert an Access control name to human-readable text."""
+        import re
+        cleaned = re.sub(
+            r"^(txt|cbo|chk|opt|tgl|lst|lbl|cmd|btn|frm|sub|img)",
+            "", name, flags=re.IGNORECASE,
+        )
+        if not cleaned:
+            return name
+        cleaned = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", cleaned)
+        cleaned = cleaned.replace("_", " ")
+        return cleaned.strip() or name
 
     def _generate_list_page(self, form, page_name: str, endpoint: str, api_name: str = "") -> str:
         """Generate a list/table page."""
@@ -366,6 +593,9 @@ export default function {page_name}Page() {{
         api_name = api_name or page_name
         var_name = self._to_camel(page_name)
 
+        # Build label map for proper human-readable labels
+        label_map = self._build_unbound_label_map(form.controls)
+
         # Generate form fields with Access expression sanitization (Fix 3)
         form_fields = []
         for ctrl in form.controls:
@@ -375,7 +605,7 @@ export default function {page_name}Page() {{
 
                 # Fix 3: Sanitize Access expressions into valid JS identifiers
                 field_name = self._to_camel(self._sanitize_control_source(raw_source))
-                label = ctrl.caption or raw_source
+                label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
                 input_type = "text"
                 if ctrl.control_type == "CheckBox":
                     input_type = "checkbox"
@@ -641,7 +871,7 @@ export default function ReportsPage() {{
                         </button>{pdf_button}
                     </div>
 
-                    {{definition.notes.length > 0 && (
+                    {{(definition.notes || []).length > 0 && (
                         <ul className="report-notes">
                             {{definition.notes.map((note, i) => <li key={{i}}>{{note}}</li>)}}
                         </ul>
@@ -685,9 +915,34 @@ export default function ReportsPage() {{
 }}
 """
 
+    def _generate_mock_data(self) -> dict:
+        """Generate mock data using LLM, with deterministic fallback."""
+        try:
+            from .ui.llm.mock_data import MockDataGenerator
+            gen = MockDataGenerator()
+            return gen.generate_mock_data(self.app.tables)
+        except Exception as e:
+            logger.warning("Mock data generation failed entirely: %s", e)
+            return {}
+
+    def _build_mock_data_file(self) -> str:
+        """Build the mockData.js file contents from generated mock data."""
+        import json
+        lines = ["// Auto-generated mock data for frontend fallback (backend unavailable)"]
+        lines.append("// Generated by LLM from the original MS Access database schema")
+        lines.append("")
+
+        for entity_name, rows in self._mock_data.items():
+            json_str = json.dumps(rows, indent=2, ensure_ascii=False)
+            lines.append(f"export const mock{entity_name} = {json_str};")
+            lines.append("")
+
+        return "\n".join(lines)
+
     def _generate_api_client(self) -> str:
-        """Generate API client service."""
+        """Generate API client service with mock data fallback."""
         endpoints = []
+        has_mock = bool(self._mock_data) if hasattr(self, '_mock_data') else False
 
         for table in self.app.tables:
             if table.role in ("SYSTEM", "INTERNAL"):
@@ -695,8 +950,83 @@ export default function ReportsPage() {{
 
             entity_name = self._to_pascal(table.name)
             endpoint = self._to_kebab(table.name)
+            mock_import_name = f"mock{entity_name}"
+            has_entity_mock = has_mock and entity_name in self._mock_data
 
-            endpoints.append(f"""
+            if has_entity_mock:
+                # API functions with mock data fallback
+                endpoints.append(f"""
+// {entity_name} API
+export async function get{entity_name}() {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/{endpoint}`);
+        if (!response.ok) throw new Error('Backend unavailable');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[{entity_name}] Backend unavailable, using sample data:', err.message);
+        return [...{mock_import_name}];
+    }}
+}}
+
+export async function get{entity_name}ById(id) {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`);
+        if (!response.ok) throw new Error('Backend unavailable');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[{entity_name}] Backend unavailable, using sample data:', err.message);
+        return {mock_import_name}.find(item => String(item.id) === String(id)) || {mock_import_name}[0];
+    }}
+}}
+
+export async function create{entity_name}(data) {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/{endpoint}`, {{
+            method: 'POST',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify(data),
+        }});
+        if (!response.ok) throw new Error('Failed to create {entity_name}');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[{entity_name}] Backend unavailable, simulating create:', err.message);
+        return {{ ...data, id: Date.now() }};
+    }}
+}}
+
+export async function update{entity_name}(id, data) {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`, {{
+            method: 'PUT',
+            headers: {{ 'Content-Type': 'application/json' }},
+            body: JSON.stringify(data),
+        }});
+        if (!response.ok) throw new Error('Failed to update {entity_name}');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[{entity_name}] Backend unavailable, simulating update:', err.message);
+        return {{ ...data, id }};
+    }}
+}}
+
+export async function delete{entity_name}(id) {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/{endpoint}/${{id}}`, {{
+            method: 'DELETE',
+        }});
+        if (!response.ok) throw new Error('Failed to delete {entity_name}');
+    }} catch (err) {{
+        console.warn('[{entity_name}] Backend unavailable, simulating delete:', err.message);
+    }}
+}}
+""")
+            else:
+                # No mock data available — keep original behavior but safe-parse
+                endpoints.append(f"""
 // {entity_name} API
 export async function get{entity_name}() {{
     const response = await fetch(`${{API_BASE}}/{endpoint}`);
@@ -740,45 +1070,68 @@ export async function delete{entity_name}(id) {{
 
         report_api = ""
         if self._reports:
-            report_api = """
+            # Build mock report list from actual reports
+            mock_reports = []
+            for r in self._reports:
+                name = getattr(r, 'name', 'Report') or 'Report'
+                endpoint = getattr(r, 'endpoint', 'report') or 'report'
+                mock_reports.append(f'{{ name: "{name}", endpoint: "{endpoint}", columns: [], parameters: [] }}')
+            mock_list = ", ".join(mock_reports)
+
+            report_api = f"""
 // Reports (generated from Access reports)
 
 /** List available reports with their columns and parameters. */
-export async function listReports() {
-    const response = await fetch(`${API_BASE}/reports`);
-    if (!response.ok) throw new Error('Failed to load reports');
-    return response.json();
-}
+export async function listReports() {{
+    try {{
+        const response = await fetch(`${{API_BASE}}/reports`);
+        if (!response.ok) throw new Error('Backend unavailable');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[Reports] Backend unavailable, using sample report list:', err.message);
+        return [{mock_list}];
+    }}
+}}
 
-/** Run a report and return { columns, rows, rowCount }. */
-export async function runReport(endpoint, params = {}) {
+/** Run a report and return {{ columns, rows, rowCount }}. */
+export async function runReport(endpoint, params = {{}}) {{
     const query = buildReportQuery(params);
-    const response = await fetch(`${API_BASE}/reports/${endpoint}${query}`);
-    if (!response.ok) {
-        const detail = await response.json().catch(() => null);
-        throw new Error(detail?.error || `Failed to run report ${endpoint}`);
-    }
-    return response.json();
-}
+    try {{
+        const response = await fetch(`${{API_BASE}}/reports/${{endpoint}}${{query}}`);
+        if (!response.ok) throw new Error('Backend unavailable');
+        const text = await response.text();
+        try {{ return JSON.parse(text); }} catch {{ throw new Error('Invalid response'); }}
+    }} catch (err) {{
+        console.warn('[Reports] Backend unavailable, returning empty report:', err.message);
+        return {{ columns: [], rows: [], rowCount: 0 }};
+    }}
+}}
 
 /** URL for a CSV or PDF export, for use in a download link. */
-export function reportDownloadUrl(endpoint, format, params = {}) {
-    return `${API_BASE}/reports/${endpoint}/${format}${buildReportQuery(params)}`;
-}
+export function reportDownloadUrl(endpoint, format, params = {{}}) {{
+    return `${{API_BASE}}/reports/${{endpoint}}/${{format}}${{buildReportQuery(params)}}`;
+}}
 
-function buildReportQuery(params) {
+function buildReportQuery(params) {{
     const search = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && String(value) !== '') {
+    Object.entries(params).forEach(([key, value]) => {{
+        if (value !== undefined && value !== null && String(value) !== '') {{
             search.append(key, String(value));
-        }
-    });
+        }}
+    }});
     const query = search.toString();
-    return query ? `?${query}` : '';
-}
+    return query ? `?${{query}}` : '';
+}}
 """
 
-        return f"""const API_BASE = '/api';
+        # Build mock data imports
+        mock_imports = ""
+        if has_mock:
+            import_names = [f"mock{e}" for e in self._mock_data.keys()]
+            mock_imports = f"import {{ {', '.join(import_names)} }} from './mockData';\n"
+
+        return f"""{mock_imports}const API_BASE = '/api';
 {''.join(endpoints)}{report_api}
 """
 
@@ -1164,6 +1517,10 @@ body {
 
 
 def generate_react(app_ir, output_dir: str | Path, **kwargs) -> dict[str, str]:
-    """Entry point to generate React frontend."""
+    """Entry point to generate React frontend.
+
+    Accepts ui_style, ui_reasoning, and ui_debug kwargs for the
+    UI Modernization engine.
+    """
     generator = ReactGenerator(app_ir, **kwargs)
     return generator.generate(output_dir)

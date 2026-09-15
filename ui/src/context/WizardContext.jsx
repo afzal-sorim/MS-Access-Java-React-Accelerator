@@ -75,6 +75,8 @@ const initialState = {
         authentication_strategy: 'jwt',
         report_strategy: 'pdf',
         migration_strategy: 'flyway',
+        ui_style: 'classic',
+        ui_reasoning: 'automatic',
     },
     availableVersions: null,
 

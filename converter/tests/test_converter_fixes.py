@@ -69,17 +69,25 @@ def test_react_api_and_form_generation():
     gen = ReactGenerator(app_ir)
     files = gen.generate("/tmp/test_react")
 
-    # Look for the generated page file
+    # Look for the generated page files — themed path generates list + form pages
     matching_pages = [k for k in files.keys() if "N301RoulettePage.jsx" in k]
     assert matching_pages, f"Page file not found in {list(files.keys())}"
-    page_code = files[matching_pages[0]]
+
+    # Find the form page (FormPage.jsx) for CRUD assertions
+    form_pages = [k for k in files.keys() if "N301RouletteFormPage.jsx" in k]
+    if form_pages:
+        # Themed path: separate list + form pages
+        form_code = files[form_pages[0]]
+    else:
+        # Legacy path: combined page
+        form_code = files[matching_pages[0]]
 
     # Check that API calls use table name RouletteTb instead of form name N301Roulette
-    assert "getRouletteTbById" in page_code
-    assert "updateRouletteTb" in page_code
-    assert "createRouletteTb" in page_code
+    assert "getRouletteTbById" in form_code
+    assert "updateRouletteTb" in form_code
+    assert "createRouletteTb" in form_code
     # Check that locked control has disabled attribute
-    assert "disabled" in page_code
+    assert "disabled" in form_code
     # Check that App.jsx imports valid identifier
     matching_apps = [k for k in files.keys() if "App.jsx" in k]
     app_jsx = files[matching_apps[0]]
@@ -239,11 +247,11 @@ def test_react_unbound_form_generation():
     assert "getN001About" not in code
     assert "createN001About" not in code
     assert "useParams" not in code
-    # Should render button with TODO handler (hump preserved in camelCase)
+    # Should render button with console.warn handler
     assert "cmdClose" in code
-    assert "TODO: Implement cmdClose" in code
+    assert "No route mapped for: cmdClose" in code
     assert "Close" in code
-    # Access expression should be a comment, not broken JSX value
+    # Access expression should not be a broken JSX value
     assert "formData.=getproperties" not in code
 
 
@@ -296,8 +304,8 @@ def test_react_list_page_th_rendering():
     assert matching
     code = files[matching[0]]
     # Must contain <th> elements, NOT raw { key: "...", header: "..." } in JSX
-    assert "<th>PathName</th>" in code
-    assert "<th>FileType</th>" in code
+    assert "<th>Path</th>" in code
+    assert "<th>Type</th>" in code
     assert '{ key: "pathName"' not in code
 
 

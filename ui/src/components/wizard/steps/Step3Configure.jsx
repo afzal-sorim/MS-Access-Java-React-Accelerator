@@ -59,6 +59,7 @@ export default function Step3Configure() {
                         { icon: '🐘', value: `PostgreSQL ${localConfig.postgres_version}`, label: 'Database', color: '#6d28d9', bg: '#ede9fe' },
                         { icon: '🔐', value: (localConfig.authentication_strategy || 'JWT').toUpperCase(), label: 'Auth Strategy', color: '#be123c', bg: '#ffe4e6' },
                         { icon: '🔄', value: (localConfig.migration_strategy || 'flyway').charAt(0).toUpperCase() + (localConfig.migration_strategy || 'flyway').slice(1), label: 'Migration', color: '#0f766e', bg: '#ccfbf1' },
+                        { icon: '🎨', value: ({ classic: 'Classic', modern_dashboard: 'Modern', material: 'Material' })[localConfig.ui_style] || 'Classic', label: 'UI Style', color: '#7c3aed', bg: '#ede9fe' },
                     ].map((item, idx, arr) => (
                         <div key={item.label} style={{ display: 'flex', alignItems: 'flex-start', flex: 1 }}>
                             {/* Step Item */}
@@ -105,6 +106,7 @@ export default function Step3Configure() {
                         ['database', '▦', 'Database (PostgreSQL)'],
                         ['auth', '▣', 'Authentication strategy'],
                         ['reports', '↔', 'Reports & migration'],
+                        ['ui_style', '🎨', 'UI Design Style'],
                     ].map(([key, icon, label]) => (
                         <button
                             key={key}
@@ -127,6 +129,7 @@ export default function Step3Configure() {
                             ['database', 'Database - PostgreSQL'],
                             ['auth', 'Authentication strategy'],
                             ['reports', 'Reports & migration'],
+                            ['ui_style', 'UI Design Style'],
                         ].find(([key]) => key === activeSection)?.[1]}</h3>
                         <p>Configure the selected target for your generated application.</p>
                     </div>
@@ -327,6 +330,134 @@ export default function Step3Configure() {
                             <option value="liquibase">Liquibase</option>
                             <option value="hibernate">Hibernate Auto</option>
                         </select>
+                    </div>
+                </div>}
+
+                {/* UI Design Style */}
+                {activeSection === 'ui_style' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#7c3aed' }}>
+                        <span style={{ fontSize: '1.25rem' }}>🎨</span>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>UI Design Style</h3>
+                    </div>
+
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: '1.6' }}>
+                        Choose the visual design style for the generated React application. This transforms the same functional code into different UI aesthetics.
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                        {[
+                            {
+                                key: 'classic',
+                                name: 'Classic Enterprise',
+                                desc: 'Clean top navigation, traditional tables, blue/gray palette',
+                                emoji: '🏢',
+                                color: '#3b82f6',
+                                bg: 'linear-gradient(135deg, #dbeafe, #eff6ff)',
+                            },
+                            {
+                                key: 'modern_dashboard',
+                                name: 'Modern Dashboard',
+                                desc: 'Dark sidebar, card-based layouts, gradient accents, stat widgets',
+                                emoji: '🌙',
+                                color: '#6366f1',
+                                bg: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+                                darkText: true,
+                            },
+                            {
+                                key: 'material',
+                                name: 'Material Design',
+                                desc: 'Google Material-inspired with elevation shadows, outlined inputs, FABs',
+                                emoji: '📐',
+                                color: '#1976d2',
+                                bg: 'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+                            },
+                        ].map(style => (
+                            <button
+                                key={style.key}
+                                type="button"
+                                onClick={() => handleConfigChange('ui_style', style.key)}
+                                style={{
+                                    padding: '1.25rem',
+                                    borderRadius: '12px',
+                                    border: localConfig.ui_style === style.key
+                                        ? `2px solid ${style.color}`
+                                        : '2px solid #e2e8f0',
+                                    background: localConfig.ui_style === style.key ? style.bg : '#ffffff',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    transition: 'all 0.2s',
+                                    position: 'relative',
+                                    boxShadow: localConfig.ui_style === style.key
+                                        ? `0 4px 12px ${style.color}33`
+                                        : '0 1px 3px rgba(0,0,0,0.06)',
+                                }}
+                            >
+                                {localConfig.ui_style === style.key && (
+                                    <span style={{
+                                        position: 'absolute', top: '8px', right: '8px',
+                                        background: style.color, color: 'white',
+                                        borderRadius: '50%', width: '20px', height: '20px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '0.65rem', fontWeight: 800,
+                                    }}>✓</span>
+                                )}
+                                <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{style.emoji}</div>
+                                <div style={{
+                                    fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem',
+                                    color: style.darkText && localConfig.ui_style === style.key ? '#e2e8f0' : '#1e293b',
+                                }}>
+                                    {style.name}
+                                </div>
+                                <div style={{
+                                    fontSize: '0.7rem', lineHeight: '1.4',
+                                    color: style.darkText && localConfig.ui_style === style.key ? '#94a3b8' : '#64748b',
+                                }}>
+                                    {style.desc}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                            <span style={{ fontSize: '0.9rem' }}>🤖</span>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>LLM-Assisted Layout</span>
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '1rem', lineHeight: '1.5' }}>
+                            For complex forms, the LLM can determine optimal page layouts and component grouping.
+                            Automatic mode uses the LLM only for ambiguous forms; Fully Leverage LLM uses it for all screens.
+                        </p>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            {[
+                                { key: 'automatic', label: 'Automatic', desc: 'Smart: LLM only for complex forms' },
+                                { key: 'deterministic', label: 'No LLM', desc: 'Purely rule-based transformation' },
+                                { key: 'llm', label: 'Fully Leverage LLM', desc: 'LLM plans all screen layouts' },
+                            ].map(mode => (
+                                <button
+                                    key={mode.key}
+                                    type="button"
+                                    onClick={() => handleConfigChange('ui_reasoning', mode.key)}
+                                    style={{
+                                        padding: '0.6rem 1rem',
+                                        borderRadius: '8px',
+                                        border: localConfig.ui_reasoning === mode.key
+                                            ? '2px solid #7c3aed'
+                                            : '1px solid #e2e8f0',
+                                        background: localConfig.ui_reasoning === mode.key ? '#f5f3ff' : '#fff',
+                                        cursor: 'pointer',
+                                        flex: 1,
+                                        textAlign: 'center',
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: localConfig.ui_reasoning === mode.key ? '#7c3aed' : '#475569' }}>
+                                        {mode.label}
+                                    </div>
+                                    <div style={{ fontSize: '0.65rem', color: '#94a3b8', marginTop: '2px' }}>
+                                        {mode.desc}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>}
             </div>

@@ -84,6 +84,8 @@ class JobModel(Base):
     react_version = Column(String(50), nullable=False, default="19.2.8")
     node_version = Column(Integer, nullable=False, default=24)
     postgres_version = Column(String(50), nullable=False, default="18")
+    ui_style = Column(String(50), nullable=False, default="classic")
+    ui_reasoning = Column(String(50), nullable=False, default="automatic")
 
     # Progress (stored as JSONB)
     progress = Column(JSONType, nullable=False, default={
@@ -375,6 +377,8 @@ _ADDITIVE_COLUMNS: list[tuple[str, str, str]] = [
     ("migration_jobs", "source_mode", "VARCHAR(20)"),
     ("migration_jobs", "source_origin", "VARCHAR(500)"),
     ("migration_jobs", "user_id", "VARCHAR(36)"),
+    ("migration_jobs", "ui_style", "VARCHAR(50) DEFAULT 'classic'"),
+    ("migration_jobs", "ui_reasoning", "VARCHAR(50) DEFAULT 'automatic'"),
 ]
 
 
