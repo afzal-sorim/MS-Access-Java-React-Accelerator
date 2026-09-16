@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useRef, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useRef, useMemo, useEffect } from 'react';
 
 function formatDuration(totalSeconds) {
     const s = Math.max(0, Math.floor(totalSeconds));
@@ -26,6 +26,27 @@ function loadStoredTiming() {
 }
 
 const savedTiming = loadStoredTiming();
+
+const FULL_STATE_STORAGE_KEY = 'msaccess_wizard_state';
+
+function initWizardState(defaultState) {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            const stored = window.localStorage.getItem(FULL_STATE_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Deserialize Set
+                if (parsed.selectedObjects && Array.isArray(parsed.selectedObjects)) {
+                    parsed.selectedObjects = new Set(parsed.selectedObjects);
+                }
+                return { ...defaultState, ...parsed };
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load wizard state from localStorage', e);
+    }
+    return defaultState;
+}
 
 /**
  * Initial state for the wizard.
@@ -516,8 +537,27 @@ function wizardReducer(state, action) {
  * Wizard provider component
  */
 export function WizardProvider({ children }) {
-    const [state, dispatch] = useReducer(wizardReducer, initialState);
+    const [state, dispatch] = useReducer(wizardReducer, initialState, initWizardState);
     const wsRef = useRef(null);
+
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const stateToSave = { ...state };
+                // Serialize Set
+                if (stateToSave.selectedObjects instanceof Set) {
+                    stateToSave.selectedObjects = Array.from(stateToSave.selectedObjects);
+                }
+                // File objects can't be saved in localStorage
+                if (stateToSave.selectedFile instanceof File) {
+                    stateToSave.selectedFile = null;
+                }
+                window.localStorage.setItem(FULL_STATE_STORAGE_KEY, JSON.stringify(stateToSave));
+            }
+        } catch (e) {
+            console.error('Failed to save wizard state to localStorage', e);
+        }
+    }, [state]);
 
     // NOTE: every function below is individually memoized with useCallback,
     // but without wrapping the container itself in useMemo, `actions` was a

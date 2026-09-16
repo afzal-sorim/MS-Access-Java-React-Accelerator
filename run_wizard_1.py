@@ -53,6 +53,8 @@ def run_wizard():
     backend_host = "0.0.0.0"
     backend_port = "8001"
     frontend_port = "3001"
+    frontend_env["PORT"] = frontend_port
+    frontend_env["VITE_API_URL"] = f"http://localhost:{backend_port}"
 
     print("=" * 60)
     print("Starting MS Access Converter Wizard")

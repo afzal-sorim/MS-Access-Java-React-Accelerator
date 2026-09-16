@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useWizard } from '../../../context/WizardContext';
-
+ 
 /**
  * Step 3: Conversion Configuration
  */
@@ -9,31 +9,31 @@ export default function Step3Configure() {
     const { config, availableVersions } = state;
     const [localConfig, setLocalConfig] = useState(config);
     const [activeSection, setActiveSection] = useState('backend');
-
+ 
     // Sync local config with context
     useEffect(() => {
         setLocalConfig(config);
     }, [config]);
-
+ 
     const handleConfigChange = (key, value) => {
         const newConfig = { ...localConfig, [key]: value };
         setLocalConfig(newConfig);
         actions.updateConfig(newConfig);
     };
-
+ 
     // Java versions
     const javaVersions = [
         { value: 17, label: '17 LTS' },
         { value: 21, label: '21 LTS' },
         { value: 25, label: '25 LTS (Recommended)' },
     ];
-
+ 
     // Version lists
     const springBootVersions = availableVersions?.backend?.versions || ['4.1.0'];
     const reactVersions = availableVersions?.frontend?.versions || ['19.2.8'];
     const nodeVersions = availableVersions?.frontend?.node_versions || [20, 22, 24];
     const postgresVersions = availableVersions?.database?.versions || ['16', '17', '18'];
-
+ 
     return (
         <div className="strategy-page" style={{ paddingBottom: '2rem' }}>
             <div className="card-header strategy-heading" style={{ marginBottom: '1.5rem' }}>
@@ -42,14 +42,14 @@ export default function Step3Configure() {
                     Choose the target stack for the generated application. Each choice below updates the build plan.
                 </p>
             </div>
-            
+           
             {/* Configuration Summary Banner — Stepper style */}
             <div style={{ marginTop: '1rem', padding: '1.5rem 2rem 1rem', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3730a3', marginBottom: '1.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     ● Configuration Summary
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
-
+ 
                     {[
                         { icon: '🛡️', value: localConfig.project_name, label: 'Project Name', color: '#4338ca', bg: '#e0e7ff' },
                         { icon: '⚙️', value: localConfig.spring_boot_version, label: 'Spring Boot', color: '#0f766e', bg: '#ccfbf1' },
@@ -83,7 +83,7 @@ export default function Step3Configure() {
                                     {item.label}
                                 </div>
                             </div>
-
+ 
                             {/* Arrow connector */}
                             {idx < arr.length - 1 && (
                                 <div style={{ display: 'flex', alignItems: 'center', paddingTop: '16px', color: '#cbd5e1', flexShrink: 0 }}>
@@ -96,7 +96,7 @@ export default function Step3Configure() {
                     ))}
                 </div>
             </div>
-
+ 
             <div className="strategy-layout" style={{ display: 'grid', gridTemplateColumns: '280px minmax(0, 1fr)', gap: 0, marginTop: '1.5rem' }}>
                 <nav className="strategy-nav" aria-label="Configuration sections">
                     {[
@@ -139,7 +139,7 @@ export default function Step3Configure() {
                         <span style={{ fontSize: '1.25rem' }}>📝</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Project Settings</h3>
                     </div>
-
+ 
                     <div className="form-group">
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>Project Name</label>
                         <input
@@ -151,7 +151,7 @@ export default function Step3Configure() {
                             style={{ padding: '0.6rem 0.85rem' }}
                         />
                     </div>
-
+ 
                     <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b' }}>Base Java Package</label>
                         <input
@@ -164,21 +164,21 @@ export default function Step3Configure() {
                         />
                     </div>
                 </div>}
-
+ 
                 {/* Backend Configuration */}
                 {activeSection === 'backend' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
                         <span style={{ fontSize: '1.25rem' }}>☕</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Backend (Spring Boot)</h3>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Framework</label>
                         <select className="form-control" value="spring-boot" disabled style={{ background: '#f8fafc' }}>
                             <option>Spring Boot</option>
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Spring Boot Version</label>
                         <select
@@ -189,7 +189,7 @@ export default function Step3Configure() {
                             {springBootVersions.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Java Version</label>
                         <select
@@ -201,21 +201,21 @@ export default function Step3Configure() {
                         </select>
                     </div>
                 </div>}
-
+ 
                 {/* Frontend Configuration */}
                 {activeSection === 'frontend' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
                         <span style={{ fontSize: '1.25rem' }}>⚛️</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Frontend (React)</h3>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Framework</label>
                         <select className="form-control" value="react" disabled style={{ background: '#f8fafc' }}>
                             <option>React</option>
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>React Version</label>
                         <select
@@ -226,7 +226,7 @@ export default function Step3Configure() {
                             {reactVersions.map(v => <option key={v} value={v}>{v}</option>)}
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Node.js Version</label>
                         <select
@@ -237,7 +237,7 @@ export default function Step3Configure() {
                             {nodeVersions.map(v => <option key={v} value={v}>{v} {v === 24 ? '(LTS)' : ''}</option>)}
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Build Tool</label>
                         <select className="form-control" value="vite" disabled style={{ background: '#f8fafc' }}>
@@ -245,21 +245,21 @@ export default function Step3Configure() {
                         </select>
                     </div>
                 </div>}
-
+ 
                 {/* Database Configuration */}
                 {activeSection === 'database' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
                         <span style={{ fontSize: '1.25rem' }}>🗄️</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Database (PostgreSQL)</h3>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Database Engine</label>
                         <select className="form-control" value="postgresql" disabled style={{ background: '#f8fafc' }}>
                             <option>PostgreSQL</option>
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>PostgreSQL Version</label>
                         <select
@@ -271,14 +271,14 @@ export default function Step3Configure() {
                         </select>
                     </div>
                 </div>}
-
+ 
                 {/* Authentication Strategy */}
                 {activeSection === 'auth' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
                         <span style={{ fontSize: '1.25rem' }}>🔗</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Authentication Strategy</h3>
                     </div>
-
+ 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {[
                             { value: 'jwt', label: 'JWT (JSON Web Tokens)' },
@@ -298,14 +298,14 @@ export default function Step3Configure() {
                         ))}
                     </div>
                 </div>}
-
+ 
                 {/* Reports & Migration Strategy */}
                 {activeSection === 'reports' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#4338ca' }}>
                         <span style={{ fontSize: '1.25rem' }}>🔄</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Reports & Migration</h3>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center' }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Report Strategy</label>
                         <select
@@ -318,7 +318,7 @@ export default function Step3Configure() {
                             <option value="html">HTML Reports</option>
                         </select>
                     </div>
-
+ 
                     <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', alignItems: 'center', marginBottom: 0 }}>
                         <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', color: '#64748b', marginBottom: 0 }}>Migration Strategy</label>
                         <select
@@ -332,20 +332,28 @@ export default function Step3Configure() {
                         </select>
                     </div>
                 </div>}
-
+ 
                 {/* UI Design Style */}
                 {activeSection === 'ui_style' && <div className="card" style={{ padding: '1.5rem', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', color: '#7c3aed' }}>
                         <span style={{ fontSize: '1.25rem' }}>🎨</span>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>UI Design Style</h3>
                     </div>
-
+ 
                     <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1.25rem', lineHeight: '1.6' }}>
                         Choose the visual design style for the generated React application. This transforms the same functional code into different UI aesthetics.
                     </p>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+ 
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                         {[
+                             {
+                                key: 'exact',
+                                name: 'Exact Layout (Access replica)',
+                                desc: '1:1 pixel-perfect replication of MS Access layouts using absolute positioning.',
+                                emoji: '🎯',
+                                color: '#d97706',
+                                bg: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                            },
                             {
                                 key: 'classic',
                                 name: 'Classic Enterprise',
@@ -353,6 +361,7 @@ export default function Step3Configure() {
                                 emoji: '🏢',
                                 color: '#3b82f6',
                                 bg: 'linear-gradient(135deg, #dbeafe, #eff6ff)',
+                                disabled: true,
                             },
                             {
                                 key: 'modern_dashboard',
@@ -362,6 +371,7 @@ export default function Step3Configure() {
                                 color: '#6366f1',
                                 bg: 'linear-gradient(135deg, #1e1b4b, #312e81)',
                                 darkText: true,
+                                disabled: true,
                             },
                             {
                                 key: 'material',
@@ -370,34 +380,31 @@ export default function Step3Configure() {
                                 emoji: '📐',
                                 color: '#1976d2',
                                 bg: 'linear-gradient(135deg, #e3f2fd, #bbdefb)',
+                                disabled: true,
                             },
-                            {
-                                key: 'exact',
-                                name: 'Exact Layout (Access replica)',
-                                desc: '1:1 pixel-perfect replication of MS Access layouts using absolute positioning.',
-                                emoji: '🎯',
-                                color: '#d97706',
-                                bg: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                            },
+                           
                         ].map(style => (
                             <button
                                 key={style.key}
                                 type="button"
-                                onClick={() => handleConfigChange('ui_style', style.key)}
+                                onClick={() => !style.disabled && handleConfigChange('ui_style', style.key)}
+                                disabled={style.disabled}
                                 style={{
                                     padding: '1.25rem',
                                     borderRadius: '12px',
                                     border: localConfig.ui_style === style.key
                                         ? `2px solid ${style.color}`
                                         : '2px solid #e2e8f0',
-                                    background: localConfig.ui_style === style.key ? style.bg : '#ffffff',
-                                    cursor: 'pointer',
+                                    background: style.disabled ? '#f8fafc' : (localConfig.ui_style === style.key ? style.bg : '#ffffff'),
+                                    cursor: style.disabled ? 'not-allowed' : 'pointer',
                                     textAlign: 'left',
                                     transition: 'all 0.2s',
                                     position: 'relative',
                                     boxShadow: localConfig.ui_style === style.key
                                         ? `0 4px 12px ${style.color}33`
                                         : '0 1px 3px rgba(0,0,0,0.06)',
+                                    opacity: style.disabled ? 0.7 : 1,
+                                    filter: style.disabled ? 'grayscale(1)' : 'none',
                                 }}
                             >
                                 {localConfig.ui_style === style.key && (
@@ -425,7 +432,7 @@ export default function Step3Configure() {
                             </button>
                         ))}
                     </div>
-
+ 
                     <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginTop: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                             <span style={{ fontSize: '0.9rem' }}>🤖</span>
@@ -470,7 +477,7 @@ export default function Step3Configure() {
                 </div>}
             </div>
             </div>
-
+ 
         </div>
     );
 }
