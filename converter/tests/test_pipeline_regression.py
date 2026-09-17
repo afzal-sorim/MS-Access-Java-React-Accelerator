@@ -168,6 +168,19 @@ def test_react_pages_for_digit_prefixed_forms(app_ir):
     assert any("N950LeszynskiConventions" in p for p in pages)
 
 
+def test_operations_workspace_theme_generates_access_to_web_patterns(app_ir):
+    """The selectable Access-to-web theme must render its dynamic workspace."""
+    generator = ReactGenerator(app_ir, ui_style="operations_workspace")
+    # This test validates rendering, not optional LLM sample-data generation.
+    generator._generate_mock_data = lambda: {}
+    files = generator.generate("/tmp/fixture_operations_workspace")
+    joined = "\n".join(files.values())
+    assert "--ow-blue" in joined
+    assert "ow-workspace" in joined
+    assert "ow-record-rail" in joined
+    assert "ow-detail-grid" in joined
+
+
 # ---------------------------------------------------------------- PHASE 20: contracts
 
 def test_generated_project_passes_contract_validation(app_ir):

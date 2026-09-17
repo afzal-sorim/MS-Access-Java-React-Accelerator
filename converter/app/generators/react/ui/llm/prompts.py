@@ -72,6 +72,14 @@ def build_style_rules(style: str) -> dict:
             "dark_mode": False,
             "design_notes": "Google Material Design. AppBar navigation. Elevation-based depth. Outlined inputs. FAB for primary add actions.",
         },
+        "operations_workspace": {
+            "style": "operations_workspace",
+            "navigation": "top_navbar",
+            "preferred_layouts": ["split_view", "two_column", "table", "card_grid"],
+            "form_style": "sectioned_workspace",
+            "dark_mode": False,
+            "design_notes": "Access-to-web operations workspace. Translate continuous forms into a left record rail with a sectioned detail panel. Use compact white cards, navy table headers, grouped menu actions, explicit save/reset actions, and report-ready data tables.",
+        },
     }
     return rules.get(style, rules["classic"])
 

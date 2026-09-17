@@ -9,6 +9,7 @@ from .classic import ClassicTheme
 from .modern_dashboard import ModernDashboardTheme
 from .material import MaterialTheme
 from .exact import ExactLayoutTheme
+from .operations_workspace import OperationsWorkspaceTheme
 
 
 _THEME_REGISTRY: dict[str, type[Theme]] = {
@@ -16,6 +17,7 @@ _THEME_REGISTRY: dict[str, type[Theme]] = {
     "modern_dashboard": ModernDashboardTheme,
     "material": MaterialTheme,
     "exact": ExactLayoutTheme,
+    "operations_workspace": OperationsWorkspaceTheme,
 }
 
 
@@ -50,5 +52,10 @@ def list_themes() -> list[dict[str, str]]:
             "key": "exact",
             "name": "Exact Layout (Access replica)",
             "description": "1:1 pixel-perfect replication of MS Access layouts using absolute positioning.",
+        },
+        {
+            "key": "operations_workspace",
+            "name": "Operations Workspace",
+            "description": "Access-to-web workspace with grouped navigation, record rail, detail panels, and report-ready tables.",
         },
     ]
