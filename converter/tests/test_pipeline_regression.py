@@ -168,9 +168,14 @@ def test_react_pages_for_digit_prefixed_forms(app_ir):
     assert any("N950LeszynskiConventions" in p for p in pages)
 
 
-def test_operations_workspace_theme_generates_access_to_web_patterns(app_ir):
+def test_operations_workspace_theme_generates_access_to_web_patterns(app_ir, monkeypatch):
     """The selectable Access-to-web theme must render its dynamic workspace."""
     generator = ReactGenerator(app_ir, ui_style="operations_workspace")
+    from converter.app.generators.react.ui.dashboard_topics import DashboardTopicPlanner
+    monkeypatch.setattr(
+        DashboardTopicPlanner, "group",
+        lambda _self, pages: [{"title": "Test topic", "page_ids": [p["dashboard_id"] for p in pages]}],
+    )
     # This test validates rendering, not optional LLM sample-data generation.
     generator._generate_mock_data = lambda: {}
     files = generator.generate("/tmp/fixture_operations_workspace")
@@ -179,6 +184,13 @@ def test_operations_workspace_theme_generates_access_to_web_patterns(app_ir):
     assert "ow-workspace" in joined
     assert "ow-record-rail" in joined
     assert "ow-detail-grid" in joined
+    assert "ow-dashboard-links" in joined
+    assert "ow-welcome" in joined
+    assert "ow-topic-section" in joined
+    assert "total records" in joined
+    assert "Back to dashboard" in joined
+    assert "Alex Morgan" in joined
+    assert 'className="ow-nav"' not in joined
 
 
 # ---------------------------------------------------------------- PHASE 20: contracts

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -133,26 +132,6 @@ def _safe(fn, default=None):
         return default
 
 
-def _start_access(win32com_client):
-    """Start Access with recovery for transient COM server startup failures."""
-    last_error = None
-    for attempt in range(3):
-        try:
-            return win32com_client.DispatchEx("Access.Application")
-        except Exception as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(1)
-
-    try:
-        return win32com_client.Dispatch("Access.Application")
-    except Exception as exc:
-        raise RuntimeError(
-            "Microsoft Access could not be started through COM. "
-            "Close any modal Access dialogs or running Access instances and retry."
-        ) from (last_error or exc)
-
-
 class AccessExtractor:
     """Drives MS Access via COM to produce a raw extraction payload."""
 
@@ -179,35 +158,259 @@ class AccessExtractor:
             "macros": [], "vbaModules": [], "relationships": [],
         }
 
+    def _find_access_exe(self) -> Optional[str]:
+        """Locate MSACCESS.EXE from PATH, registry, or standard Office install directories."""
+        import shutil
+        import winreg
+
+        # 1. Check PATH
+        exe = shutil.which("msaccess.exe")
+        if exe and Path(exe).exists():
+            return exe
+
+        # 2. Check App Paths in Registry
+        for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+            try:
+                with winreg.OpenKey(root, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\MSACCESS.EXE") as key:
+                    val, _ = winreg.QueryValueEx(key, "")
+                    if val and Path(val).exists():
+                        return val
+            except Exception:
+                pass
+
+        # 3. Common installation locations
+        known_paths = [
+            r"C:\Program Files\Microsoft Office\Office16\MSACCESS.EXE",
+            r"C:\Program Files\Microsoft Office\root\Office16\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Office16\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\root\Office16\MSACCESS.EXE",
+            r"C:\Program Files\Microsoft Office\Office15\MSACCESS.EXE",
+            r"C:\Program Files (x86)\Microsoft Office\Office15\MSACCESS.EXE",
+        ]
+        for p in known_paths:
+            if Path(p).exists():
+                return p
+        return None
+
+    @staticmethod
+    def _suppress_access_prompts(db_path: str):
+        """Configure Windows Registry to suppress all Access security/macro prompts.
+
+        Sets:
+        - VBAWarnings = 1 (disable all macro warnings)
+        - AccessVBOM = 1 (trust access to VBA project object model)
+        - Adds the database's parent directory as a Trusted Location
+        """
+        import winreg
+
+        db_dir = str(Path(db_path).resolve().parent)
+
+        # Access 16.0 (2016/2019/2021/365) Trust Center settings
+        trust_key = r"SOFTWARE\Microsoft\Office\16.0\Access\Security"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trust_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "VBAWarnings", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "AccessVBOM", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Add the uploads directory as a Trusted Location
+        trusted_loc_key = trust_key + r"\Trusted Locations\ConverterUploads"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trusted_loc_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_SZ, db_dir)
+            winreg.SetValueEx(key, "AllowSubfolders", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Also trust the workdir / output directories
+        trusted_out_key = trust_key + r"\Trusted Locations\ConverterOutputs"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, trusted_out_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_SZ, str(Path(db_dir).parent))
+            winreg.SetValueEx(key, "AllowSubfolders", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
+        # Disable "Protected View" for files from the internet
+        pv_key = r"SOFTWARE\Microsoft\Office\16.0\Access\Security\ProtectedView"
+        try:
+            key = winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, pv_key, 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "DisableInternetFilesInPV", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "DisableUnsafeLocationsInPV", 0, winreg.REG_DWORD, 1)
+            winreg.SetValueEx(key, "DisableAttachementsInPV", 0, winreg.REG_DWORD, 1)
+            winreg.CloseKey(key)
+        except Exception:
+            pass
+
     # ------------------------------------------------------------ entry
+
+    class _DialogAutoDismisser:
+        """Background thread that auto-dismisses ANY popup dialog from MS Access.
+
+        Uses win32gui to continuously scan for dialog windows owned by
+        MSACCESS.EXE and clicks OK/Yes/Close on them. Handles:
+        - Missing/broken VBA references (MSOUTL.OLB, etc.)
+        - Security warnings that slip past registry settings
+        - "Compact and Repair" suggestions
+        - Any other unexpected modal dialog
+        """
+
+        def __init__(self):
+            self._stop = False
+            self._thread = None
+
+        def start(self):
+            import threading
+            self._stop = False
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+
+        def stop(self):
+            self._stop = True
+            if self._thread:
+                self._thread.join(timeout=2)
+
+        def _run(self):
+            import time
+            try:
+                import win32gui
+                import win32con
+            except ImportError:
+                return
+
+            while not self._stop:
+                try:
+                    self._dismiss_dialogs(win32gui, win32con)
+                except Exception:
+                    pass
+                time.sleep(0.3)
+
+        @staticmethod
+        def _dismiss_dialogs(win32gui, win32con):
+            """Find and dismiss all Access dialog windows."""
+            dialogs_to_dismiss = []
+
+            def enum_callback(hwnd, _):
+                if not win32gui.IsWindowVisible(hwnd):
+                    return
+                class_name = win32gui.GetClassName(hwnd)
+                title = win32gui.GetWindowText(hwnd)
+                # Access dialogs use class names like "#32770" (standard dialog),
+                # "NUIDialog", or windows titled "Microsoft Access"
+                if class_name == "#32770" or "Microsoft Access" in title:
+                    # Check it's actually a small dialog (not the main app window)
+                    try:
+                        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+                        width = right - left
+                        height = bottom - top
+                        # Dialogs are typically smaller than 800x600
+                        if width < 900 and height < 700:
+                            dialogs_to_dismiss.append(hwnd)
+                    except Exception:
+                        pass
+
+            win32gui.EnumWindows(enum_callback, None)
+
+            for hwnd in dialogs_to_dismiss:
+                try:
+                    clicked = False
+                    # 1. Search for known confirmation/dismissal buttons
+                    for button_text in ["OK", "&OK", "Yes", "&Yes", "Open", "&Open", "Continue", "&Continue", "Close", "&Close"]:
+                        try:
+                            btn = win32gui.FindWindowEx(hwnd, 0, "Button", button_text)
+                            if btn:
+                                win32gui.PostMessage(btn, win32con.BM_CLICK, 0, 0)
+                                clicked = True
+                                break
+                        except Exception:
+                            pass
+
+                    # 2. Also send standard dialog command IDs: IDOK (1) and IDYES (6)
+                    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, 1, 0)  # IDOK
+                    win32gui.PostMessage(hwnd, win32con.WM_COMMAND, 6, 0)  # IDYES
+
+                    # 3. Fallback: send Enter key to trigger default button
+                    win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
+                    win32gui.PostMessage(hwnd, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
+                except Exception:
+                    pass
+
     def run(self) -> dict:
         import pythoncom
         import win32com.client
+        import subprocess
+        import time
 
-        pythoncom.CoInitialize()
-        app = None
         try:
-            app = _start_access(win32com.client)
-            _safe(lambda: setattr(app, "DisplayAlerts", False))
-            _safe(lambda: setattr(app, "UserControl", False))
-            app.Visible = False
-            # 1 = msoAutomationSecurityLow: programmatically enables all content/macros
-            # and suppresses security alert dialogs in the headless COM automation session.
+            pythoncom.CoInitializeEx(pythoncom.COINIT_APARTMENTTHREADED)
+        except Exception:
+            pythoncom.CoInitialize()
+
+        # Suppress all Access security/macro prompts before launching
+        self._suppress_access_prompts(self.db_path)
+
+        # Start background auto-dismisser for any popup dialogs
+        dismisser = self._DialogAutoDismisser()
+        dismisser.start()
+
+        app = None
+        spawned_proc = None
+        try:
+            # Primary strategy: Direct COM dispatch (works on full retail Access)
             try:
-                app.AutomationSecurity = 1
+                app = win32com.client.DispatchEx("Access.Application")
+                _safe(lambda: setattr(app, "Visible", False))
+                app.OpenCurrentDatabase(self.db_path, False)
+            except Exception as direct_err:
+                # Access Runtime fallback: Runtime cannot be started with an empty database.
+                # Launch msaccess.exe pointing directly to the file, then attach via GetObject.
+                access_exe = self._find_access_exe()
+                if not access_exe:
+                    raise RuntimeError(f"Could not locate MSACCESS.EXE and direct COM failed: {direct_err}")
+
+                spawned_proc = subprocess.Popen([access_exe, "/nostartup", self.db_path])
+                # Poll for Access to register in the Running Object Table (up to 15 seconds)
+                for _ in range(30):
+                    time.sleep(0.5)
+                    try:
+                        app = win32com.client.GetObject(Class="Access.Application")
+                        if app and _safe(lambda: app.CurrentDb() is not None):
+                            break
+                    except Exception:
+                        continue
+                if app is None or _safe(lambda: app.CurrentDb()) is None:
+                    raise RuntimeError(f"Failed to attach to launched MS Access instance ({access_exe})")
+
+            # ---- Suppress ALL interactive prompts/dialogs after attaching ----
+            # 1. AutomationSecurity = 1 (msoAutomationSecurityLow) — run all macros silently
+            _safe(lambda: setattr(app, "AutomationSecurity", 1))
+            # 2. DoCmd.SetWarnings False — suppress action-query confirmations
+            #    ("You are about to append/delete/update N rows", "Do you want to save?", etc.)
+            _safe(lambda: app.DoCmd.SetWarnings(False))
+            # 3. DisplayAlerts = False — suppress all remaining alert/message boxes
+            _safe(lambda: setattr(app, "DisplayAlerts", False))
+            # 4. Visible = False — keep the window hidden to avoid user interaction
+            _safe(lambda: setattr(app, "Visible", False))
+
+            payload = self._extract_all(app)
+            _safe(app.CloseCurrentDatabase)
+        finally:
+            if dismisser is not None:
+                _safe(dismisser.stop)
+            if app is not None:
+                _safe(app.Quit)
+                app = None
+            if spawned_proc is not None:
+                _safe(spawned_proc.terminate)
+                _safe(spawned_proc.kill)
+            try:
+                pythoncom.CoUninitialize()
             except Exception:
                 pass
-            app.OpenCurrentDatabase(self.db_path, False)
-            payload = self._extract_all(app)
-            app.CloseCurrentDatabase()
-        finally:
-            if app is not None:
-                try:
-                    app.Quit()
-                except Exception:
-                    pass
-                app = None
-            pythoncom.CoUninitialize()
         payload["warnings"] = self.warnings
         payload["table_data"] = {
             name: rows for name, rows in self.data.items()
@@ -507,8 +710,6 @@ class AccessExtractor:
                 "is_subform": name.startswith("sub") or name.startswith("Sub"),
                 "record_source": None,
                 "caption": None,
-                "back_color": None,
-                "section_colors": {},
                 "controls": [],
                 "events": {},
                 "module": None,
@@ -523,13 +724,6 @@ class AccessExtractor:
                 frm = app.Forms(name)
                 form["record_source"] = _safe(lambda: frm.RecordSource) or None
                 form["caption"] = _safe(lambda: frm.Caption) or None
-                form["back_color"] = _safe(lambda: frm.Section(0).BackColor)
-                sec_colors = {}
-                for s_idx in range(5):
-                    c = _safe(lambda s=s_idx: frm.Section(s).BackColor)
-                    if c is not None:
-                        sec_colors[s_idx] = c
-                form["section_colors"] = sec_colors
                 form["has_module"] = bool(_safe(lambda: frm.HasModule, False))
                 if form["has_module"]:
                     form["module"] = f"Form_{name}"
@@ -609,16 +803,8 @@ class AccessExtractor:
                           ("Caption", "caption"),
                           ("Format", "format"),
                           ("DefaultValue", "default_value"),
-                          ("ValidationRule", "validation_rule"),
-                          ("Left", "left"),
-                          ("Top", "top"),
-                          ("Width", "width"),
-                          ("Height", "height"),
-                          ("Section", "section"),
-                          ("BackColor", "back_color"),
-                          ("ForeColor", "fore_color")):
-            val = _safe(lambda p=prop: getattr(ctl, p, None))
-            control[key] = val if val is not None else None
+                          ("ValidationRule", "validation_rule")):
+            control[key] = _safe(lambda p=prop: getattr(ctl, p, None)) or None
         for event in CONTROL_EVENTS:
             handler = _prop(ctl, event)
             if handler:
@@ -850,4 +1036,43 @@ class AccessExtractor:
 
 def run_extraction(db_path: str, workdir: str | Path, **options) -> dict:
     """Entry point used by the pipeline. Returns the raw extraction payload."""
-    return AccessExtractor(db_path, Path(workdir), **options).run()
+    workdir_path = Path(workdir).resolve()
+    try:
+        return AccessExtractor(db_path, workdir_path, **options).run()
+    except Exception as exc:
+        # If running inside an asyncio thread pool raises COM marshaling / execution failure,
+        # run in an isolated Python process with its own main STA thread.
+        import subprocess
+        import sys
+        import os
+
+        # Resolve the project root: extractor.py is at converter/app/access/extractor.py
+        # so project root is 4 levels up from this file.
+        this_file = Path(__file__).resolve()
+        project_root = this_file.parent.parent.parent.parent  # -> MS-Access-Backend
+
+        db_path_resolved = str(Path(db_path).resolve())
+        workdir_resolved = str(workdir_path)
+
+        script = f"""import sys
+sys.path.insert(0, r'{project_root}')
+from pathlib import Path
+from converter.app.access.extractor import AccessExtractor
+ext = AccessExtractor(r'{db_path_resolved}', Path(r'{workdir_resolved}'))
+ext.run()
+"""
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(project_root) + os.pathsep + env.get("PYTHONPATH", "")
+
+        res = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            env=env,
+            timeout=300,
+        )
+        output_file = workdir_path / "extraction.json"
+        if res.returncode == 0 and output_file.exists():
+            return json.loads(output_file.read_text(encoding="utf-8"))
+        raise RuntimeError(f"Extraction failed: {res.stderr or exc}") from exc

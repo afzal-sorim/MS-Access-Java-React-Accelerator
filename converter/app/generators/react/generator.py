@@ -193,15 +193,20 @@ class ReactGenerator:
     def _generate_themed_app_jsx(self) -> str:
         """Generate App.jsx using the theme engine."""
         pages = []
-        for pres in self._presentations:
+        for page_index, pres in enumerate(self._presentations):
             page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
             endpoint = self._to_kebab(page_name) if pres.record_source else ""
 
             from .ui.models import PageType
             
             page_info = {
+                "dashboard_id": f"page_{page_index}",
                 "nav_link_text": pres.screen_name,
                 "nav_path": f"/{endpoint}" if endpoint else f"/{page_name.lower()}",
+                # The Operations Workspace dashboard uses this to show a
+                # live total-records count beside data-bound page links.
+                "dashboard_api_name": self._resolve_api_name(pres.record_source)
+                if pres.record_source else "",
             }
 
             if pres.record_source:
@@ -220,6 +225,12 @@ class ReactGenerator:
                 page_info["nav_link"] = f'<Link to="/{page_name.lower()}">{pres.screen_name}</Link>\n'
 
             pages.append(page_info)
+
+        # Operations Workspace has a domain-neutral, LLM-assisted navigation
+        # grouping step. Its renderer still owns all generated JSX and routes.
+        if self._theme and self._theme.key == "operations_workspace":
+            from .ui.dashboard_topics import DashboardTopicPlanner
+            self._theme.set_dashboard_topics(DashboardTopicPlanner().group(pages))
 
         # Reports handling
         report_import = ""

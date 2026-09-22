@@ -10,6 +10,21 @@ import time
 from pathlib import Path
 
 
+def clear_gen_py_cache():
+    """Clear the win32com gen_py cache to prevent COM dispatch issues."""
+    try:
+        import win32com
+        import shutil
+        gen_path = getattr(win32com, '__gen_path__', None)
+        if gen_path and os.path.exists(gen_path):
+            print(f"🧹 Clearing win32com cache at: {gen_path}")
+            shutil.rmtree(gen_path, ignore_errors=True)
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"Warning: failed to clear gen_py cache: {e}")
+
+
 def load_env(env_path: Path, target_env: dict):
     """Load env variables from a .env file into a target dictionary."""
     if env_path.exists():
@@ -30,6 +45,7 @@ def load_env(env_path: Path, target_env: dict):
 
 def run_wizard():
     """Run both backend and frontend servers."""
+    clear_gen_py_cache()
     project_root = Path(__file__).parent
     backend_dir = project_root / "converter"
     frontend_dir = project_root / "ui"
