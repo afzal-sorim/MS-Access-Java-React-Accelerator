@@ -393,8 +393,8 @@ def test_postgres_fk_deduplication_and_defaults():
     gen = PostgresSchemaGenerator(app_ir)
     sql = gen.generate()
 
-    # Must contain the FK constraint exactly once
-    count = sql.count('ADD CONSTRAINT "tag_grp_tbtag_nme_tb"')
+    # Must contain the FK constraint exactly once (dedup by table+column)
+    count = sql.count('ADD CONSTRAINT "tag_grp_tbtag_nme_tb_tag_grp_id"')
     assert count == 1, f"Expected 1 FK constraint, found {count}"
 
     # Default value must be CURRENT_USER, NOT '=Environ("USERNAME")'

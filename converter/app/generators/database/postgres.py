@@ -27,11 +27,24 @@ TYPE_MAP = {
     "Date/Time": "TIMESTAMP",
     "Yes/No": "BOOLEAN",
     "Binary": "BYTEA",
+    "VarBinary": "BYTEA",
+    "Char": "CHAR",
+    "Float": "DOUBLE PRECISION",
+    "Time": "TIME",
+    "TimeStamp": "TIMESTAMP",
     "Replication ID": "UUID",
     "Hyperlink": "TEXT",
     # Special types handled separately
     "Attachment": None,  # Unsupported
     "OLE Object": "BYTEA",  # With warning
+    # Complex (multi-value) types — stored as JSONB arrays
+    "Complex Byte": None,
+    "Complex Integer": None,
+    "Complex Long": None,
+    "Complex Single": None,
+    "Complex Double": None,
+    "Complex Decimal": None,
+    "Complex Text": None,
 }
 
 
@@ -59,15 +72,15 @@ class PostgresSchemaGenerator:
         self.schema_name = schema_name
         self.statements: list[str] = []
         self.warnings: list[str] = []
-        self._pk_map: dict[str, str] = {}  # table -> pk column
+        self._pk_map: dict[str, list[str]] = {}  # table -> list of pk columns
         self._fk_map: dict[str, list[dict]] = {}  # table -> list of FKs
-        self._emitted_constraints: set[tuple[str, str]] = set()  # (table, constraint) -> avoid duplicates
+        self._emitted_fk_cols: set[tuple[str, str]] = set()  # (table, column) -> avoid duplicate FK constraints
 
     def generate(self) -> str:
         """Generate the complete schema.sql content."""
         self.statements = []
         self.warnings = []
-        self._emitted_constraints = set()
+        self._emitted_fk_cols = set()
 
         # Header comment
         self.statements.append("-- Generated PostgreSQL Schema")
@@ -101,6 +114,9 @@ class PostgresSchemaGenerator:
             for fk in self._fk_map.get(table.name, []):
                 self._generate_fk_constraint(table.name, fk)
 
+        # Generate views from Access SELECT queries
+        self._generate_views()
+
         # Generate seed data
         self.statements.append("")
         self.statements.append("-- Seed Data")
@@ -110,11 +126,11 @@ class PostgresSchemaGenerator:
 
     def _analyze_keys(self) -> None:
         """Analyze primary keys and foreign keys from relationships."""
-        # Find primary keys from indexes
+        # Find primary keys from indexes — store all columns for composite PK support
         for table in self.app.tables:
             for idx in table.indexes:
                 if idx.primary and idx.columns:
-                    self._pk_map[table.name] = idx.columns[0]
+                    self._pk_map[table.name] = list(idx.columns)
                     break
 
         # Build foreign key map from relationships
@@ -143,23 +159,24 @@ class PostgresSchemaGenerator:
         self.statements.append(f"CREATE TABLE IF NOT EXISTS \"{self._to_snake(table.name)}\" (")
 
         columns_sql = []
-        primary_key_col = self._pk_map.get(table.name)
+        pk_columns = self._pk_map.get(table.name)  # list of PK column names, or None
+        is_composite_pk = pk_columns is not None and len(pk_columns) > 1
 
         # If no primary key defined, add a synthetic surrogate PK
-        if primary_key_col is None:
+        if pk_columns is None:
             columns_sql.append('"generated_id" BIGSERIAL PRIMARY KEY')
             self.warnings.append(
                 f"Table {table.name} has no primary key — synthetic 'generated_id' added"
             )
 
         for col in table.columns:
-            col_spec = self._column_spec(col, table.name, primary_key_col)
+            col_spec = self._column_spec(col, table.name, pk_columns, is_composite_pk)
             columns_sql.append(self._format_column(col_spec))
 
-        # Add primary key constraint if composite or explicit
-        if primary_key_col:
-            # Single column PK is handled inline
-            pass
+        # Add composite primary key constraint as a table constraint
+        if is_composite_pk:
+            pk_col_list = ", ".join(f'"{self._to_snake(c)}"' for c in pk_columns)
+            columns_sql.append(f"PRIMARY KEY ({pk_col_list})")
 
         self.statements.append(",\n".join(f"    {c}" for c in columns_sql))
         self.statements.append(");")
@@ -181,13 +198,18 @@ class PostgresSchemaGenerator:
 
         self.statements.append("")
 
-    def _column_spec(self, col, table_name: str, pk_col: Optional[str]) -> ColumnSpec:
+    def _column_spec(self, col, table_name: str, pk_columns: Optional[list[str]], is_composite_pk: bool = False) -> ColumnSpec:
         """Build column specification from IR column."""
         # Map Access type to PostgreSQL type
         sql_type = self._map_type(col.access_type, col)
 
-        # Determine if primary key
-        is_pk = pk_col == col.name and col.auto_number
+        # Determine if primary key — any column in the PK index is a PK,
+        # regardless of whether it is auto-number
+        is_pk = pk_columns is not None and col.name in pk_columns
+
+        # For composite PKs, PRIMARY KEY is emitted as a table constraint,
+        # so individual columns should NOT be marked inline
+        is_pk_inline = is_pk and not is_composite_pk
 
         # Handle auto-number (serial/identity)
         if col.auto_number and is_pk:
@@ -221,7 +243,7 @@ class PostgresSchemaGenerator:
             nullable=col.allow_null and not is_pk,
             default=default,
             check_constraint=check,
-            is_primary_key=is_pk,
+            is_primary_key=is_pk_inline,
             is_unique=col.unique,
             is_foreign_key=is_fk,
             fk_table=fk_table,
@@ -245,6 +267,11 @@ class PostgresSchemaGenerator:
                     f"Column {col.name}: OLE Object stored as BYTEA"
                 )
                 return "BYTEA"
+            if access_type.startswith("Complex"):
+                self.warnings.append(
+                    f"Column {col.name}: multi-value {access_type} stored as JSONB array"
+                )
+                return "JSONB"
 
             # Default fallback
             self.warnings.append(f"Unknown type '{access_type}' for column {col.name}, using TEXT")
@@ -340,15 +367,18 @@ class PostgresSchemaGenerator:
         parent = self._to_snake(fk["parent_table"])
         parent_col = self._to_snake(fk["parent_column"])
 
-        # Prevent duplicate constraints on the same table
-        constraint_key = (table, constraint)
-        if constraint_key in self._emitted_constraints:
+        # Prevent duplicate FK constraints on the same (table, column) pair.
+        # A single Access relationship with multiple child columns produces
+        # multiple entries in _fk_map with the same constraint_name, and
+        # keying on (table, constraint_name) wrongly deduplicates them.
+        fk_key = (table, col)
+        if fk_key in self._emitted_fk_cols:
             return
-        self._emitted_constraints.add(constraint_key)
+        self._emitted_fk_cols.add(fk_key)
 
         self.statements.append(
             f"ALTER TABLE \"{table}\" "
-            f"ADD CONSTRAINT \"{constraint}\" "
+            f"ADD CONSTRAINT \"{constraint}_{col}\" "
             f"FOREIGN KEY (\"{col}\") "
             f"REFERENCES \"{parent}\" (\"{parent_col}\")"
         )
@@ -363,6 +393,55 @@ class PostgresSchemaGenerator:
             self.statements[-1] += " " + " ".join(actions)
 
         self.statements[-1] += ";"
+
+    def _generate_views(self) -> None:
+        """Generate CREATE VIEW statements from Access SELECT queries."""
+        if not hasattr(self.app, 'queries') or not self.app.queries:
+            return
+
+        from ...reporting.sql_translate import translate_access_sql
+
+        # Collect table and query names for the translator
+        known_tables = {t.name for t in self.app.tables if t.role != "SYSTEM"}
+        known_queries = {q.name for q in self.app.queries}
+        select_kinds = {"SELECT", "UNION", "PARAMETER"}
+
+        views_emitted = False
+        for query in self.app.queries:
+            if query.kind.value not in select_kinds:
+                continue
+            if not query.sql or not query.sql.strip():
+                continue
+
+            view_name = self._to_snake(query.name)
+            result = translate_access_sql(
+                query.sql,
+                known_tables=known_tables,
+                known_queries=known_queries,
+                declared_parameters=query.parameters,
+            )
+
+            if not views_emitted:
+                self.statements.append("")
+                self.statements.append("-- Views (from Access saved queries)")
+                views_emitted = True
+
+            if result.ok:
+                self.statements.append(f'CREATE OR REPLACE VIEW "{view_name}" AS')
+                self.statements.append(f"    {result.sql};")
+                if result.notes:
+                    for note in result.notes:
+                        self.statements.append(f"-- NOTE: {note}")
+            else:
+                # Emit as a TODO comment so nothing is silently lost
+                self.statements.append(f"-- TODO: View \"{view_name}\" could not be auto-translated:")
+                for blocker in result.blockers:
+                    self.statements.append(f"--   BLOCKER: {blocker}")
+                self.statements.append(f"-- Original Access SQL:")
+                for line in query.sql.strip().splitlines():
+                    self.statements.append(f"--   {line}")
+
+            self.statements.append("")
 
     def _generate_seed_data(self) -> None:
         """Generate INSERT statements for seed data from extracted table data."""
