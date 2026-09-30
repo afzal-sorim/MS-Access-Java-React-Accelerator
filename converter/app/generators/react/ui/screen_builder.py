@@ -199,15 +199,8 @@ class ScreenBuilder:
                 for input_name in input_suffix_map[suffix]:
                     label_map[input_name] = lbl
 
-        for i, ctrl in enumerate(controls):
-            if (ctrl.control_type == "Label" and ctrl.caption
-                    and i + 1 < len(controls)):
-                next_ctrl = controls[i + 1]
-                if (next_ctrl.control_type in ("TextBox", "ComboBox", "CheckBox",
-                                               "OptionButton", "ListBox", "ToggleButton")
-                        and next_ctrl.name not in label_map):
-                    label_map[next_ctrl.name] = ctrl
-
+        # Removed sequential fallback because it causes mislabeling.
+        # Unmatched labels will fallback to humanizing the input name.
         return label_map
 
     def _build_field(self, ctrl: ControlIR, form: FormIR,

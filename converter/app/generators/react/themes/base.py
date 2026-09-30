@@ -29,8 +29,8 @@ class Theme(ABC):
     # ──────────────────────────────────── CSS generation
 
     @abstractmethod
-    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
-        """Generate the complete index.css for the application."""
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> dict[str, str] | str:
+        """Generate the complete CSS for the application (or a dict of CSS files)."""
         ...
 
     # ──────────────────────────────────── Page rendering
@@ -61,6 +61,9 @@ class Theme(ABC):
     def render_dashboard_page(
         self,
         presentation: UIPresentation,
+        endpoint: str = "",
+        api_name: str = "",
+        helper_imports: str = "",
     ) -> str:
         """Render a dashboard/info page."""
         ...
@@ -95,7 +98,7 @@ class Theme(ABC):
         report_import: str,
         report_route: str,
         report_link: str,
-    ) -> str:
+    ) -> dict[str, str] | str:
         """Render the App.jsx with navigation shell and routing."""
         ...
 
@@ -112,7 +115,7 @@ class Theme(ABC):
         pt = presentation.page_type
 
         if pt in (PageType.DASHBOARD, PageType.SETTINGS):
-            return self.render_dashboard_page(presentation)
+            return self.render_dashboard_page(presentation, endpoint, api_name, helper_imports)
         elif pt == PageType.LIST:
             return self.render_list_page(presentation, endpoint, api_name, helper_imports)
         elif pt == PageType.MASTER_DETAIL:
@@ -154,59 +157,46 @@ class Theme(ABC):
 
             field_name = self._to_camel(self._sanitize_field(field.data_source or field.id))
             label = field.label or field.id
-            disabled = " disabled" if field.readonly else ""
+            disabled_prop = " disabled" if field.readonly else ""
 
             if field.field_type.value == "checkbox":
                 parts.append(f"""
-            <div className="form-group">
-                <label>
-                    <input
-                        type="checkbox"
-                        name="{field_name}"
-                        checked={{formData.{field_name} || false}}
-                        onChange={{handleChange}}{disabled}
-                    />
-                    {label}
-                </label>
-            </div>""")
+                <FormField
+                    label="{label}"
+                    name="{field_name}"
+                    type="checkbox"
+                    value={{formData.{field_name}}}
+                    onChange={{handleChange}}{disabled_prop}
+                />""")
             elif field.field_type.value == "select":
                 parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <select
-                    id="{field_name}"
+                <FormField
+                    label="{label}"
                     name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                >
-                    <option value="">Select...</option>
-                </select>
-            </div>""")
+                    type="select"
+                    value={{formData.{field_name}}}
+                    onChange={{handleChange}}{disabled_prop}
+                />""")
             elif field.field_type.value == "textarea":
                 parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <textarea
-                    id="{field_name}"
+                <FormField
+                    label="{label}"
                     name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                    rows="4"
-                />
-            </div>""")
+                    type="textarea"
+                    value={{formData.{field_name}}}
+                    onChange={{handleChange}}{disabled_prop}
+                    rows={{4}}
+                />""")
             else:
                 input_type = self._field_type_to_input(field)
                 parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <input
-                    type="{input_type}"
-                    id="{field_name}"
+                <FormField
+                    label="{label}"
                     name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                />
-            </div>""")
+                    type="{input_type}"
+                    value={{formData.{field_name}}}
+                    onChange={{handleChange}}{disabled_prop}
+                />""")
         return "\n".join(parts)
 
     @staticmethod

@@ -23,9 +23,8 @@ class ModernDashboardTheme(Theme):
     def key(self) -> str:
         return "modern_dashboard"
 
-    def get_css(self, app_name: str, presentations: list) -> dict[str, str]:
-        css_files = {
-            "index.css": """:root {
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
+        css = """:root {
     --md-bg-dark: #0f172a;
     --md-bg-surface: #1e293b;
     --md-bg-card: #1e293b;
@@ -343,69 +342,74 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 """
-        }
         for p in presentations:
             name = self._to_pascal(p.screen_id.replace("frm", ""))
             cls = name.lower()
-            css_files[f"pages/{name}Page.module.css"] = f"""/* {name} CSS Module */
-.pageContainer, .{cls}-page, .{cls}-form {{
+            hue = sum(ord(c) for c in name) % 360
+            css += f"""
+.{cls}-page, .{cls}-form {{
     animation: fadeIn 0.3s ease-out;
 }}
 """
-        return css_files
+        return css
 
     # ──────────────────────────────────── Pages
 
     def render_list_page(self, presentation, endpoint, api_name, helper_imports):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
         var_name = self._to_camel(page_name)
-        
-        return f"""import React, {{ useState }} from 'react';
-import {{ useNavigate }} from 'react-router-dom';
-import {{ getAll }} from '../services/{api_name}Service';
-import {{ useApi }} from '../hooks/useApi';
-import PageHeader from '../components/common/PageHeader';
-import DataTable from '../components/common/DataTable';
-import Card from '../components/common/Card';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
-import EmptyState from '../components/common/EmptyState';
-import Button from '../components/common/Button';
+        cols = self._build_table_columns(presentation.fields)
+        header_ths = "\n                        ".join(f"<th>{f.label}</th>" for f in cols)
+        body_tds = "".join(f"<td>{{item.{self._to_camel(self._sanitize_field(f.data_source or f.id))}}}</td>" for f in cols)
 
-import styles from './{page_name}Page.module.css';
+        return f"""import React, {{ useState, useEffect }} from 'react';
+import {{ Link }} from 'react-router-dom';
+import {{ get{api_name} }} from '../services/api';
 
 export default function {page_name}Page() {{
-    const navigate = useNavigate();
-    const {{ data: {var_name}, loading, error }} = useApi(getAll);
+    const [{var_name}, set{page_name}] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    if (loading) return <LoadingSpinner />;
-    if (error) return <ErrorMessage message={{error}} />;
+    useEffect(() => {{
+        async function fetchData() {{
+            try {{ set{page_name}(await get{api_name}()); }}
+            catch (err) {{ setError(err.message); }}
+            finally {{ setLoading(false); }}
+        }}
+        fetchData();
+    }}, []);
 
-    const columns = [
-        {{ key: 'id', label: 'ID' }},
-        // TODO: Map other columns
-    ];
+    if (loading) return <div className="loading">Loading...</div>;
+    if (error) return <div className="error">{{error}}</div>;
 
     return (
         <div className="{page_name.lower()}-page">
-            <PageHeader 
-                title="{presentation.screen_name}" 
-                subtitle={{`${{{var_name} ? {var_name}.length : 0}} records found`}}
-            />
-            
-            <Card>
-                {{!{var_name} || {var_name}.length === 0 ? (
-                    <EmptyState message="No {page_name.lower()}s found." />
-                ) : (
-                    <DataTable 
-                        data={{{var_name}}} 
-                        columns={{columns}} 
-                        onRowClick={{(row) => navigate(`/{endpoint}/${{row.id}}`)}}
-                    />
-                )}}
-            </Card>
-            
-            <Button onClick={{() => navigate(`/{endpoint}/new`)}}>+ Add New</Button>
+            <div className="page-header">
+                <h1>{presentation.screen_name}</h1>
+                <p>{{({var_name}.length)}} records found</p>
+            </div>
+            <div className="card">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            {header_ths}
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{{var_name}.map(item => (
+                            <tr key={{item.id}}>
+                                {body_tds}
+                                <td>
+                                    <Link to={{`/{endpoint}/${{item.id}}`}}>View</Link>
+                                </td>
+                            </tr>
+                        ))}}
+                    </tbody>
+                </table>
+            </div>
+            <Link to="/{endpoint}/new" className="btn">+ Add New</Link>
         </div>
     );
 }}
@@ -413,99 +417,98 @@ export default function {page_name}Page() {{
 
     def render_form_page(self, presentation, endpoint, api_name, helper_imports):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
-        form_fields_jsx = self._build_form_fields_jsx(presentation.fields)
+        form_fields = self._build_form_fields_jsx(presentation.fields)
 
         return f"""import React, {{ useState, useEffect }} from 'react';
-import {{ useNavigate, useParams }} from 'react-router-dom';
-import {{ getById, create, update }} from '../services/{api_name}Service';
-import PageHeader from '../components/common/PageHeader';
-import FormField from '../components/common/FormField';
-import Button from '../components/common/Button';
-import Card from '../components/common/Card';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import ErrorMessage from '../components/common/ErrorMessage';
-
-import styles from './{page_name}Page.module.css';
+import {{ useParams, useNavigate }} from 'react-router-dom';
+import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
     const navigate = useNavigate();
-    const isEdit = Boolean(id);
     const [formData, setFormData] = useState({{}});
-    const [loading, setLoading] = useState(isEdit);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const isEdit = Boolean(id);
 
     useEffect(() => {{
         if (isEdit) {{
-            getById(id)
-                .then(data => setFormData(data))
-                .catch(err => setError(err.message))
-                .finally(() => setLoading(false));
+            get{api_name}ById(id).then(setFormData).catch(err => setError(err.message));
         }}
     }}, [id, isEdit]);
 
     const handleChange = (e) => {{
         const {{ name, value, type, checked }} = e.target;
-        setFormData(prev => ({{
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }}));
+        setFormData(prev => ({{ ...prev, [name]: type === 'checkbox' ? checked : value }}));
     }};
 
     const handleSubmit = async (e) => {{
         e.preventDefault();
+        setLoading(true);
         try {{
-            if (isEdit) await update(id, formData);
-            else await create(formData);
+            isEdit ? await update{api_name}(id, formData) : await create{api_name}(formData);
             navigate('/{endpoint}');
-        }} catch (err) {{
-            setError(err.message);
-        }}
+        }} catch (err) {{ setError(err.message); }}
+        finally {{ setLoading(false); }}
     }};
-
-    if (loading) return <LoadingSpinner />;
-    if (error) return <ErrorMessage message={{error}} />;
 
     return (
         <div className="{page_name.lower()}-form">
-            <PageHeader title={{isEdit ? \'Edit {presentation.screen_name}\' : \'Add {presentation.screen_name}\'}} />
-            <Card>
+            <div className="page-header">
+                <h1>{{isEdit ? 'Edit' : 'New'}} {presentation.screen_name}</h1>
+            </div>
+            <div className="card">
+                {{error && <div className="error">{{error}}</div>}}
                 <form onSubmit={{handleSubmit}}>
-{form_fields_jsx}
+                    {form_fields}
                     <div className="form-actions">
-                        <Button type="submit">Save</Button>
-                        <Button variant="secondary" onClick={{() => navigate(`/{endpoint}`)}}>Cancel</Button>
+                        <button type="submit" disabled={{loading}} className="btn">
+                            {{isEdit ? 'Update' : 'Create'}}
+                        </button>
+                        <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
+                            Cancel
+                        </button>
                     </div>
                 </form>
-            </Card>
+            </div>
         </div>
     );
 }}
 """
 
-    def render_dashboard_page(self, presentation, endpoint, api_name, helper_imports):
+    def render_dashboard_page(self, presentation):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
         button_cards = []
         for action in presentation.actions:
-            route = self._resolve_action_route(action)
-            on_click = f"onClick={{() => navigate('{route}')}}" if route else ""
+            handler = self._to_camel(action.id)
+            # Resolve navigation target from the action
+            nav_route = self._resolve_action_route(action)
+            if nav_route:
+                click_handler = f"navigate('{nav_route}')"
+            else:
+                click_handler = f"console.warn('No route mapped for: {handler}')"
             button_cards.append(f"""
-                <div className="stat-card" style={{{{cursor: 'pointer'}}}} {on_click}>
+                <div className="stat-card" style={{{{cursor: 'pointer'}}}} onClick={{() => {click_handler}}}>
                     <div className="stat-value">→</div>
-                    <div className="stat-label">{action.label or action.id}</div>
+                    <div className="stat-label">{action.label}</div>
                 </div>""")
+
         cards_jsx = "\n".join(button_cards)
+
+        # Only import useNavigate if any card actually uses it
+        needs_navigate = any(self._resolve_action_route(a) for a in presentation.actions)
+        navigate_import = "import { useNavigate } from 'react-router-dom';\n" if needs_navigate else ""
+        navigate_hook = "    const navigate = useNavigate();\n" if needs_navigate else ""
+
         return f"""import React from 'react';
-import {{ useNavigate }} from 'react-router-dom';
-import PageHeader from '../components/common/PageHeader';
-
-import styles from './{page_name}Page.module.css';
-
+{navigate_import}
 export default function {page_name}Page() {{
-    const navigate = useNavigate();
-    return (
+{navigate_hook}    return (
         <div className="{page_name.lower()}-page">
-            <PageHeader title="{presentation.screen_name}" subtitle="Dashboard overview" />
+            <div className="page-header">
+                <h1>{presentation.screen_name}</h1>
+                <p>Dashboard overview</p>
+            </div>
             <div className="card-grid">
 {cards_jsx}
             </div>
@@ -515,47 +518,115 @@ export default function {page_name}Page() {{
 """
 
     def render_detail_page(self, presentation, endpoint, api_name, helper_imports):
-        return self.render_list_page(presentation, endpoint, api_name, helper_imports)
+        return self.render_form_page(presentation, endpoint, api_name, helper_imports)
 
     def render_master_detail_page(self, presentation, endpoint, api_name, helper_imports):
-        return self.render_list_page(presentation, endpoint, api_name, helper_imports)
+        page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
+        primary_fields = [f for f in presentation.fields if f.info_level == InfoLevel.PRIMARY]
+        form_fields = self._build_form_fields_jsx(primary_fields)
 
-    def render_app_shell(self, app_name, pages, report_import, report_route, report_link) -> dict[str, str]:
-        imports = "\n".join(p["import"] for p in pages)
-        routes = "\n".join(p["routes"] for p in pages)
-        nav_links = "".join(p.get("nav_link", "") for p in pages)
-        if not nav_links and "nav_link_text" in pages[0]:
-            nav_links = "\\n".join(f"""                    <Link to="{{p["nav_path"]}}" style={{{{ color: '#cbd5e1', padding: '0.75rem 1rem', borderRadius: '8px', textDecoration: 'none', display: 'block' }}}}>{{p["nav_link_text"]}}</Link>""" for p in pages if "nav_link_text" in p)
+        subform_cards = []
+        for sf in presentation.subforms:
+            subform_cards.append(f"""
+            <div className="card">
+                <h2>{sf.name}</h2>
+                <p style={{{{color: 'var(--md-text-muted)', fontSize: '0.85rem'}}}}>Related data from: {sf.record_source or sf.name}</p>
+                {{/* TODO: Load related data */}}
+            </div>""")
 
-        app_jsx = f"""import React, {{ useState }} from 'react';
-import {{ BrowserRouter as Router }} from 'react-router-dom';
-import AppLayout from './components/layout/AppLayout';
-import AppRouter from './routes/AppRouter';
-import ErrorBoundary from './components/common/ErrorBoundary';
+        return f"""import React, {{ useState, useEffect }} from 'react';
+import {{ useParams, useNavigate }} from 'react-router-dom';
+import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
 
-export default function App() {{
+export default function {page_name}Page() {{
+    const {{ id }} = useParams();
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({{}});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const isEdit = Boolean(id);
+
+    useEffect(() => {{
+        if (isEdit) {{
+            get{api_name}ById(id).then(data => {{ setFormData(data); setLoading(false); }}).catch(err => {{ setError(err.message); setLoading(false); }});
+        }} else {{ setLoading(false); }}
+    }}, [id, isEdit]);
+
+    const handleChange = (e) => {{
+        const {{ name, value, type, checked }} = e.target;
+        setFormData(prev => ({{ ...prev, [name]: type === 'checkbox' ? checked : value }}));
+    }};
+
+    const handleSubmit = async (e) => {{
+        e.preventDefault();
+        try {{
+            isEdit ? await update{api_name}(id, formData) : await create{api_name}(formData);
+            navigate('/{endpoint}');
+        }} catch (err) {{ setError(err.message); }}
+    }};
+
+    if (loading) return <div className="loading">Loading...</div>;
+    if (error) return <div className="error">{{error}}</div>;
+
     return (
-        <ErrorBoundary>
-            <Router>
-                <AppLayout>
-                    <AppRouter />
-                </AppLayout>
-            </Router>
-        </ErrorBoundary>
+        <div className="{page_name.lower()}-page">
+            <div className="page-header">
+                <h1>{presentation.screen_name}</h1>
+            </div>
+            <div className="card">
+                <h2>Details</h2>
+                <form onSubmit={{handleSubmit}}>
+                    <div className="two-column">
+                        {form_fields}
+                    </div>
+                    <div className="form-actions">
+                        <button type="submit" className="btn">Save</button>
+                        <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+{"".join(subform_cards)}
+        </div>
     );
 }}
 """
 
-        app_router_jsx = f"""import React, {{ useState }} from 'react';
-import {{ Routes, Route }} from 'react-router-dom';
+    def render_app_shell(self, app_name, pages, report_import, report_route, report_link):
+        imports = "\n".join(p["import"] for p in pages)
+        routes = "\n".join(p["routes"] for p in pages)
+        nav_links = []
+        for p in pages:
+            if "nav_link_text" in p:
+                nav_links.append(f'                    <Link to="{p["nav_path"]}">{p["nav_link_text"]}</Link>')
+
+        nav_jsx = "\n".join(nav_links)
+        report_nav = f'\n                    <Link to="/reports">Reports</Link>' if report_link else ""
+
+        return f"""import React from 'react';
+import {{ BrowserRouter as Router, Routes, Route, Link }} from 'react-router-dom';
 {report_import}{imports}
 
-export default function AppRouter() {{
+export default function App() {{
     return (
-        <Routes>
-            <Route path="/" element={{<HomePage />}} />
+        <Router>
+            <div className="app">
+                <aside className="sidebar">
+                    <div className="sidebar-header">
+                        <h1>{app_name}</h1>
+                    </div>
+                    <nav className="sidebar-nav">
+                        <Link to="/">Dashboard</Link>
+{nav_jsx}{report_nav}
+                    </nav>
+                </aside>
+                <main className="content">
+                    <Routes>
+                        <Route path="/" element={{<HomePage />}} />
 {report_route}{routes}
-        </Routes>
+                    </Routes>
+                </main>
+            </div>
+        </Router>
     );
 }}
 
@@ -576,32 +647,3 @@ function HomePage() {{
     );
 }}
 """
-
-        app_layout_jsx = f"""import React from 'react';
-import {{ Link }} from 'react-router-dom';
-
-export default function AppLayout({{ children }}) {{
-    return (
-        <div className="app">
-            <aside className="sidebar">
-                <div className="sidebar-header">
-                    <h1>{app_name}</h1>
-                </div>
-                <nav className="sidebar-nav">
-                    <Link to="/">Dashboard</Link>
-{nav_links}
-                    {report_link}
-                </nav>
-            </aside>
-            <main className="content">
-                {{children}}
-            </main>
-        </div>
-    );
-}}
-"""
-        return {
-            "App.jsx": app_jsx,
-            "routes/AppRouter.jsx": app_router_jsx,
-            "components/layout/AppLayout.jsx": app_layout_jsx,
-        }

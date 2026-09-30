@@ -8,12 +8,11 @@ class ExactLayoutTheme(ClassicTheme):
     def name(self) -> str:
         return "Exact Layout (Access replica)"
 
-    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> dict[str, str]:
-        css_files = super().get_css(app_name, presentations)
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
+        css = super().get_css(app_name, presentations)
         # Override the 1000px max-width from the classic theme to allow full-width exact layouts
-        if "index.css" in css_files:
-            css_files["index.css"] += "\n/* Exact Layout Overrides */\n.content { max-width: 100% !important; margin: 0 !important; }\n"
-        return css_files
+        css += "\n/* Exact Layout Overrides */\n.content { max-width: 100% !important; margin: 0 !important; }\n"
+        return css
 
     def _compute_section_offsets(self, presentation) -> dict[int, int]:
         section_max_bottom = {}
@@ -150,7 +149,7 @@ class ExactLayoutTheme(ClassicTheme):
 
         return "".join(parts)
 
-    def render_dashboard_page(self, presentation: UIPresentation, endpoint: str = "", api_name: str = "", helper_imports: str = "") -> str:
+    def render_dashboard_page(self, presentation: UIPresentation) -> str:
         """Override dashboard render to absolutely position buttons as well."""
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
         section_offsets, section_heights = self._compute_section_offsets(presentation)
@@ -224,8 +223,6 @@ class ExactLayoutTheme(ClassicTheme):
         
         return f"""import React, {{ useState }} from 'react';
 {navigate_import}
-import styles from './{page_name}Page.module.css';
-
 export default function {page_name}Page() {{
 {navigate_hook}    const [formData, setFormData] = useState({{}});
 
@@ -290,7 +287,6 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useNavigate, useParams }} from 'react-router-dom';
-import {{ getById, create, update }} from '../services/{api_name}Service';
 {helper_imports}
 
 export default function {page_name}Form() {{
@@ -306,7 +302,7 @@ export default function {page_name}Form() {{
         if (isEdit) {{
             async function fetchData() {{
                 try {{
-                    const data = await getById(id);
+                    const data = await get{api_name}ById(id);
                     setFormData(data);
                 }} catch (err) {{
                     setError(err.message);
@@ -329,9 +325,9 @@ export default function {page_name}Form() {{
         setLoading(true);
         try {{
             if (isEdit) {{
-                await update(id, formData);
+                await update{api_name}(id, formData);
             }} else {{
-                await create(formData);
+                await create{api_name}(formData);
             }}
             navigate('/{endpoint}');
         }} catch (err) {{

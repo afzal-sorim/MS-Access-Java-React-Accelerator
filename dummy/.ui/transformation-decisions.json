@@ -1,0 +1,502 @@
+[
+  {
+    "screen_id": "frmDashboard",
+    "screen_name": "People Manager - Dashboard",
+    "ambiguity_score": 0.24,
+    "mode": "deterministic",
+    "page_type": "settings",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmEmergencyContactsManage",
+    "screen_name": "People Manager - Emergency Contacts",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmRelationshipsManage",
+    "screen_name": "People Manager - Person Relationships",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmAddressesManage",
+    "screen_name": "People Manager - Addresses",
+    "ambiguity_score": 0.19,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmEmailsManage",
+    "screen_name": "People Manager - Emails",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPersonLanguagesManage",
+    "screen_name": "People Manager - Person Languages",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPersonSkillsManage",
+    "screen_name": "People Manager - Person Skills",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmNotesDetail",
+    "screen_name": "People Manager - Note Detail",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmOrgDepartments",
+    "screen_name": "Departments",
+    "ambiguity_score": 0.1,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmDocumentsList",
+    "screen_name": "Documents",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmOrganizationsList",
+    "screen_name": "Organizations",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmPersonAddresses",
+    "screen_name": "Addresses",
+    "ambiguity_score": 0.1,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmCitiesList",
+    "screen_name": "Cities",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmPersonNotes",
+    "screen_name": "Notes",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmDepartmentsList",
+    "screen_name": "Departments",
+    "ambiguity_score": 0.1,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmSkillsList",
+    "screen_name": "Skills",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPhoneNumbersManage",
+    "screen_name": "People Manager - Phone Numbers",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPeopleSearch",
+    "screen_name": "People Manager - Search People",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "settings",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmSkillPeople",
+    "screen_name": "People",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPeopleDetail",
+    "screen_name": "People Manager - Person Detail",
+    "ambiguity_score": 0.38,
+    "mode": "deterministic",
+    "page_type": "master_detail",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmEmploymentHistoryDetail",
+    "screen_name": "People Manager - Employment History Detail",
+    "ambiguity_score": 0.14,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmGroupsDetail",
+    "screen_name": "People Manager - Group Detail",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmInteractionsDetail",
+    "screen_name": "People Manager - Interaction Detail",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmOrganizationsDetail",
+    "screen_name": "People Manager - Organization Detail",
+    "ambiguity_score": 0.1,
+    "mode": "deterministic",
+    "page_type": "master_detail",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPositionsDetail",
+    "screen_name": "People Manager - Position Detail",
+    "ambiguity_score": 0.09,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmDepartmentsDetail",
+    "screen_name": "People Manager - Department Detail",
+    "ambiguity_score": 0.14,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmAppointmentsDetail",
+    "screen_name": "People Manager - Appointment Detail",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmOverdueTasks",
+    "screen_name": "Overdue Tasks",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmSkillsDetail",
+    "screen_name": "People Manager - Skill Detail",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmTasksDetail",
+    "screen_name": "People Manager - Task Detail",
+    "ambiguity_score": 0.09,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmGroupMembers",
+    "screen_name": "Members",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmSystemSettings",
+    "screen_name": "People Manager - System Settings",
+    "ambiguity_score": 0.04,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmUpcomingAppointments",
+    "screen_name": "Upcoming Appointments (next 14 days)",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmPersonEmails",
+    "screen_name": "Emails",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmCountriesList",
+    "screen_name": "Countries",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmEmploymentHistoryList",
+    "screen_name": "Employment History",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmLanguagesList",
+    "screen_name": "Languages",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmGroupsList",
+    "screen_name": "Groups",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmMainMenu",
+    "screen_name": "People Manager - Main Menu",
+    "ambiguity_score": 0.24,
+    "mode": "deterministic",
+    "page_type": "dashboard",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmNotesList",
+    "screen_name": "Notes",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPeopleList",
+    "screen_name": "People Directory",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmStatesList",
+    "screen_name": "States / Provinces",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmReportsMenu",
+    "screen_name": "People Manager - Reports & Prints",
+    "ambiguity_score": 0.24,
+    "mode": "deterministic",
+    "page_type": "dashboard",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmPersonTasks",
+    "screen_name": "Tasks",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmAppointmentsList",
+    "screen_name": "Appointments",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "sfrmPersonPhones",
+    "screen_name": "Phones",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmBirthdayList",
+    "screen_name": "Birthdays This Month",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmInteractionsList",
+    "screen_name": "Interactions",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmPositionsList",
+    "screen_name": "Positions",
+    "ambiguity_score": 0.05,
+    "mode": "deterministic",
+    "page_type": "form",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  },
+  {
+    "screen_id": "frmTasksList",
+    "screen_name": "Tasks",
+    "ambiguity_score": 0,
+    "mode": "deterministic",
+    "page_type": "list",
+    "confidence": 1.0,
+    "llm_attempted": false,
+    "llm_succeeded": false
+  }
+]

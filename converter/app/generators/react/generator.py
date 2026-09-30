@@ -46,6 +46,7 @@ class ReactGenerator:
         ui_style: str = "classic",
         ui_reasoning: str = "automatic",
         ui_debug: bool = False,
+        use_theme_engine: bool = True,
     ):
         self.app = app_ir
         self.app_name = app_name or app_ir.application_name
@@ -63,7 +64,7 @@ class ReactGenerator:
         self.ui_style = (ui_style or "classic").strip().lower()
         self.ui_reasoning = (ui_reasoning or "automatic").strip().lower()
         self.ui_debug = ui_debug
-        self._use_theme_engine = True  # Use the new theme engine for all styles
+        self._use_theme_engine = use_theme_engine
         self._engine = None
         self._theme = None
         self._presentations = None
@@ -132,8 +133,10 @@ class ReactGenerator:
                 if pres.record_source:
                     list_content = self._theme.render_list_page(pres, endpoint, api_name, helper_imports)
                     form_content = self._theme.render_form_page(pres, endpoint, api_name, helper_imports)
-                    files[str(src / "pages" / f"{page_name}Page.jsx")] = list_content
-                    files[str(src / "pages" / f"{page_name}FormPage.jsx")] = form_content
+                    if list_content:
+                        files[str(src / "pages" / f"{page_name}Page.jsx")] = list_content
+                    if form_content:
+                        files[str(src / "pages" / f"{page_name}FormPage.jsx")] = form_content
                 else:
                     page_content = self._theme.render_page(
                         pres, endpoint=endpoint, api_name=api_name, helper_imports=helper_imports,
@@ -157,20 +160,47 @@ class ReactGenerator:
             files[str(src / "services" / "mockData.js")] = self._build_mock_data_file()
             logger.info("Generated mock data for %d entities", len(self._mock_data))
 
-        # Generate API client (with mock data fallback)
-        files[str(src / "services" / "api.js")] = self._generate_api_client()
+        # Phase 3: Generate Axios-based API client + per-entity service files
+        files[str(src / "services" / "apiClient.js")] = self._generate_api_base_client()
+        for table in self.app.tables:
+            if table.role not in ("SYSTEM", "INTERNAL"):
+                entity = self._to_pascal(table.name)
+                files[str(src / "services" / f"{entity}Service.js")] = self._generate_entity_service(table)
+        if self._reports:
+            files[str(src / "services" / "reportService.js")] = self._generate_report_service()
+        # Phase 1.2: Only emit legacy api.js for legacy generator, new themes use Axios client
+        if not self._use_theme_engine:
+            files[str(src / "services" / "api.js")] = self._generate_api_client()
 
-        # Generate index.css — theme-aware
+        # Phase 5: Generate split CSS — tokens + reset + index imports
+        files[str(src / "styles" / "tokens.css")] = self._generate_css_tokens()
+        files[str(src / "styles" / "reset.css")] = self._generate_css_reset()
+        # Generate index.css — theme-aware (kept for theme compat) + import shim
         if self._use_theme_engine and self._presentations and self._theme:
-            files[str(src / "index.css")] = self._theme.get_css(self.app_name, self._presentations)
+            theme_css = self._theme.get_css(self.app_name, self._presentations)
+            if isinstance(theme_css, dict):
+                for rel_path, content in theme_css.items():
+                    files[str(src / rel_path)] = content
+            else:
+                files[str(src / "index.css")] = theme_css
         else:
             files[str(src / "index.css")] = self._generate_index_css()
 
-        # Generate App.jsx — theme-aware
+        # Phase 4: Generate decomposed App.jsx + AppRouter + AppLayout + useApi hook
         if self._use_theme_engine and self._presentations and self._theme:
-            files[str(src / "App.jsx")] = self._generate_themed_app_jsx()
+            app_artifacts = self._generate_themed_app_jsx()
+            if isinstance(app_artifacts, dict):
+                for rel_path, content in app_artifacts.items():
+                    files[str(src / rel_path)] = content
+            else:
+                files[str(src / "App.jsx")] = app_artifacts
         else:
             files[str(src / "App.jsx")] = self._generate_app_jsx()
+            files[str(src / "routes" / "AppRouter.jsx")] = self._generate_app_router()
+            files[str(src / "components" / "layout" / "AppLayout.jsx")] = self._generate_app_layout()
+            files[str(src / "components" / "layout" / "AppLayout.module.css")] = self._generate_app_layout_css()
+            
+        files[str(src / "hooks" / "useApi.js")] = self._generate_use_api_hook()
 
         # Generate main.jsx
         files[str(src / "main.jsx")] = self._generate_main_jsx()
@@ -183,6 +213,27 @@ class ReactGenerator:
 
         # Generate index.html
         files[str(output_dir / "index.html")] = self._generate_index_html()
+
+        # Generate tooling config files (Phase 1 — coding standards)
+        files[str(output_dir / ".eslintrc.cjs")] = self._generate_eslintrc()
+        files[str(output_dir / ".prettierrc")] = self._generate_prettierrc()
+        files[str(output_dir / "vitest.config.js")] = self._generate_vitest_config_file()
+        files[str(output_dir / "README.md")] = self._generate_readme()
+        files[str(src / "test" / "setup.js")] = self._generate_test_setup()
+
+        # Generate shared component library (Phase 2 — reusable UI primitives)
+        from .components_generator import ComponentsGenerator
+        comp_gen = ComponentsGenerator()
+        files.update(comp_gen.generate(src / "components" / "common"))
+
+        # Phase 6: Generate test files
+        files[str(src / "services" / "__tests__" / "apiClient.test.js")] = self._generate_api_client_test()
+        for table in self.app.tables:
+            if table.role not in ("SYSTEM", "INTERNAL"):
+                entity = self._to_pascal(table.name)
+                files[str(src / "services" / "__tests__" / f"{entity}Service.test.js")] = (
+                    self._generate_service_crud_test(table)
+                )
 
         # Write debug artifacts
         if self._engine and self.ui_debug:
@@ -210,7 +261,9 @@ class ReactGenerator:
             }
 
             if pres.record_source:
-                page_info["import"] = f"import {page_name}Page from './pages/{page_name}Page';\nimport {page_name}FormPage from './pages/{page_name}FormPage';\n"
+                # In phase 1.1 we also check if form_content actually exists, but we can't easily check it here.
+                # Since all our themes always return a string for render_form_page, we assume it's emitted.
+                page_info["import"] = f"import {page_name}Page from '../pages/{page_name}Page';\nimport {page_name}FormPage from '../pages/{page_name}FormPage';\n"
                 page_info["routes"] = (
                     f"                        <Route path=\"/{endpoint}\" element={{<{page_name}Page />}} />\n"
                     f"                        <Route path=\"/{endpoint}/:id\" element={{<{page_name}FormPage />}} />\n"
@@ -218,7 +271,7 @@ class ReactGenerator:
                 )
                 page_info["nav_link"] = f'<Link to="/{endpoint}">{pres.screen_name}</Link>\n'
             else:
-                page_info["import"] = f"import {page_name}Page from './pages/{page_name}Page';\n"
+                page_info["import"] = f"import {page_name}Page from '../pages/{page_name}Page';\n"
                 page_info["routes"] = (
                     f"                        <Route path=\"/{page_name.lower()}\" element={{<{page_name}Page />}} />"
                 )
@@ -229,15 +282,17 @@ class ReactGenerator:
         # Operations Workspace has a domain-neutral, LLM-assisted navigation
         # grouping step. Its renderer still owns all generated JSX and routes.
         if self._theme and self._theme.key == "operations_workspace":
-            from .ui.dashboard_topics import DashboardTopicPlanner
-            self._theme.set_dashboard_topics(DashboardTopicPlanner().group(pages))
-
+            if self.ui_reasoning == "none":
+                self._theme.set_dashboard_topics([{"title": "Application Workspaces", "page_ids": [page["dashboard_id"] for page in pages]}])
+            else:
+                from .ui.dashboard_topics import DashboardTopicPlanner
+                self._theme.set_dashboard_topics(DashboardTopicPlanner().group(pages))
         # Reports handling
         report_import = ""
         report_route = ""
         report_link = ""
         if self._reports:
-            report_import = "import ReportsPage from './pages/ReportsPage';\n"
+            report_import = "import ReportsPage from '../pages/ReportsPage';\n"
             report_route = "                        <Route path=\"/reports\" element={<ReportsPage />} />\n"
             report_link = '<Link to="/reports">Reports</Link>'
 
@@ -285,7 +340,17 @@ class ReactGenerator:
         # Try matching by query -> underlying tables in IR queries
         for q in self.app.queries:
             if q.name == record_source and hasattr(q, 'sql') and q.sql:
-                # Find the first referenced table from the query SQL
+                # Try to extract the first table directly after FROM
+                import re
+                match = re.search(r'\bfrom\s+\[?([a-zA-Z0-9_]+)\]?', q.sql.lower())
+                if match:
+                    tname = match.group(1)
+                    # Case insensitive match to actual table names
+                    for actual_tname in table_names:
+                        if actual_tname.lower() == tname:
+                            return self._to_pascal(actual_tname)
+                
+                # Fallback: find the first referenced table from the query SQL
                 for tname in table_names:
                     if tname.lower() in q.sql.lower():
                         return self._to_pascal(tname)
@@ -339,7 +404,7 @@ class ReactGenerator:
             return self._generate_form_page(form, page_name, endpoint, api_name)
 
     def _generate_unbound_page(self, form, page_name: str) -> str:
-        """Generate an info/dashboard page for unbound forms (no record source).
+        """Generate an info/dashboard page for unbound forms using shared components.
 
         Unbound forms in Access are typically UI/utility/business-logic forms,
         NOT database CRUD forms. We render them with interactive form controls
@@ -353,86 +418,56 @@ class ReactGenerator:
         input_fields = [c for c in form.controls
                         if c.control_type in ("TextBox", "ComboBox") and c.visible]
         checkboxes = [c for c in form.controls if c.control_type == "CheckBox"]
-        # Standalone labels (not associated with an input, e.g. section headings)
-        heading_labels = []
-        for c in form.controls:
-            if c.control_type == "Label" and c.caption:
-                # Only include labels that are NOT associated with an input
-                if c.name not in label_map.get("_label_names_used", set()):
-                    # Check if this label has a control source (bound label)
-                    if c.control_source:
-                        heading_labels.append(c)
 
-        # Generate form input fields with proper labels
+        # Generate FormField components
         field_elements = []
         for ctrl in input_fields:
             source = ctrl.control_source or ctrl.name
-            # Resolve label: label_map (from associated Label), then ctrl.caption, then humanized name
             label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
             field_name = self._to_camel(self._sanitize_control_source(source))
+            input_type = "text"
+            disabled_prop = ""
 
             if self._is_access_expression(source):
-                safe_expr = source.replace('"', "'")
-                field_elements.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <input type="text" id="{field_name}" name="{field_name}" disabled placeholder="Computed field" />
-                {{/* TODO: Access expression: {safe_expr} */}}
-            </div>""")
+                disabled_prop = " disabled"
+                input_type = "text"
             elif "Date" in source or "date" in ctrl.name.lower():
-                field_elements.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <input type="date" id="{field_name}" name="{field_name}" />
-            </div>""")
+                input_type = "date"
             elif ctrl.control_type == "ComboBox":
-                field_elements.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <select id="{field_name}" name="{field_name}">
-                    <option value="">Select...</option>
-                </select>
-            </div>""")
-            else:
-                field_elements.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <input type="text" id="{field_name}" name="{field_name}" />
-            </div>""")
+                input_type = "select"
 
-        # Generate checkbox fields
+            field_elements.append(
+                f'            <FormField label="{label}" name="{field_name}" type="{input_type}"{disabled_prop} />'
+            )
+
         for ctrl in checkboxes:
             source = ctrl.control_source or ctrl.name
             label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
             field_name = self._to_camel(self._sanitize_control_source(source))
-            field_elements.append(f"""
-            <div className="form-group">
-                <label>
-                    <input type="checkbox" name="{field_name}" />
-                    {label}
-                </label>
-            </div>""")
+            field_elements.append(
+                f'            <FormField label="{label}" name="{field_name}" type="checkbox" />'
+            )
 
-        # Generate button elements with TODO handlers
+        # Generate Button components with TODO handlers
         button_elements = []
         for ctrl in buttons:
             caption = ctrl.caption or ctrl.name
             handler_name = self._to_camel(ctrl.name)
-            button_elements.append(f"""
-            <button
-                className="btn"
-                onClick={{() => console.warn('TODO: Implement {handler_name} — original Access event handler not yet converted')}}
-            >
-                {caption}
-            </button>""")
+            button_elements.append(
+                f"            <Button onClick={{() => console.warn('TODO: Implement {handler_name}')}}>{caption}</Button>"
+            )
 
         fields_js = "\n".join(field_elements) if field_elements else ""
         buttons_js = "\n".join(button_elements) if button_elements else ""
 
         return f"""import React from 'react';
+import FormField from '../components/common/FormField';
+import Button from '../components/common/Button';
+import PageHeader from '../components/common/PageHeader';
+import Card from '../components/common/Card';
 
 /**
- * {page_name} — Unbound Access form (no database record source).
+ * {page_name} \u2014 Unbound Access form (no database record source).
  *
  * Original Access form: {form.name}
  * This form has {len(form.controls)} controls including {len(buttons)} buttons.
@@ -442,12 +477,13 @@ class ReactGenerator:
 export default function {page_name}Page() {{
     return (
         <div className="{page_name.lower()}-page">
-            <h1>{form.caption or page_name}</h1>
-            <p className="form-description">This page corresponds to Access form: {form.name}</p>
+            <PageHeader title="{form.caption or page_name}" subtitle="Access form: {form.name}" />
+            <Card>
 {fields_js}
-            <div className="button-group">
+                <div className="button-group">
 {buttons_js}
-            </div>
+                </div>
+            </Card>
         </div>
     );
 }}
@@ -500,16 +536,8 @@ export default function {page_name}Page() {{
                 for input_name in input_suffix_map[suffix]:
                     label_map[input_name] = caption
 
-        # Strategy 2: Positional adjacency
-        for i, ctrl in enumerate(controls):
-            if (ctrl.control_type == "Label" and ctrl.caption
-                    and i + 1 < len(controls)):
-                next_ctrl = controls[i + 1]
-                if (next_ctrl.control_type in ("TextBox", "ComboBox", "CheckBox",
-                                               "OptionButton", "ListBox", "ToggleButton")
-                        and next_ctrl.name not in label_map):
-                    label_map[next_ctrl.name] = ctrl.caption.rstrip(":")
-
+        # Removed Strategy 2 (Positional adjacency) to prevent mislabeling.
+        # Fallbacks to humanizing input names happen elsewhere.
         return label_map
 
     @staticmethod
@@ -527,7 +555,7 @@ export default function {page_name}Page() {{
         return cleaned.strip() or name
 
     def _generate_list_page(self, form, page_name: str, endpoint: str, api_name: str = "") -> str:
-        """Generate a list/table page."""
+        """Generate a list/table page using shared components."""
         api_name = api_name or page_name
         var_name = self._to_camel(page_name)
 
@@ -540,20 +568,28 @@ export default function {page_name}Page() {{
                     if not self._is_access_expression(source):
                         display_cols.append(source)
 
-        # Fix 6: Render as proper <th> elements, not raw JS object literals
-        header_ths = "\n                        ".join(
-            f'<th>{col}</th>'
+        # Build column definitions for DataTable component
+        col_defs = ", ".join(
+            f"{{ key: '{self._to_camel(col)}', label: '{col}' }}"
             for col in display_cols[:6]
         )
 
         return f"""import React, {{ useState, useEffect }} from 'react';
-import {{ Link }} from 'react-router-dom';
+import {{ Link, useNavigate }} from 'react-router-dom';
 import {{ get{api_name} }} from '../services/api';
+import PageHeader from '../components/common/PageHeader';
+import DataTable from '../components/common/DataTable';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+import Button from '../components/common/Button';
+
+const COLUMNS = [{col_defs}];
 
 export default function {page_name}Page() {{
     const [{var_name}, set{page_name}] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {{
         async function fetchData() {{
@@ -569,102 +605,74 @@ export default function {page_name}Page() {{
         fetchData();
     }}, []);
 
-    if (loading) return <div className="loading">Loading...</div>;
-    if (error) return <div className="error">{{error}}</div>;
+    if (loading) return <LoadingSpinner message="Loading records\u2026" />;
+    if (error) return <ErrorMessage message={{error}} />;
 
     return (
         <div className="{page_name.lower()}-page">
-            <h1>{form.caption or page_name}</h1>
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>Action</th>
-                        {header_ths}
-                    </tr>
-                </thead>
-                <tbody>
-                    {{{var_name}.map(item => (
-                        <tr key={{item.id}}>
-                            <td>
-                                <Link to={{`/{endpoint}/${{item.id}}`}}>View</Link>
-                            </td>
-                            {"".join([f'<td>{{item.{self._to_camel(col)}}}</td>' for col in display_cols[:6]])}
-                        </tr>
-                    ))}}
-                </tbody>
-            </table>
-            <Link to="/{endpoint}/new" className="btn">Add New</Link>
+            <PageHeader title="{form.caption or page_name}" subtitle={{`${{{var_name}.length}} records`}}>
+                <Link to="/{endpoint}/new"><Button>Add New</Button></Link>
+            </PageHeader>
+            <DataTable
+                columns={{COLUMNS}}
+                data={{{var_name}}}
+                onRowClick={{(row) => navigate(`/{endpoint}/${{row.id}}`)}} 
+            />
         </div>
     );
 }}
 """
 
     def _generate_form_page(self, form, page_name: str, endpoint: str, api_name: str = "") -> str:
-        """Generate a form page for create/edit."""
+        """Generate a form page for create/edit using shared components."""
         api_name = api_name or page_name
-        var_name = self._to_camel(page_name)
 
         # Build label map for proper human-readable labels
         label_map = self._build_unbound_label_map(form.controls)
 
-        # Generate form fields with Access expression sanitization (Fix 3)
+        # Generate FormField components instead of raw HTML
         form_fields = []
         for ctrl in form.controls:
             if ctrl.control_type in ("TextBox", "ComboBox", "CheckBox"):
-                # Use control_source if available, fall back to control name
                 raw_source = ctrl.control_source or ctrl.name
-
-                # Fix 3: Sanitize Access expressions into valid JS identifiers
                 field_name = self._to_camel(self._sanitize_control_source(raw_source))
                 label = label_map.get(ctrl.name) or ctrl.caption or self._humanize_name(ctrl.name)
                 input_type = "text"
                 if ctrl.control_type == "CheckBox":
                     input_type = "checkbox"
+                elif ctrl.control_type == "ComboBox":
+                    input_type = "select"
                 elif "Date" in raw_source:
                     input_type = "date"
                 elif "Email" in raw_source:
                     input_type = "email"
 
-                # Evaluate disabled attribute at generation time
-                disabled_attr = ' disabled' if ctrl.locked else ''
-
-                # Add a TODO comment for Access-expression fields
+                disabled_prop = ' disabled' if ctrl.locked else ''
                 expr_comment = ""
                 if self._is_access_expression(raw_source):
                     safe_expr = raw_source.replace('"', "'")
-                    expr_comment = f"\n                    {{/* TODO: Original Access expression: {safe_expr} */}}"
+                    expr_comment = f"\n                {{/* TODO: Original Access expression: {safe_expr} */}}"
 
-                if ctrl.control_type == "CheckBox":
-                    form_fields.append(f"""
-            <div className="form-group">{expr_comment}
-                <label>
-                    <input
-                        type="checkbox"
-                        name="{field_name}"
-                        checked={{formData.{field_name} || false}}
-                        onChange={{handleChange}}{disabled_attr}
-                    />
-                    {label}
-                </label>
-            </div>""")
-                else:
-                    form_fields.append(f"""
-            <div className="form-group">{expr_comment}
-                <label htmlFor="{field_name}">{label}</label>
-                <input
-                    type="{input_type}"
-                    id="{field_name}"
+                form_fields.append(f"""
+                {expr_comment}
+                <FormField
+                    label="{label}"
                     name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled_attr}
-                />
-            </div>""")
+                    type="{input_type}"
+                    value={{formData.{field_name}}}
+                    onChange={{handleChange}}{disabled_prop}
+                />""")
 
         form_fields_js = "\n".join(form_fields)
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
 import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import FormField from '../components/common/FormField';
+import Button from '../components/common/Button';
+import PageHeader from '../components/common/PageHeader';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
@@ -714,21 +722,21 @@ export default function {page_name}FormPage() {{
         }}
     }};
 
-    if (loading) return <div className="loading">Saving...</div>;
+    if (loading) return <LoadingSpinner message="Saving\u2026" />;
 
     return (
         <div className="{page_name.lower()}-form">
-            <h1>{{isEdit ? 'Edit' : 'Create'}} {form.caption or page_name}</h1>
-            {{error && <div className="error">{{error}}</div>}}
+            <PageHeader title={{isEdit ? 'Edit' : 'Create'}} subtitle="{form.caption or page_name}" />
+            {{error && <ErrorMessage message={{error}} />}}
             <form onSubmit={{handleSubmit}}>
                 {form_fields_js}
                 <div className="form-actions">
-                    <button type="submit" disabled={{loading}} className="btn">
+                    <Button type="submit" disabled={{loading}}>
                         {{isEdit ? 'Update' : 'Create'}}
-                    </button>
-                    <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
+                    </Button>
+                    <Button variant="secondary" onClick={{() => navigate('/{endpoint}')}}>
                         Cancel
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>
@@ -756,7 +764,7 @@ export default function {page_name}FormPage() {{
                         </button>"""
 
         return f"""import React, {{ useState, useEffect, useCallback }} from 'react';
-import {{ listReports, runReport, reportDownloadUrl }} from '../services/api';
+import {{ getReportList, runReport, reportDownloadUrl }} from '../services/reportService';
 
 /**
  * Reports page: choose a report, supply its parameters, view results and
@@ -774,7 +782,7 @@ export default function ReportsPage() {{
     const [error, setError] = useState(null);
 
     useEffect(() => {{
-        listReports()
+        getReportList()
             .then((list) => {{
                 setReports(list);
                 if (list.length > 0) {{
@@ -928,6 +936,8 @@ export default function ReportsPage() {{
 
     def _generate_mock_data(self) -> dict:
         """Generate mock data using LLM, with deterministic fallback."""
+        if self.ui_reasoning == "none":
+            return {}
         try:
             from .ui.llm.mock_data import MockDataGenerator
             gen = MockDataGenerator()
@@ -1147,60 +1157,23 @@ function buildReportQuery(params) {{
 """
 
     def _generate_app_jsx(self) -> str:
-        """Generate App.jsx with routing."""
-        routes = []
-        imports = []
-
-        for form in self.app.forms:
-            page_name = self._to_pascal(form.name.replace("frm", ""))
-            route_path = self._to_kebab(form.record_source) if form.record_source else self._to_kebab(form.name)
-
-            imports.append(f"import {page_name}Page from './pages/{page_name}Page';")
-            routes.append(f'            <Route path="/{route_path}" element={{<{page_name}Page />}} />')
-            routes.append(f'            <Route path="/{route_path}/:id" element={{<{page_name}Page />}} />')
-            routes.append(f'            <Route path="/{route_path}/new" element={{<{page_name}Page />}} />')
-
-        imports_js = "\n".join(imports)
-        routes_js = "\n".join(routes)
-
-        report_import = ""
-        report_route = ""
-        report_link = ""
-        if self._reports:
-            report_import = "import ReportsPage from './pages/ReportsPage';\n"
-            report_route = '            <Route path="/reports" element={<ReportsPage />} />\n'
-            report_link = '<Link to="/reports">Reports</Link>'
-
+        """Generate simplified App.jsx that delegates to AppRouter and AppLayout."""
         return f"""import React from 'react';
-import {{ BrowserRouter as Router, Routes, Route, Link }} from 'react-router-dom';
-{report_import}{imports_js}
+import {{ BrowserRouter as Router }} from 'react-router-dom';
+import AppLayout from './components/layout/AppLayout';
+import AppRouter from './routes/AppRouter';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import './styles/reset.css';
 
 export default function App() {{
     return (
-        <Router>
-            <div className="app">
-                <nav className="navbar">
-                    <Link to="/">Home</Link>
-                    {"".join([f'<Link to="/{self._to_kebab(f.record_source) if f.record_source else self._to_kebab(f.name)}">{f.caption or self._to_pascal(f.name.replace("frm", ""))}</Link>' for f in self.app.forms if f.name.lower() != "frmlogin"])}
-                    {report_link}
-                </nav>
-                <main className="content">
-                    <Routes>
-                        <Route path="/" element={{<HomePage />}} />
-{report_route}{routes_js}
-                    </Routes>
-                </main>
-            </div>
-        </Router>
-    );
-}}
-
-function HomePage() {{
-    return (
-        <div className="home">
-            <h1>{self.app_name}</h1>
-            <p>Welcome to the application.</p>
-        </div>
+        <ErrorBoundary>
+            <Router>
+                <AppLayout>
+                    <AppRouter />
+                </AppLayout>
+            </Router>
+        </ErrorBoundary>
     );
 }}
 """
@@ -1220,7 +1193,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 """
 
     def _generate_package_json(self) -> str:
-        """Generate package.json."""
+        """Generate package.json with linting, formatting, and testing toolchain."""
         return f"""{{
   "name": "{self._to_kebab(self.app_name)}",
   "version": "1.0.0",
@@ -1228,16 +1201,35 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   "scripts": {{
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src/ --ext .js,.jsx",
+    "lint:fix": "eslint src/ --ext .js,.jsx --fix",
+    "format": "prettier --write \\"src/**/*.{{js,jsx,css,json}}\\"",
+    "format:check": "prettier --check \\"src/**/*.{{js,jsx,css,json}}\\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   }},
   "dependencies": {{
+    "axios": "1.20.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-router-dom": "7.18.2"
   }},
   "devDependencies": {{
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
     "@vitejs/plugin-react": "6.0.5",
-    "vite": "8.2.1"
+    "eslint": "9.27.0",
+    "eslint-config-prettier": "10.1.5",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "5.2.0",
+    "jsdom": "26.1.0",
+    "prettier": "3.5.3",
+    "vite": "8.2.1",
+    "vitest": "3.2.1"
   }}
 }}
 """
@@ -1262,12 +1254,16 @@ export default defineConfig({{
 """
 
     def _generate_index_html(self) -> str:
-        """Generate index.html."""
+        """Generate index.html with SEO meta tags and web font."""
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{self.app_name} — modernized from MS Access">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>{self.app_name}</title>
 </head>
 <body>
@@ -1276,6 +1272,808 @@ export default defineConfig({{
 </body>
 </html>
 """
+
+    # ---------------------------------------------------------------- Phase 1: tooling config
+
+    def _generate_eslintrc(self) -> str:
+        """Generate ESLint configuration with React, hooks, a11y, and Prettier integration."""
+        return """/** @type {import('eslint').Linter.Config} */
+module.exports = {
+  root: true,
+  env: { browser: true, es2024: true },
+  extends: [
+    'eslint:recommended',
+    'plugin:react/recommended',
+    'plugin:react/jsx-runtime',
+    'plugin:react-hooks/recommended',
+    'plugin:jsx-a11y/recommended',
+    'prettier',
+  ],
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    ecmaFeatures: { jsx: true },
+  },
+  settings: { react: { version: 'detect' } },
+  rules: {
+    'react/prop-types': 'off',
+    'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'jsx-a11y/anchor-is-valid': 'warn',
+  },
+};
+"""
+
+    def _generate_prettierrc(self) -> str:
+        """Generate Prettier configuration."""
+        return """{
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "semi": true,
+  "bracketSpacing": true,
+  "jsxSingleQuote": false,
+  "arrowParens": "always"
+}
+"""
+
+    def _generate_vitest_config_file(self) -> str:
+        """Generate Vitest configuration file."""
+        return """import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    css: { modules: { classNameStrategy: 'non-scoped' } },
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+  },
+});
+"""
+
+    def _generate_test_setup(self) -> str:
+        """Generate test setup file with jest-dom matchers."""
+        return """import '@testing-library/jest-dom';
+"""
+
+    def _generate_readme(self) -> str:
+        """Generate project README with architecture and usage documentation."""
+        table_count = len(self.app.tables)
+        form_count = len(self.app.forms)
+        return f"""# {self.app_name}
+
+> Modernized React frontend, converted from MS Access.
+
+## Quick Start
+
+```bash
+npm install
+npm run dev        # Start dev server on http://localhost:3000
+```
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Production build to `dist/` |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint on all source files |
+| `npm run lint:fix` | Auto-fix lint errors |
+| `npm run format` | Format all files with Prettier |
+| `npm run format:check` | Check formatting without changes |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run tests once (CI) |
+| `npm run test:coverage` | Run tests with coverage report |
+
+## Architecture
+
+```
+src/
+├── App.jsx                 # Root component with routing
+├── main.jsx                # Entry point
+├── index.css               # Global styles
+├── pages/                  # Page components (one per Access form)
+└── services/
+    ├── api.js              # API client with CRUD operations
+    └── mockData.js         # Sample data for offline development
+```
+
+## Source Database
+
+- **Tables**: {table_count}
+- **Forms**: {form_count}
+- **API Base**: `/api` (proxied to Spring Boot backend on port 8080)
+
+## Technology Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| UI | React | 19.2.8 |
+| Routing | React Router | 7.18.2 |
+| HTTP Client | Axios | 1.20.0 |
+| Build Tool | Vite | 8.2.1 |
+| Linting | ESLint | 9.27.0 |
+| Formatting | Prettier | 3.5.3 |
+| Testing | Vitest + Testing Library | 3.2.1 |
+"""
+
+    # ---------------------------------------------------------------- Phase 3: API layer
+
+    def _generate_api_base_client(self) -> str:
+        """Generate Axios-based centralized API client."""
+        return """import axios from 'axios';
+
+const API_BASE = '/api';
+
+const apiClient = axios.create({
+  baseURL: API_BASE,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Request interceptor — add auth token if available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor — normalize errors
+apiClient.interceptors.response.use(
+  (response) => {
+    // If the server returns an HTML page (like a dev server SPA fallback), reject it so it falls back to mock data
+    if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+      return Promise.reject(new ApiError('Received HTML instead of JSON from API', response.status || 500));
+    }
+    return response.data;
+  },
+  (error) => {
+    const message =
+      error.response?.data?.message || error.message || 'An unexpected error occurred';
+    const status = error.response?.status || 0;
+    const apiError = new ApiError(message, status);
+    return Promise.reject(apiError);
+  },
+);
+
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+export default apiClient;
+"""
+
+    def _generate_entity_service(self, table) -> str:
+        """Generate per-entity CRUD service file using Axios client."""
+        entity = self._to_pascal(table.name)
+        endpoint = self._to_kebab(table.name)
+        has_mock = bool(self._mock_data) and entity in (self._mock_data or {})
+        mock_import = f"import {{ mock{entity} }} from './mockData';\n" if has_mock else ""
+        mock_fallback = f"mock{entity}" if has_mock else "[]"
+
+        return f"""{mock_import}import apiClient from './apiClient';
+
+const ENDPOINT = '/{endpoint}';
+
+export async function getAll() {{
+  try {{
+    return await apiClient.get(ENDPOINT);
+  }} catch (err) {{
+    console.warn('[{entity}] Using fallback data:', err.message);
+    return [...{mock_fallback}];
+  }}
+}}
+
+export async function getById(id) {{
+  try {{
+    return await apiClient.get(`${{ENDPOINT}}/${{id}}`);
+  }} catch (err) {{
+    console.warn('[{entity}] Using fallback data:', err.message);
+    return {mock_fallback}.find((i) => String(i.id) === String(id));
+  }}
+}}
+
+export async function create(data) {{
+  return apiClient.post(ENDPOINT, data);
+}}
+
+export async function update(id, data) {{
+  return apiClient.put(`${{ENDPOINT}}/${{id}}`, data);
+}}
+
+export async function remove(id) {{
+  return apiClient.delete(`${{ENDPOINT}}/${{id}}`);
+}}
+"""
+
+    def _generate_report_service(self) -> str:
+        """Generate report-specific API service."""
+        report_funcs = []
+        for report_def in self._reports:
+            func_name = self._to_camel(report_def.name)
+            endpoint = self._to_kebab(report_def.name)
+            report_funcs.append(f"""
+export async function generate{self._to_pascal(report_def.name)}(params = {{}}) {{
+  return apiClient.get('/reports/{endpoint}', {{ params }});
+}}""")
+
+        funcs_js = "\n".join(report_funcs)
+        return f"""import apiClient from './apiClient';
+
+export async function getReportList() {{
+  return apiClient.get('/reports').then(res => res.data || res);
+}}
+
+export async function runReport(endpoint, params = {{}}) {{
+  return apiClient.get(`/reports/${{endpoint}}`, {{ params }}).then(res => res.data || res);
+}}
+
+export function reportDownloadUrl(endpoint, format, params = {{}}) {{
+  const query = new URLSearchParams({{ format, ...params }}).toString();
+  return `${{apiClient.defaults?.baseURL || ''}}/reports/${{endpoint}}/export?${{query}}`;
+}}
+{funcs_js}
+"""
+
+    # ---------------------------------------------------------------- Phase 4: App decomposition
+
+    def _generate_app_router(self) -> str:
+        """Generate src/routes/AppRouter.jsx with all route definitions."""
+        imports = []
+        routes = []
+        route_index = 0
+
+        if self._use_theme_engine and self._presentations:
+            for pres in self._presentations:
+                page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
+                endpoint = self._to_kebab(page_name) if pres.record_source else ""
+
+                if pres.record_source:
+                    imports.append(f"import {page_name}Page from '../pages/{page_name}Page';")
+                    imports.append(f"import {page_name}FormPage from '../pages/{page_name}FormPage';")
+                    routes.append(f'      <Route path="/{endpoint}" element={{<{page_name}Page />}} />')
+                    routes.append(f'      <Route path="/{endpoint}/new" element={{<{page_name}FormPage />}} />')
+                    routes.append(f'      <Route path="/{endpoint}/:id" element={{<{page_name}FormPage />}} />')
+                    if route_index == 0:
+                        routes.append(f'      <Route path="/" element={{<{page_name}Page />}} />')
+                else:
+                    imports.append(f"import {page_name}Page from '../pages/{page_name}Page';")
+                    route_path = f"/{page_name.lower()}"
+                    routes.append(f'      <Route path="{route_path}" element={{<{page_name}Page />}} />')
+                    if route_index == 0:
+                        routes.append(f'      <Route path="/" element={{<{page_name}Page />}} />')
+                route_index += 1
+        else:
+            for form in self.app.forms:
+                page_name = self._to_pascal(form.name.replace("frm", ""))
+                endpoint = self._to_kebab(page_name)
+
+                if form.record_source:
+                    imports.append(f"import {page_name}Page from '../pages/{page_name}Page';")
+                    routes.append(f'      <Route path="/{endpoint}" element={{<{page_name}Page />}} />')
+                else:
+                    imports.append(f"import {page_name}Page from '../pages/{page_name}Page';")
+                    routes.append(f'      <Route path="/{page_name.lower()}" element={{<{page_name}Page />}} />')
+
+                if route_index == 0:
+                    routes.append(f'      <Route path="/" element={{<{page_name}Page />}} />')
+                route_index += 1
+
+        if self._reports:
+            imports.append("import ReportsPage from '../pages/ReportsPage';")
+            routes.append('      <Route path="/reports" element={<ReportsPage />} />')
+
+        imports_js = "\n".join(imports)
+        routes_js = "\n".join(routes)
+
+        return f"""import React from 'react';
+import {{ Routes, Route }} from 'react-router-dom';
+{imports_js}
+
+export default function AppRouter() {{
+  return (
+    <Routes>
+{routes_js}
+    </Routes>
+  );
+}}
+"""
+
+    def _generate_app_layout(self) -> str:
+        """Generate src/components/layout/AppLayout.jsx with navigation."""
+        nav_links = []
+
+        if self._use_theme_engine and self._presentations:
+            for pres in self._presentations:
+                page_name = self._to_pascal(pres.screen_id.replace("frm", ""))
+                endpoint = self._to_kebab(page_name) if pres.record_source else page_name.lower()
+                label = pres.screen_name or page_name
+                nav_links.append(f'        <NavLink to="/{endpoint}" className={{({{isActive}}) => isActive ? styles.active : ""}}>{label}</NavLink>')
+        else:
+            for form in self.app.forms:
+                page_name = self._to_pascal(form.name.replace("frm", ""))
+                endpoint = self._to_kebab(page_name) if form.record_source else page_name.lower()
+                label = form.caption or page_name
+                nav_links.append(f'        <NavLink to="/{endpoint}" className={{({{isActive}}) => isActive ? styles.active : ""}}>{label}</NavLink>')
+
+        if self._reports:
+            nav_links.append('        <NavLink to="/reports" className={({isActive}) => isActive ? styles.active : ""}>Reports</NavLink>')
+
+        nav_links_js = "\n".join(nav_links)
+
+        return f"""import React from 'react';
+import {{ NavLink }} from 'react-router-dom';
+import styles from './AppLayout.module.css';
+
+export default function AppLayout({{ children }}) {{
+  return (
+    <div className={{styles.app}}>
+      <nav className={{styles.navbar}} aria-label="Main navigation">
+        <span className={{styles.brand}}>{self.app_name}</span>
+{nav_links_js}
+      </nav>
+      <main className={{styles.main}}>
+        {{children}}
+      </main>
+    </div>
+  );
+}}
+"""
+
+    @staticmethod
+    def _generate_app_layout_css() -> str:
+        """Generate CSS Module for AppLayout component."""
+        return """.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar {
+  background: var(--color-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 2rem;
+  display: flex;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  height: 64px;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+  margin-right: 1rem;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.navbar a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.navbar a:hover {
+  color: var(--color-primary-light);
+  border-bottom-color: rgba(129, 140, 248, 0.4);
+}
+
+.active {
+  color: var(--color-primary-light) !important;
+  border-bottom-color: var(--color-primary) !important;
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}
+
+.main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+"""
+
+    @staticmethod
+    def _generate_use_api_hook() -> str:
+        """Generate src/hooks/useApi.js custom hook for data fetching."""
+        return """import { useState, useEffect, useCallback } from 'react';
+
+/**
+ * Custom hook for API data fetching with loading/error state management.
+ *
+ * @param {Function} fetchFn - Async function that returns data
+ * @param {Array} deps - Dependency array for useEffect
+ * @returns {{ data, loading, error, refetch }}
+ */
+export function useApi(fetchFn, deps = []) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const execute = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetchFn();
+      setData(result);
+    } catch (err) {
+      setError(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    execute();
+  }, [execute]);
+
+  return { data, loading, error, refetch: execute };
+}
+
+export default useApi;
+"""
+
+    # ---------------------------------------------------------------- Phase 5: CSS modularization
+
+    @staticmethod
+    def _generate_css_tokens() -> str:
+        """Generate src/styles/tokens.css with CSS custom properties."""
+        return """:root {
+  /* Premium Dark Mode Colors */
+  --color-primary: #818cf8;
+  --color-primary-dark: #6366f1;
+  --color-primary-light: #c7d2fe;
+  --color-secondary: #f472b6;
+  --color-secondary-dark: #ec4899;
+  
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --color-border: rgba(255, 255, 255, 0.12);
+  --color-bg: #0f172a;
+  --color-white: rgba(30, 41, 59, 0.7); /* Glassmorphism surface for cards */
+  
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+
+  /* Typography */
+  --font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.75rem;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows & Glow */
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.25);
+
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+"""
+
+    @staticmethod
+    def _generate_css_reset() -> str:
+        """Generate src/styles/reset.css with global resets."""
+        return """@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: linear-gradient(-45deg, #0f172a, #1e1b4b, #312e81, #0f172a);
+  background-size: 400% 400%;
+  animation: gradientBG 15s ease infinite;
+  min-height: 100vh;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility for cards/surfaces */
+.glass-panel {
+  background: var(--color-white);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-md);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-light);
+  text-shadow: 0 0 8px rgba(129, 140, 248, 0.5);
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+/* App Layout Styles */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar {
+  background: var(--color-white);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 2rem;
+  display: flex;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  height: 64px;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.navbar a {
+  color: var(--color-text-muted);
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+}
+
+.navbar a:hover, .navbar a.active {
+  color: var(--color-white);
+  background: rgba(255, 255, 255, 0.1);
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+"""
+
+    # ---------------------------------------------------------------- Phase 6: test generation
+
+    @staticmethod
+    def _generate_api_client_test() -> str:
+        """Generate tests for the Axios-based API client."""
+        return """import { describe, it, expect, vi, beforeEach } from 'vitest';
+import axios from 'axios';
+import apiClient, { ApiError } from '../apiClient';
+
+vi.mock('axios', () => {
+  const mockAxios = {
+    create: vi.fn(() => mockAxios),
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() },
+    },
+  };
+  return { default: mockAxios };
+});
+
+describe('ApiError', () => {
+  it('stores message and status', () => {
+    const err = new ApiError('Not Found', 404);
+    expect(err.message).toBe('Not Found');
+    expect(err.status).toBe(404);
+    expect(err.name).toBe('ApiError');
+    expect(err).toBeInstanceOf(Error);
+  });
+});
+
+describe('apiClient module', () => {
+  it('exports a configured axios instance', () => {
+    expect(apiClient).toBeDefined();
+    expect(axios.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timeout: 15000,
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+      }),
+    );
+  });
+
+  it('sets up request and response interceptors', () => {
+    expect(apiClient.interceptors.request.use).toHaveBeenCalled();
+    expect(apiClient.interceptors.response.use).toHaveBeenCalled();
+  });
+});
+"""
+
+    def _generate_service_crud_test(self, table) -> str:
+        """Generate full CRUD test for a per-entity service."""
+        entity = self._to_pascal(table.name)
+        endpoint = self._to_kebab(table.name)
+        has_mock = bool(self._mock_data) and entity in (self._mock_data or {})
+
+        return f"""import {{ describe, it, expect, vi, beforeEach }} from 'vitest';
+import apiClient from '../apiClient';
+import {{ getAll, getById, create, update, remove }} from '../{entity}Service';
+
+vi.mock('../apiClient', () => ({{
+  default: {{
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  }},
+}}));
+
+describe('{entity}Service', () => {{
+  beforeEach(() => {{
+    vi.clearAllMocks();
+  }});
+
+  describe('getAll', () => {{
+    it('calls GET /{endpoint}', async () => {{
+      const mockData = [{{ id: 1 }}, {{ id: 2 }}];
+      apiClient.get.mockResolvedValue(mockData);
+
+      const result = await getAll();
+
+      expect(apiClient.get).toHaveBeenCalledWith('/{endpoint}');
+      expect(result).toEqual(mockData);
+    }});
+
+    it('returns fallback data on error', async () => {{
+      apiClient.get.mockRejectedValue(new Error('Network error'));
+
+      const result = await getAll();
+
+      expect(Array.isArray(result)).toBe(true);
+    }});
+  }});
+
+  describe('getById', () => {{
+    it('calls GET /{endpoint}/:id', async () => {{
+      const mockItem = {{ id: '42', name: 'Test' }};
+      apiClient.get.mockResolvedValue(mockItem);
+
+      const result = await getById('42');
+
+      expect(apiClient.get).toHaveBeenCalledWith('/{endpoint}/42');
+      expect(result).toEqual(mockItem);
+    }});
+
+    it('returns fallback item on error', async () => {{
+      apiClient.get.mockRejectedValue(new Error('Not found'));
+
+      const result = await getById('42');
+      // Falls back to mock data or undefined
+      expect(apiClient.get).toHaveBeenCalled();
+    }});
+  }});
+
+  describe('create', () => {{
+    it('calls POST /{endpoint}', async () => {{
+      const newItem = {{ name: 'New Item' }};
+      apiClient.post.mockResolvedValue({{ id: 1, ...newItem }});
+
+      const result = await create(newItem);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/{endpoint}', newItem);
+      expect(result).toEqual({{ id: 1, ...newItem }});
+    }});
+  }});
+
+  describe('update', () => {{
+    it('calls PUT /{endpoint}/:id', async () => {{
+      const updateData = {{ name: 'Updated' }};
+      apiClient.put.mockResolvedValue({{ id: '1', ...updateData }});
+
+      const result = await update('1', updateData);
+
+      expect(apiClient.put).toHaveBeenCalledWith('/{endpoint}/1', updateData);
+      expect(result).toEqual({{ id: '1', ...updateData }});
+    }});
+  }});
+
+  describe('remove', () => {{
+    it('calls DELETE /{endpoint}/:id', async () => {{
+      apiClient.delete.mockResolvedValue(undefined);
+
+      await remove('1');
+
+      expect(apiClient.delete).toHaveBeenCalledWith('/{endpoint}/1');
+    }});
+  }});
+}});
+"""
+
+    # ---------------------------------------------------------------- legacy CSS
 
     def _generate_index_css(self) -> str:
         """Generate global CSS with dynamic form-based styles (Spec section 46)."""

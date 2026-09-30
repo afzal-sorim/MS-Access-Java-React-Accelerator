@@ -1,0 +1,402 @@
+[
+  {
+    "screen_id": "frmDashboard",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmEmergencyContactsManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmRelationshipsManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmAddressesManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmEmailsManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPersonLanguagesManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPersonSkillsManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmNotesDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmOrgDepartments",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmDocumentsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmOrganizationsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmPersonAddresses",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmCitiesList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmPersonNotes",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmDepartmentsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmSkillsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPhoneNumbersManage",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPeopleSearch",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmSkillPeople",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPeopleDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmEmploymentHistoryDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmGroupsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmInteractionsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmOrganizationsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPositionsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmDepartmentsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmAppointmentsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmOverdueTasks",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmSkillsDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmTasksDetail",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmGroupMembers",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmSystemSettings",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmUpcomingAppointments",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmPersonEmails",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmCountriesList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmEmploymentHistoryList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmLanguagesList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmGroupsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmMainMenu",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmNotesList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPeopleList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmStatesList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmReportsMenu",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmPersonTasks",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmAppointmentsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "sfrmPersonPhones",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmBirthdayList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmInteractionsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmPositionsList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  },
+  {
+    "screen_id": "frmTasksList",
+    "field_coverage": "100%",
+    "action_coverage": "100%",
+    "is_complete": true,
+    "dropped_fields": [],
+    "dropped_actions": []
+  }
+]

@@ -1,0 +1,474 @@
+[
+  {
+    "screen_id": "frmPeopleDetail",
+    "score": 0.38,
+    "requires_llm": false,
+    "confidence_label": "moderate_confidence",
+    "explanation": "Moderate form (score: 0.38) \u2014 deterministic mapping sufficient. Factors: many_subforms: 18%, high_fields: 10%, many_relationships: 10%",
+    "factors": {
+      "many_subforms": 0.18,
+      "high_fields": 0.1,
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "frmDashboard",
+    "score": 0.24,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.24) \u2014 deterministic mapping sufficient. Factors: complex_unbound: 12%, many_expressions: 8%, some_buttons: 4%",
+    "factors": {
+      "complex_unbound": 0.12,
+      "some_buttons": 0.04,
+      "many_expressions": 0.08
+    }
+  },
+  {
+    "screen_id": "frmMainMenu",
+    "score": 0.24,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.24) \u2014 deterministic mapping sufficient. Factors: complex_unbound: 12%, many_buttons: 12%",
+    "factors": {
+      "complex_unbound": 0.12,
+      "many_buttons": 0.12
+    }
+  },
+  {
+    "screen_id": "frmReportsMenu",
+    "score": 0.24,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.24) \u2014 deterministic mapping sufficient. Factors: complex_unbound: 12%, many_buttons: 12%",
+    "factors": {
+      "complex_unbound": 0.12,
+      "many_buttons": 0.12
+    }
+  },
+  {
+    "screen_id": "frmAddressesManage",
+    "score": 0.19,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.19) \u2014 deterministic mapping sufficient. Factors: many_relationships: 10%, moderate_fields: 5%, some_buttons: 4%",
+    "factors": {
+      "moderate_fields": 0.05,
+      "some_buttons": 0.04,
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "frmEmploymentHistoryDetail",
+    "score": 0.14,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.14) \u2014 deterministic mapping sufficient. Factors: moderate_fields: 5%, some_relationships: 5%, some_buttons: 4%",
+    "factors": {
+      "moderate_fields": 0.05,
+      "some_buttons": 0.04,
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmDepartmentsDetail",
+    "score": 0.14,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.14) \u2014 deterministic mapping sufficient. Factors: many_relationships: 10%, some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04,
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "sfrmOrgDepartments",
+    "score": 0.1,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.10) \u2014 deterministic mapping sufficient. Factors: many_relationships: 10%",
+    "factors": {
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "sfrmPersonAddresses",
+    "score": 0.1,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.10) \u2014 deterministic mapping sufficient. Factors: many_relationships: 10%",
+    "factors": {
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "frmDepartmentsList",
+    "score": 0.1,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.10) \u2014 deterministic mapping sufficient. Factors: many_relationships: 10%",
+    "factors": {
+      "many_relationships": 0.1
+    }
+  },
+  {
+    "screen_id": "frmOrganizationsDetail",
+    "score": 0.1,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.10) \u2014 deterministic mapping sufficient. Factors: single_subform: 5%, some_relationships: 5%",
+    "factors": {
+      "single_subform": 0.05,
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmPositionsDetail",
+    "score": 0.09,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.09) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%, some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04,
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmTasksDetail",
+    "score": 0.09,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.09) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%, some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04,
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmOrganizationsList",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%",
+    "factors": {
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmGroupsDetail",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: single_subform: 5%",
+    "factors": {
+      "single_subform": 0.05
+    }
+  },
+  {
+    "screen_id": "frmSkillsDetail",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: single_subform: 5%",
+    "factors": {
+      "single_subform": 0.05
+    }
+  },
+  {
+    "screen_id": "frmStatesList",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%",
+    "factors": {
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "sfrmPersonTasks",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%",
+    "factors": {
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmPositionsList",
+    "score": 0.05,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.05) \u2014 deterministic mapping sufficient. Factors: some_relationships: 5%",
+    "factors": {
+      "some_relationships": 0.05
+    }
+  },
+  {
+    "screen_id": "frmEmergencyContactsManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmRelationshipsManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmEmailsManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmPersonLanguagesManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmPersonSkillsManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmNotesDetail",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmPhoneNumbersManage",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmInteractionsDetail",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmAppointmentsDetail",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmSystemSettings",
+    "score": 0.04,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Moderate form (score: 0.04) \u2014 deterministic mapping sufficient. Factors: some_buttons: 4%",
+    "factors": {
+      "some_buttons": 0.04
+    }
+  },
+  {
+    "screen_id": "frmDocumentsList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmCitiesList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "sfrmPersonNotes",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmSkillsList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmPeopleSearch",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "sfrmSkillPeople",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmOverdueTasks",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "sfrmGroupMembers",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmUpcomingAppointments",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "sfrmPersonEmails",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmCountriesList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmEmploymentHistoryList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmLanguagesList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmGroupsList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmNotesList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmPeopleList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmAppointmentsList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "sfrmPersonPhones",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmBirthdayList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmInteractionsList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  },
+  {
+    "screen_id": "frmTasksList",
+    "score": 0,
+    "requires_llm": false,
+    "confidence_label": "high_confidence",
+    "explanation": "Simple form \u2014 fully deterministic mapping.",
+    "factors": {}
+  }
+]

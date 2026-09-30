@@ -22,313 +22,107 @@ class ClassicTheme(Theme):
 
     # ──────────────────────────────────── CSS
 
-    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
-        css = """:root {
-    --color-primary: #3b82f6;
-    --color-primary-dark: #2563eb;
-    --color-secondary: #10b981;
-    --color-text: #1f2937;
-    --color-text-muted: #6b7280;
-    --color-border: #e5e7eb;
-    --color-bg: #f3f4f6;
-    --color-white: #ffffff;
-    --radius-md: 8px;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> dict[str, str]:
+        css_files = {
+            "index.css": """@import './styles/tokens.css';
+@import './styles/reset.css';
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    color: var(--color-text);
-    background: var(--color-bg);
-    line-height: 1.6;
-}
-
-.app { display: flex; flex-direction: column; min-height: 100vh; }
-
-.navbar {
-    background: var(--color-white);
-    border-bottom: 1px solid var(--color-border);
-    padding: 0 2rem;
-    display: flex;
-    gap: 1.5rem;
-    box-shadow: var(--shadow-sm);
-    height: 64px;
-    align-items: center;
-    overflow-x: auto;
-    white-space: nowrap;
-}
-
-.navbar a {
-    color: var(--color-text-muted);
-    text-decoration: none;
-    font-weight: 500;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    font-size: 0.9rem;
-}
-
-.navbar a:hover { color: var(--color-primary); }
-
-.content {
-    flex: 1;
-    padding: 2rem;
-    max-width: 1000px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.form-description {
-    color: var(--color-text-muted);
-    font-size: 0.875rem;
-    margin-bottom: 2rem;
-    font-style: italic;
-}
-
-.info-field {
-    display: flex;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--color-border);
-    align-items: baseline;
-}
-
-.info-label {
-    width: 180px;
-    font-weight: 600;
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-.info-value { flex: 1; color: var(--color-text); }
-
-.button-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 2rem;
-}
-
-.form-group { margin-bottom: 1.5rem; }
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: var(--color-text);
-}
-
-.form-group input, .form-group select, .form-group textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    background: white;
-    transition: border-color 0.2s;
-}
-
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-    outline: none;
-    border-color: var(--color-primary);
-}
-
-.form-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--color-border);
-}
-
-.btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-md);
-    background: var(--color-primary);
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn:hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-}
-
-.btn-secondary {
-    background-color: var(--color-white);
-    color: var(--color-text);
-    border: 1px solid var(--color-border);
-}
-
-.btn-secondary:hover {
-    background-color: var(--color-bg);
-    color: var(--color-primary);
-    border-color: var(--color-primary);
-}
-
-.btn-danger {
-    background-color: #ef4444;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1.5rem 0;
-    background: white;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-}
-
-.data-table th, .data-table td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.data-table th {
-    background: #f8fafc;
-    font-weight: 700;
-    color: var(--color-text);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.data-table tr:last-child td { border-bottom: none; }
-
-.section-card {
-    background: var(--color-white);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-sm);
-}
-
-.section-card h2 {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    color: var(--color-text);
-}
-
-.two-column {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-@media (max-width: 768px) {
-    .two-column { grid-template-columns: 1fr; }
-}
-
-.loading { text-align: center; padding: 3rem; color: var(--color-text-muted); }
-.error { color: #ef4444; padding: 1rem; background: #fef2f2; border-radius: var(--radius-md); margin: 1rem 0; }
-.empty { text-align: center; color: var(--color-text-muted); padding: 2rem; }
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* demo_version aesthetic overrides */
+.app { background: #f1f5f9; min-height: 100vh; font-family: inherit; color: #20314e; }
+.navbar { display: flex; gap: 4px; padding: 10px 24px; background: #fff; border-bottom: 1px solid #e2e8f0; overflow-x: auto; }
+.navbar a { color: #4d5c75; text-decoration: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+.navbar a:hover { background: #eaf1fb; color: #1762b5; }
+.content { padding: 24px; }
 """
-        # Dynamic per-page styles
+        }
+        
+        # Dynamic per-page styles (CSS Modules)
         for p in presentations:
             name = self._to_pascal(p.screen_id.replace("frm", ""))
-            cls = name.lower()
             hue = sum(ord(c) for c in name) % 360
-            css += f"""
-/* {name} */
-.{cls}-page, .{cls}-form {{
+            css_files[f"pages/{name}Page.module.css"] = f"""/* {name} CSS Module */
+.pageContainer {{
     --form-accent: hsl({hue}, 65%, 40%);
     animation: fadeIn 0.4s ease-out;
-    background: var(--color-white);
-    border-radius: var(--radius-md);
-    padding: 2.5rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
     margin-bottom: 2rem;
-    box-shadow: var(--shadow-md);
-    border-top: 5px solid var(--form-accent);
+}}
+.pageContainer:hover {{
+    border-color: #88a9d6;
+    box-shadow: 0 4px 12px rgba(11,59,130,.10);
 }}
 
-.{cls}-page h1, .{cls}-form h1 {{
-    color: var(--form-accent);
-    font-size: 2rem;
+.pageContainer :global(h1) {{
+    color: #44536c;
+    font-size: 18px;
     margin-bottom: 0.5rem;
     font-weight: 800;
 }}
 
-.{cls}-page .btn, .{cls}-form button[type="submit"] {{ background-color: var(--form-accent); }}
-.{cls}-page .data-table th {{ border-bottom: 2px solid var(--form-accent); }}
+.pageContainer :global(.btn), .pageContainer :global(button[type="submit"]) {{
+    background-color: #1762b5;
+    border-radius: 5px;
+    padding: 9px 14px;
+    font-weight: 700;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}}
+.pageContainer :global(.btn):hover {{
+    background-color: #124d8f;
+}}
 """
-        return css
+        return css_files
 
     # ──────────────────────────────────── Pages
 
     def render_list_page(self, presentation, endpoint, api_name, helper_imports):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
         var_name = self._to_camel(page_name)
-        cols = self._build_table_columns(presentation.fields)
-        header_ths = "\n                        ".join(f"<th>{f.label}</th>" for f in cols)
-        body_tds = "".join(f"<td>{{item.{self._to_camel(self._sanitize_field(f.data_source or f.id))}}}</td>" for f in cols)
+        
+        return f"""import React, {{ useState }} from 'react';
+import {{ useNavigate }} from 'react-router-dom';
+import {{ getAll }} from '../services/{api_name}Service';
+import {{ useApi }} from '../hooks/useApi';
+import PageHeader from '../components/common/PageHeader';
+import DataTable from '../components/common/DataTable';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+import EmptyState from '../components/common/EmptyState';
+import Button from '../components/common/Button';
 
-        return f"""import React, {{ useState, useEffect }} from 'react';
-import {{ Link }} from 'react-router-dom';
-import {{ get{api_name} }} from '../services/api';
+import styles from './{page_name}Page.module.css';
 
 export default function {page_name}Page() {{
-    const [{var_name}, set{page_name}] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+    const {{ data: {var_name}, loading, error }} = useApi(getAll);
 
-    useEffect(() => {{
-        async function fetchData() {{
-            try {{
-                const data = await get{api_name}();
-                set{page_name}(data);
-            }} catch (err) {{
-                setError(err.message);
-            }} finally {{
-                setLoading(false);
-            }}
-        }}
-        fetchData();
-    }}, []);
+    if (loading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage message={{error}} />;
 
-    if (loading) return <div className="loading">Loading...</div>;
-    if (error) return <div className="error">{{error}}</div>;
+    const columns = [
+        {{ key: 'id', label: 'ID' }},
+        // TODO: Map other columns
+    ];
 
     return (
         <div className="{page_name.lower()}-page">
-            <h1>{presentation.screen_name}</h1>
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>Action</th>
-                        {header_ths}
-                    </tr>
-                </thead>
-                <tbody>
-                    {{{var_name}.map(item => (
-                        <tr key={{item.id}}>
-                            <td>
-                                <Link to={{`/{endpoint}/${{item.id}}`}}>View</Link>
-                            </td>
-                            {body_tds}
-                        </tr>
-                    ))}}
-                </tbody>
-            </table>
-            <Link to="/{endpoint}/new" className="btn">Add New</Link>
+            <PageHeader title="{presentation.screen_name}" />
+            
+            {{!{var_name} || {var_name}.length === 0 ? (
+                <EmptyState message="No {page_name.lower()}s found." />
+            ) : (
+                <DataTable 
+                    data={{{var_name}}} 
+                    columns={{columns}} 
+                    onRowClick={{(row) => navigate(`/{endpoint}/${{row.id}}`)}}
+                />
+            )}}
+            
+            <Button onClick={{() => navigate(`/{endpoint}/new`)}}>Add New</Button>
         </div>
     );
 }}
@@ -336,32 +130,33 @@ export default function {page_name}Page() {{
 
     def render_form_page(self, presentation, endpoint, api_name, helper_imports):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
-        form_fields = self._build_form_fields_jsx(presentation.fields)
+        form_fields_jsx = self._build_form_fields_jsx(presentation.fields)
 
         return f"""import React, {{ useState, useEffect }} from 'react';
-import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import {{ useNavigate, useParams }} from 'react-router-dom';
+import {{ getById, create, update }} from '../services/{api_name}Service';
+import PageHeader from '../components/common/PageHeader';
+import FormField from '../components/common/FormField';
+import Button from '../components/common/Button';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+
+import styles from './{page_name}Page.module.css';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({{}});
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
     const isEdit = Boolean(id);
+    const [formData, setFormData] = useState({{}});
+    const [loading, setLoading] = useState(isEdit);
+    const [error, setError] = useState(null);
 
     useEffect(() => {{
         if (isEdit) {{
-            async function fetchData() {{
-                try {{
-                    const data = await get{api_name}ById(id);
-                    setFormData(data);
-                }} catch (err) {{
-                    setError(err.message);
-                }}
-            }}
-            fetchData();
+            getById(id)
+                .then(data => setFormData(data))
+                .catch(err => setError(err.message))
+                .finally(() => setLoading(false));
         }}
     }}, [id, isEdit]);
 
@@ -375,36 +170,26 @@ export default function {page_name}FormPage() {{
 
     const handleSubmit = async (e) => {{
         e.preventDefault();
-        setLoading(true);
         try {{
-            if (isEdit) {{
-                await update{api_name}(id, formData);
-            }} else {{
-                await create{api_name}(formData);
-            }}
+            if (isEdit) await update(id, formData);
+            else await create(formData);
             navigate('/{endpoint}');
         }} catch (err) {{
             setError(err.message);
-        }} finally {{
-            setLoading(false);
         }}
     }};
 
-    if (loading) return <div className="loading">Saving...</div>;
+    if (loading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage message={{error}} />;
 
     return (
         <div className="{page_name.lower()}-form">
-            <h1>{{isEdit ? 'Edit' : 'Create'}} {presentation.screen_name}</h1>
-            {{error && <div className="error">{{error}}</div>}}
+            <PageHeader title={{isEdit ? \'Edit {presentation.screen_name}\' : \'Add {presentation.screen_name}\'}} />
             <form onSubmit={{handleSubmit}}>
-                {form_fields}
+{form_fields_jsx}
                 <div className="form-actions">
-                    <button type="submit" disabled={{loading}} className="btn">
-                        {{isEdit ? 'Update' : 'Create'}}
-                    </button>
-                    <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
-                        Cancel
-                    </button>
+                    <Button type="submit">Save</Button>
+                    <Button variant="secondary" onClick={{() => navigate(`/{endpoint}`)}}>Cancel</Button>
                 </div>
             </form>
         </div>
@@ -412,49 +197,32 @@ export default function {page_name}FormPage() {{
 }}
 """
 
-    def render_dashboard_page(self, presentation):
+    def render_dashboard_page(self, presentation, endpoint, api_name, helper_imports):
         page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
         button_elements = []
         for action in presentation.actions:
-            handler = self._to_camel(action.id)
-            nav_route = self._resolve_action_route(action)
-            if nav_route:
-                click_handler = f"navigate('{nav_route}')"
-            else:
-                click_handler = f"console.warn('No route mapped for: {handler}')"
+            route = self._resolve_action_route(action)
+            on_click = f"onClick={{() => navigate('{route}')}}" if route else ""
             button_elements.append(f"""
-            <button
-                className="btn"
-                onClick={{() => {click_handler}}}
-            >
-                {action.label}
-            </button>""")
-
-        # Render actual form input elements instead of read-only spans
+                <Button {on_click}>
+                    {action.label or action.id}
+                </Button>""")
+        buttons_jsx = "\n".join(button_elements)
         form_fields_jsx = self._build_form_fields_jsx(presentation.fields)
 
-        buttons_jsx = "\n".join(button_elements) if button_elements else ""
+        return f"""import React from 'react';
+import {{ useNavigate }} from 'react-router-dom';
+import PageHeader from '../components/common/PageHeader';
+import Button from '../components/common/Button';
+import FormField from '../components/common/FormField';
 
-        needs_navigate = any(self._resolve_action_route(a) for a in presentation.actions)
-        navigate_import = "import { useNavigate } from 'react-router-dom';\n" if needs_navigate else ""
-        navigate_hook = "    const navigate = useNavigate();\n" if needs_navigate else ""
+import styles from './{page_name}Page.module.css';
 
-        return f"""import React, {{ useState }} from 'react';
-{navigate_import}
 export default function {page_name}Page() {{
-{navigate_hook}    const [formData, setFormData] = useState({{}});
-
-    const handleChange = (e) => {{
-        const {{ name, value, type, checked }} = e.target;
-        setFormData(prev => ({{
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }}));
-    }};
-
+    const navigate = useNavigate();
     return (
         <div className="{page_name.lower()}-page">
-            <h1>{presentation.screen_name}</h1>
+            <PageHeader title="{presentation.screen_name}" />
             <p className="form-description">This page corresponds to Access form: {presentation.screen_id}</p>
 {form_fields_jsx}
             <div className="button-group">
@@ -466,126 +234,45 @@ export default function {page_name}Page() {{
 """
 
     def render_detail_page(self, presentation, endpoint, api_name, helper_imports):
-        # For classic theme, detail page is same as form page but read-heavy
-        return self.render_form_page(presentation, endpoint, api_name, helper_imports)
+        return self.render_list_page(presentation, endpoint, api_name, helper_imports)
 
     def render_master_detail_page(self, presentation, endpoint, api_name, helper_imports):
-        page_name = self._to_pascal(presentation.screen_id.replace("frm", ""))
-        primary_fields = [f for f in presentation.fields if f.info_level == InfoLevel.PRIMARY]
-        form_fields = self._build_form_fields_jsx(primary_fields)
+        return self.render_list_page(presentation, endpoint, api_name, helper_imports)
 
-        subform_tables = []
-        for sf in presentation.subforms:
-            sf_name = self._to_pascal(sf.name)
-            subform_tables.append(f"""
-            <div className="section-card">
-                <h2>{sf.name}</h2>
-                <p className="form-description">Related data from: {sf.record_source or sf.name}</p>
-                {{/* TODO: Load and display related {sf_name} data */}}
-            </div>""")
-
-        subforms_jsx = "\n".join(subform_tables)
-
-        return f"""import React, {{ useState, useEffect }} from 'react';
-import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
-
-export default function {page_name}Page() {{
-    const {{ id }} = useParams();
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({{}});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-
-    const isEdit = Boolean(id);
-
-    useEffect(() => {{
-        if (isEdit) {{
-            async function fetchData() {{
-                try {{
-                    const data = await get{api_name}ById(id);
-                    setFormData(data);
-                    setLoading(false);
-                }} catch (err) {{
-                    setError(err.message);
-                    setLoading(false);
-                }}
-            }}
-            fetchData();
-        }} else {{
-            setLoading(false);
-        }}
-    }}, [id, isEdit]);
-
-    const handleChange = (e) => {{
-        const {{ name, value, type, checked }} = e.target;
-        setFormData(prev => ({{
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }}));
-    }};
-
-    const handleSubmit = async (e) => {{
-        e.preventDefault();
-        try {{
-            if (isEdit) {{
-                await update{api_name}(id, formData);
-            }} else {{
-                await create{api_name}(formData);
-            }}
-            navigate('/{endpoint}');
-        }} catch (err) {{
-            setError(err.message);
-        }}
-    }};
-
-    if (loading) return <div className="loading">Loading...</div>;
-    if (error) return <div className="error">{{error}}</div>;
-
-    return (
-        <div className="{page_name.lower()}-page">
-            <h1>{presentation.screen_name}</h1>
-            <div className="section-card">
-                <form onSubmit={{handleSubmit}}>
-                    {form_fields}
-                    <div className="form-actions">
-                        <button type="submit" className="btn">Save</button>
-                        <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">Cancel</button>
-                    </div>
-                </form>
-            </div>
-{subforms_jsx}
-        </div>
-    );
-}}
-"""
-
-    def render_app_shell(self, app_name, pages, report_import, report_route, report_link):
+    def render_app_shell(self, app_name, pages, report_import, report_route, report_link) -> dict[str, str]:
         imports = "\n".join(p["import"] for p in pages)
         routes = "\n".join(p["routes"] for p in pages)
         nav_links = "".join(p.get("nav_link", "") for p in pages)
 
-        return f"""import React from 'react';
-import {{ BrowserRouter as Router, Routes, Route, Link }} from 'react-router-dom';
-{report_import}{imports}
+        app_jsx = f"""import React, {{ useState }} from 'react';
+import {{ BrowserRouter as Router }} from 'react-router-dom';
+import AppLayout from './components/layout/AppLayout';
+import AppRouter from './routes/AppRouter';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {{
     return (
-        <Router>
-            <div className="app">
-                <nav className="navbar">
-                    <Link to="/">Home</Link>
-                    {nav_links}
-                    {report_link}
-                </nav>
-                <main className="content">
-                    <Routes>
-                        <Route path="/" element={{<HomePage />}} />
+        <ErrorBoundary>
+            <Router>
+                <AppLayout>
+                    <AppRouter />
+                </AppLayout>
+            </Router>
+        </ErrorBoundary>
+    );
+}}
+"""
+
+        app_router_jsx = f"""import React, {{ useState }} from 'react';
+import {{ Routes, Route }} from 'react-router-dom';
+{report_import}{imports}
+
+export default function AppRouter() {{
+    return (
+        <Routes>
+            <Route path="/" element={{<HomePage />}} />
 {report_route}{routes}
-                    </Routes>
-                </main>
-            </div>
-        </Router>
+        </Routes>
     );
 }}
 
@@ -598,3 +285,28 @@ function HomePage() {{
     );
 }}
 """
+
+        app_layout_jsx = f"""import React, {{ useState }} from 'react';
+import {{ Link }} from 'react-router-dom';
+
+export default function AppLayout({{ children }}) {{
+    return (
+        <div className="app">
+            <nav className="navbar">
+                <Link to="/">Home</Link>
+                {nav_links}
+                {report_link}
+            </nav>
+            <main className="content">
+                {{children}}
+            </main>
+        </div>
+    );
+}}
+"""
+
+        return {
+            "App.jsx": app_jsx,
+            "routes/AppRouter.jsx": app_router_jsx,
+            "components/layout/AppLayout.jsx": app_layout_jsx,
+        }
