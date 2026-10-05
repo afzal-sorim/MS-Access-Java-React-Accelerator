@@ -6,6 +6,7 @@ from a UIPresentation model.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import re
 from typing import Optional
 
 from ..ui.models import UIPresentation, UIScreen, UIField, UIAction, PageType
@@ -29,8 +30,8 @@ class Theme(ABC):
     # ──────────────────────────────────── CSS generation
 
     @abstractmethod
-    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> str:
-        """Generate the complete index.css for the application."""
+    def get_css(self, app_name: str, presentations: list[UIPresentation]) -> dict[str, str]:
+        """Generate modular theme CSS files relative to ``src/styles/theme``."""
         ...
 
     # ──────────────────────────────────── Page rendering
@@ -155,59 +156,30 @@ class Theme(ABC):
             field_name = self._to_camel(self._sanitize_field(field.data_source or field.id))
             label = field.label or field.id
             disabled = " disabled" if field.readonly else ""
-
-            if field.field_type.value == "checkbox":
-                parts.append(f"""
-            <div className="form-group">
-                <label>
-                    <input
-                        type="checkbox"
-                        name="{field_name}"
-                        checked={{formData.{field_name} || false}}
-                        onChange={{handleChange}}{disabled}
-                    />
-                    {label}
-                </label>
-            </div>""")
-            elif field.field_type.value == "select":
-                parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <select
-                    id="{field_name}"
-                    name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                >
-                    <option value="">Select...</option>
-                </select>
-            </div>""")
-            elif field.field_type.value == "textarea":
-                parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <textarea
-                    id="{field_name}"
-                    name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                    rows="4"
-                />
-            </div>""")
-            else:
-                input_type = self._field_type_to_input(field)
-                parts.append(f"""
-            <div className="form-group">
-                <label htmlFor="{field_name}">{label}</label>
-                <input
-                    type="{input_type}"
-                    id="{field_name}"
-                    name="{field_name}"
-                    value={{formData.{field_name} || ''}}
-                    onChange={{handleChange}}{disabled}
-                />
-            </div>""")
+            field_type = field.field_type.value
+            input_type = (
+                "checkbox" if field_type == "checkbox"
+                else "select" if field_type == "select"
+                else "textarea" if field_type == "textarea"
+                else self._field_type_to_input(field)
+            )
+            parts.append(
+                f'<FormField label="{label}" name="{field_name}" type="{input_type}" '
+                f'value={{formData.{field_name}}} onChange={{handleChange}}{disabled} />'
+            )
         return "\n".join(parts)
+
+    @staticmethod
+    def _split_css(css: str) -> dict[str, str]:
+        """Split theme CSS into tokens and visual rules without brittle selectors.
+
+        Theme implementations continue to author a single readable template,
+        while generated applications receive independently importable modules.
+        """
+        root = re.search(r"\s*:root\s*\{.*?\}", css, flags=re.DOTALL)
+        token_css = root.group(0).strip() + "\n" if root else ""
+        rules_css = css[:root.start()] + css[root.end():] if root else css
+        return {"tokens.css": token_css, "rules.css": rules_css.strip() + "\n"}
 
     @staticmethod
     def _field_type_to_input(field: UIField) -> str:

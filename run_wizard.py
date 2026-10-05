@@ -50,9 +50,9 @@ def run_wizard():
     frontend_env = {**os.environ}
     load_env(frontend_dir / ".env", frontend_env)
 
-    backend_host = backend_env.get("BACKEND_HOST", "0.0.0.0")
-    backend_port = backend_env.get("BACKEND_PORT", "8000")
-    frontend_port = frontend_env.get("PORT", "3000")
+    backend_host = "0.0.0.0"
+    backend_port = "8001"
+    frontend_port = "3001"
     frontend_env["PORT"] = frontend_port
     frontend_env["VITE_API_URL"] = f"http://localhost:{backend_port}"
 

@@ -12,7 +12,7 @@ class ExactLayoutTheme(ClassicTheme):
         css = super().get_css(app_name, presentations)
         # Override the 1000px max-width from the classic theme to allow full-width exact layouts
         css += "\n/* Exact Layout Overrides */\n.content { max-width: 100% !important; margin: 0 !important; }\n"
-        return css
+        return self._split_css(css)
 
     def _compute_section_offsets(self, presentation) -> dict[int, int]:
         section_max_bottom = {}
@@ -302,7 +302,7 @@ export default function {page_name}Form() {{
         if (isEdit) {{
             async function fetchData() {{
                 try {{
-                    const data = await get{api_name}ById(id);
+                    const data = await getById(id);
                     setFormData(data);
                 }} catch (err) {{
                     setError(err.message);
@@ -325,9 +325,9 @@ export default function {page_name}Form() {{
         setLoading(true);
         try {{
             if (isEdit) {{
-                await update{api_name}(id, formData);
+                await update(id, formData);
             }} else {{
-                await create{api_name}(formData);
+                await create(formData);
             }}
             navigate('/{endpoint}');
         }} catch (err) {{

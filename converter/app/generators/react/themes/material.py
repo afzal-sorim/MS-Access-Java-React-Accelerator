@@ -409,15 +409,7 @@ body {
     to { opacity: 1; }
 }
 """
-        for p in presentations:
-            name = self._to_pascal(p.screen_id.replace("frm", ""))
-            cls = name.lower()
-            css += f"""
-.{cls}-page, .{cls}-form {{
-    animation: fadeIn 0.3s ease-out;
-}}
-"""
-        return css
+        return self._split_css(css)
 
     # ──────────────────────────────────── Pages
 
@@ -427,10 +419,12 @@ body {
         cols = self._build_table_columns(presentation.fields)
         header_ths = "\n                        ".join(f"<th>{f.label}</th>" for f in cols)
         body_tds = "".join(f"<td>{{item.{self._to_camel(self._sanitize_field(f.data_source or f.id))}}}</td>" for f in cols)
+        columns_js = ", ".join(f"{{ key: '{self._to_camel(self._sanitize_field(field.data_source or field.id))}', label: '{field.label}' }}" for field in cols)
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ Link }} from 'react-router-dom';
-import {{ get{api_name} }} from '../services/api';
+import {{ DataTable, ErrorMessage, LoadingSpinner, PageHeader }} from '../components/common';
+import {{ getAll }} from '../services/{api_name}Service';
 
 export default function {page_name}Page() {{
     const [{var_name}, set{page_name}] = useState([]);
@@ -438,41 +432,19 @@ export default function {page_name}Page() {{
     const [error, setError] = useState(null);
 
     useEffect(() => {{
-        get{api_name}()
+        getAll()
             .then(data => set{page_name}(data))
             .catch(err => setError(err.message))
             .finally(() => setLoading(false));
     }}, []);
 
-    if (loading) return <div className="loading">Loading...</div>;
-    if (error) return <div className="error">{{error}}</div>;
+    if (loading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage error={{error}} />;
 
     return (
         <div className="{page_name.lower()}-page">
-            <div className="page-header">
-                <h1>{presentation.screen_name}</h1>
-            </div>
-            <div className="card">
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            {header_ths}
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{{var_name}.map(item => (
-                            <tr key={{item.id}}>
-                                {body_tds}
-                                <td>
-                                    <Link to={{`/{endpoint}/${{item.id}}`}} className="btn-text">EDIT</Link>
-                                </td>
-                            </tr>
-                        ))}}
-                    </tbody>
-                </table>
-                {{{var_name}.length === 0 && <p className="empty">No records found.</p>}}
-            </div>
+            <PageHeader title="{presentation.screen_name}" />
+            <DataTable rows={{{var_name}}} columns={{[{columns_js}]}} renderActions={{(item) => <Link to={{`/{endpoint}/${{item.id}}`}} className="btn-text">EDIT</Link>}} />
             <Link to="/{endpoint}/new" className="fab" title="Add New">+</Link>
         </div>
     );
@@ -485,7 +457,8 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import {{ Button, ErrorMessage, FormField, PageHeader }} from '../components/common';
+import {{ getById, create, update }} from '../services/{api_name}Service';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
@@ -497,7 +470,7 @@ export default function {page_name}FormPage() {{
 
     useEffect(() => {{
         if (isEdit) {{
-            get{api_name}ById(id).then(setFormData).catch(err => setError(err.message));
+            getById(id).then(setFormData).catch(err => setError(err.message));
         }}
     }}, [id, isEdit]);
 
@@ -510,7 +483,7 @@ export default function {page_name}FormPage() {{
         e.preventDefault();
         setLoading(true);
         try {{
-            isEdit ? await update{api_name}(id, formData) : await create{api_name}(formData);
+            isEdit ? await update(id, formData) : await create(formData);
             navigate('/{endpoint}');
         }} catch (err) {{ setError(err.message); }}
         finally {{ setLoading(false); }}
@@ -518,20 +491,18 @@ export default function {page_name}FormPage() {{
 
     return (
         <div className="{page_name.lower()}-form">
-            <div className="page-header">
-                <h1>{{isEdit ? 'Edit' : 'New'}} {presentation.screen_name}</h1>
-            </div>
+            <PageHeader title={{`${{isEdit ? 'Edit' : 'New'}} {presentation.screen_name}`}} />
             <div className="card">
-                {{error && <div className="error">{{error}}</div>}}
+                <ErrorMessage error={{error}} />
                 <form onSubmit={{handleSubmit}}>
                     {form_fields}
                     <div className="form-actions">
-                        <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
+                        <Button type="button" onClick={{() => navigate('/{endpoint}')}} variant="secondary">
                             CANCEL
-                        </button>
-                        <button type="submit" disabled={{loading}} className="btn">
+                        </Button>
+                        <Button type="submit" disabled={{loading}}>
                             {{isEdit ? 'SAVE' : 'CREATE'}}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>
@@ -595,7 +566,8 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import {{ FormField }} from '../components/common';
+import {{ getById, create, update }} from '../services/{api_name}Service';
 
 export default function {page_name}Page() {{
     const {{ id }} = useParams();
@@ -607,7 +579,7 @@ export default function {page_name}Page() {{
 
     useEffect(() => {{
         if (isEdit) {{
-            get{api_name}ById(id).then(data => {{ setFormData(data); setLoading(false); }}).catch(err => {{ setError(err.message); setLoading(false); }});
+            getById(id).then(data => {{ setFormData(data); setLoading(false); }}).catch(err => {{ setError(err.message); setLoading(false); }});
         }} else {{ setLoading(false); }}
     }}, [id, isEdit]);
 
@@ -619,7 +591,7 @@ export default function {page_name}Page() {{
     const handleSubmit = async (e) => {{
         e.preventDefault();
         try {{
-            isEdit ? await update{api_name}(id, formData) : await create{api_name}(formData);
+            isEdit ? await update(id, formData) : await create(formData);
             navigate('/{endpoint}');
         }} catch (err) {{ setError(err.message); }}
     }};

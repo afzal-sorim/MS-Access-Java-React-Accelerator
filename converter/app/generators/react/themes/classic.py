@@ -242,35 +242,7 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 """
-        # Dynamic per-page styles
-        for p in presentations:
-            name = self._to_pascal(p.screen_id.replace("frm", ""))
-            cls = name.lower()
-            hue = sum(ord(c) for c in name) % 360
-            css += f"""
-/* {name} */
-.{cls}-page, .{cls}-form {{
-    --form-accent: hsl({hue}, 65%, 40%);
-    animation: fadeIn 0.4s ease-out;
-    background: var(--color-white);
-    border-radius: var(--radius-md);
-    padding: 2.5rem;
-    margin-bottom: 2rem;
-    box-shadow: var(--shadow-md);
-    border-top: 5px solid var(--form-accent);
-}}
-
-.{cls}-page h1, .{cls}-form h1 {{
-    color: var(--form-accent);
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    font-weight: 800;
-}}
-
-.{cls}-page .btn, .{cls}-form button[type="submit"] {{ background-color: var(--form-accent); }}
-.{cls}-page .data-table th {{ border-bottom: 2px solid var(--form-accent); }}
-"""
-        return css
+        return self._split_css(css)
 
     # ──────────────────────────────────── Pages
 
@@ -280,10 +252,15 @@ body {
         cols = self._build_table_columns(presentation.fields)
         header_ths = "\n                        ".join(f"<th>{f.label}</th>" for f in cols)
         body_tds = "".join(f"<td>{{item.{self._to_camel(self._sanitize_field(f.data_source or f.id))}}}</td>" for f in cols)
+        columns_js = ", ".join(
+            f"{{ key: '{self._to_camel(self._sanitize_field(field.data_source or field.id))}', label: '{field.label}' }}"
+            for field in cols
+        )
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ Link }} from 'react-router-dom';
-import {{ get{api_name} }} from '../services/api';
+import {{ DataTable, ErrorMessage, LoadingSpinner, PageHeader }} from '../components/common';
+import {{ getAll }} from '../services/{api_name}Service';
 
 export default function {page_name}Page() {{
     const [{var_name}, set{page_name}] = useState([]);
@@ -293,7 +270,7 @@ export default function {page_name}Page() {{
     useEffect(() => {{
         async function fetchData() {{
             try {{
-                const data = await get{api_name}();
+                const data = await getAll();
                 set{page_name}(data);
             }} catch (err) {{
                 setError(err.message);
@@ -304,30 +281,13 @@ export default function {page_name}Page() {{
         fetchData();
     }}, []);
 
-    if (loading) return <div className="loading">Loading...</div>;
-    if (error) return <div className="error">{{error}}</div>;
+    if (loading) return <LoadingSpinner />;
+    if (error) return <ErrorMessage error={{error}} />;
 
     return (
         <div className="{page_name.lower()}-page">
-            <h1>{presentation.screen_name}</h1>
-            <table className="data-table">
-                <thead>
-                    <tr>
-                        <th>Action</th>
-                        {header_ths}
-                    </tr>
-                </thead>
-                <tbody>
-                    {{{var_name}.map(item => (
-                        <tr key={{item.id}}>
-                            <td>
-                                <Link to={{`/{endpoint}/${{item.id}}`}}>View</Link>
-                            </td>
-                            {body_tds}
-                        </tr>
-                    ))}}
-                </tbody>
-            </table>
+            <PageHeader title="{presentation.screen_name}" />
+            <DataTable rows={{{var_name}}} columns={{[{columns_js}]}} renderActions={{(item) => <Link to={{`/{endpoint}/${{item.id}}`}}>View</Link>}} />
             <Link to="/{endpoint}/new" className="btn">Add New</Link>
         </div>
     );
@@ -340,7 +300,8 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import {{ Button, ErrorMessage, FormField, LoadingSpinner, PageHeader }} from '../components/common';
+import {{ getById, create, update }} from '../services/{api_name}Service';
 
 export default function {page_name}FormPage() {{
     const {{ id }} = useParams();
@@ -355,7 +316,7 @@ export default function {page_name}FormPage() {{
         if (isEdit) {{
             async function fetchData() {{
                 try {{
-                    const data = await get{api_name}ById(id);
+                    const data = await getById(id);
                     setFormData(data);
                 }} catch (err) {{
                     setError(err.message);
@@ -378,9 +339,9 @@ export default function {page_name}FormPage() {{
         setLoading(true);
         try {{
             if (isEdit) {{
-                await update{api_name}(id, formData);
+                await update(id, formData);
             }} else {{
-                await create{api_name}(formData);
+                await create(formData);
             }}
             navigate('/{endpoint}');
         }} catch (err) {{
@@ -390,21 +351,21 @@ export default function {page_name}FormPage() {{
         }}
     }};
 
-    if (loading) return <div className="loading">Saving...</div>;
+    if (loading) return <LoadingSpinner label="Saving..." />;
 
     return (
         <div className="{page_name.lower()}-form">
-            <h1>{{isEdit ? 'Edit' : 'Create'}} {presentation.screen_name}</h1>
-            {{error && <div className="error">{{error}}</div>}}
+            <PageHeader title={{`${{isEdit ? 'Edit' : 'Create'}} {presentation.screen_name}`}} />
+            <ErrorMessage error={{error}} />
             <form onSubmit={{handleSubmit}}>
                 {form_fields}
                 <div className="form-actions">
-                    <button type="submit" disabled={{loading}} className="btn">
+                    <Button type="submit" disabled={{loading}}>
                         {{isEdit ? 'Update' : 'Create'}}
-                    </button>
-                    <button type="button" onClick={{() => navigate('/{endpoint}')}} className="btn btn-secondary">
+                    </Button>
+                    <Button type="button" onClick={{() => navigate('/{endpoint}')}} variant="secondary">
                         Cancel
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>
@@ -488,7 +449,8 @@ export default function {page_name}Page() {{
 
         return f"""import React, {{ useState, useEffect }} from 'react';
 import {{ useParams, useNavigate }} from 'react-router-dom';
-import {{ get{api_name}ById, create{api_name}, update{api_name} }} from '../services/api';
+import {{ FormField }} from '../components/common';
+import {{ getById, create, update }} from '../services/{api_name}Service';
 
 export default function {page_name}Page() {{
     const {{ id }} = useParams();
@@ -503,7 +465,7 @@ export default function {page_name}Page() {{
         if (isEdit) {{
             async function fetchData() {{
                 try {{
-                    const data = await get{api_name}ById(id);
+                    const data = await getById(id);
                     setFormData(data);
                     setLoading(false);
                 }} catch (err) {{
@@ -529,9 +491,9 @@ export default function {page_name}Page() {{
         e.preventDefault();
         try {{
             if (isEdit) {{
-                await update{api_name}(id, formData);
+                await update(id, formData);
             }} else {{
-                await create{api_name}(formData);
+                await create(formData);
             }}
             navigate('/{endpoint}');
         }} catch (err) {{

@@ -10,6 +10,7 @@ Tests:
 7. QueryStubs.java generation and honest migration report fields
 """
 import pytest
+from pathlib import Path
 from converter.app.ir.models import (
     ApplicationIR, TableIR, ColumnIR, FormIR, ControlIR,
     QueryIR, QueryKind, VbaModuleIR, MacroIR, SupportStatus,
@@ -82,16 +83,28 @@ def test_react_api_and_form_generation():
         # Legacy path: combined page
         form_code = files[matching_pages[0]]
 
-    # Check that API calls use table name RouletteTb instead of form name N301Roulette
-    assert "getRouletteTbById" in form_code
-    assert "updateRouletteTb" in form_code
-    assert "createRouletteTb" in form_code
+    # Check that page imports the table-scoped service, not a monolithic api.js.
+    assert "from '../services/RouletteTbService'" in form_code
+    assert "getById" in form_code
+    assert "update" in form_code
+    assert "create" in form_code
     # Check that locked control has disabled attribute
     assert "disabled" in form_code
     # Check that App.jsx imports valid identifier
     matching_apps = [k for k in files.keys() if "App.jsx" in k]
     app_jsx = files[matching_apps[0]]
-    assert "import N301RoulettePage from './pages/N301RoulettePage';" in app_jsx
+    assert "AppRouter" in app_jsx
+    assert len(app_jsx.splitlines()) < 30
+
+    # The split service/client and reusable library are emitted for every app.
+    generated_names = {Path(key).name for key in files}
+    assert "apiClient.js" in generated_names
+    assert "RouletteTbService.js" in generated_names
+    assert "FormField.jsx" in generated_names
+    assert "N301RoulettePage.module.css" in generated_names
+    assert "N301RouletteFormPage.module.css" in generated_names
+    assert "N301RouletteFormPage.test.jsx" in generated_names
+    assert "api.js" not in generated_names
 
 
 def test_spring_boot_synthetic_id_and_query_stubs():
@@ -303,10 +316,10 @@ def test_react_list_page_th_rendering():
     matching = [k for k in files.keys() if "N700CreateFilelistPage.jsx" in k]
     assert matching
     code = files[matching[0]]
-    # Must contain <th> elements, NOT raw { key: "...", header: "..." } in JSX
-    assert "<th>Path</th>" in code
-    assert "<th>Type</th>" in code
-    assert '{ key: "pathName"' not in code
+    # List pages delegate headers and row semantics to the shared DataTable.
+    assert "<DataTable" in code
+    assert "label: 'Path'" in code
+    assert "label: 'Type'" in code
 
 
 def test_spring_boot_application_and_web_config():
