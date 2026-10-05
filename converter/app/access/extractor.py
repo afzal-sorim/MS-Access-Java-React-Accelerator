@@ -791,6 +791,13 @@ class AccessExtractor:
             "visible": bool(_safe(lambda: ctl.Visible, True)),
             "enabled": bool(_safe(lambda: ctl.Enabled, True)),
             "locked": bool(_safe(lambda: ctl.Locked, False)),
+            "left": _safe(lambda: ctl.Left, None),
+            "top": _safe(lambda: ctl.Top, None),
+            "width": _safe(lambda: ctl.Width, None),
+            "height": _safe(lambda: ctl.Height, None),
+            "back_color": _safe(lambda: ctl.BackColor, None),
+            "fore_color": _safe(lambda: ctl.ForeColor, None),
+            "section": _safe(lambda: getattr(ctl, "Section", None)),
             "events": {},
         }
         if ctype == 112:  # Subform

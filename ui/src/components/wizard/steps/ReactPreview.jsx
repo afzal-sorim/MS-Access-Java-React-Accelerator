@@ -283,7 +283,7 @@ export default function ReactPreview({ jobId }) {
             </div>
 
             {/* ── Sandbox Body & Frame ── */}
-            <div style={{
+            {/* <div style={{
                 background: '#090d16',
                 padding: device === 'desktop' ? '0' : '2rem 1.5rem',
                 minHeight: '700px',
@@ -350,7 +350,7 @@ export default function ReactPreview({ jobId }) {
                         </SandpackLayout>
                     </SandpackProvider>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 }

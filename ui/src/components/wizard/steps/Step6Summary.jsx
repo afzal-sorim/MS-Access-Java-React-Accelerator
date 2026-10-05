@@ -2273,7 +2273,7 @@ export default function Step6Summary({ onReachedIntervention }) {
             </div>
 
             {/* ── UI PREVIEW PANEL (Sandpack React Preview) ── */}
-            {showPreview && (
+            {/* {showPreview && (
                 <div
                     className="s6-ui-preview-panel"
                     style={{
@@ -2284,9 +2284,9 @@ export default function Step6Summary({ onReachedIntervention }) {
                         boxShadow: '0 8px 30px -4px rgba(99,102,241,0.18)',
                         animation: 'fadeIn 0.25s ease-out'
                     }}
-                >
+                > */}
                     {/* Panel Header */}
-                    <div style={{
+                    {/* <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -2354,12 +2354,12 @@ export default function Step6Summary({ onReachedIntervention }) {
                                 <XIcon />
                             </button>
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* ReactPreview sandpack component */}
                     <ReactPreview jobId={targetJobId} />
-                </div>
-            )}
+                {/* </div>
+            )} */}
 
             {/* ── 2. EXECUTIVE SUMMARY CHARTS ROW (EXISTING SPACE) ── */}
             <div className="s6-summary-charts-grid">
